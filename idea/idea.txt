@@ -1,0 +1,16 @@
+The idea is that a TOML file is read and decided what to do with it. It has offer or connect mode. The mode name is entirely in terms of WebRTC. Connect mode reads an offer from the TOML file and connects to the end point using the described parameters on the file. The file can also be an FIFO buffer, it does not matter.
+
+The file should contain:
+ICE (STUN/TURN) parameters
+Should UDP/TCP be 'listened' or is there any UDP/TCP port to send packets to
+
+
+Offer mode:
+First argument is the configuration for the daemon, UDP or WebRTC
+Stdout gives the negotiation info in JSON
+
+Accept mode:
+First argument is the configuration for the daemon and has the offer
+Stdout gives the accepted parameters in JSON
+
+The stdin/stdout are scriptable and used for signalling when ready.
