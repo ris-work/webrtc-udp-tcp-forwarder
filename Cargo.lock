@@ -2308,6 +2308,7 @@ dependencies = [
  "anyhow",
  "base64 0.21.0",
  "env_logger",
+ "futures",
  "log",
  "serde",
  "serde_json",

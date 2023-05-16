@@ -12,10 +12,11 @@ use std::net::TcpListener;
 use std::net::TcpStream;
 use std::net::UdpSocket;
 #[cfg(unix)]
-use std::os::unix::net::UnixStream;
+use std::os::unix::net::{UnixListener, UnixStream};
 use std::process::exit;
 use std::sync::Arc;
 use tokio::time::Duration;
+use tokio::runtime::Runtime;
 #[cfg(windows)]
 use uds_windows::{UnixListener, UnixStream};
 use webrtc::api::interceptor_registry::register_default_interceptors;
@@ -28,6 +29,7 @@ use webrtc::peer_connection::configuration::RTCConfiguration;
 use webrtc::peer_connection::math_rand_alpha;
 use webrtc::peer_connection::peer_connection_state::RTCPeerConnectionState;
 use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
+use futures::executor::block_on;
 
 #[derive(Deserialize)]
 struct Config {
@@ -60,6 +62,7 @@ pub fn decode(s: &str) -> Result<String> {
 }
 fn handle_TCP_client(stream: TcpStream) {}
 async fn create_WebRTC_offer() -> Result<()> {
+    // Create a MediaEngine object to configure the supported codec
     let mut m = MediaEngine::default();
 
     // Register default codecs
@@ -101,13 +104,13 @@ async fn create_WebRTC_offer() -> Result<()> {
     // Set the handler for Peer connection state
     // This will notify you when the peer has connected/disconnected
     peer_connection.on_peer_connection_state_change(Box::new(move |s: RTCPeerConnectionState| {
-        println!("Peer Connection State has changed: {s}");
+        info!("Peer Connection State has changed: {s}");
 
         if s == RTCPeerConnectionState::Failed {
             // Wait until PeerConnection has had no network activity for 30 seconds or another failure. It may be reconnected using an ICE Restart.
             // Use webrtc.PeerConnectionStateDisconnected if you are interested in detecting faster timeout.
             // Note that the PeerConnection may come back from PeerConnectionStateDisconnected.
-            println!("Peer Connection has gone to failed exiting");
+            info!("Peer Connection has gone to failed exiting");
             let _ = done_tx.try_send(());
         }
 
@@ -117,7 +120,7 @@ async fn create_WebRTC_offer() -> Result<()> {
     // Register channel opening handling
     let d1 = Arc::clone(&data_channel);
     data_channel.on_open(Box::new(move || {
-        println!("Data channel '{}'-'{}' open. Random messages will now be sent to any connected DataChannels every 5 seconds", d1.label(), d1.id());
+        info!("Data channel '{}'-'{}' open. Random messages will now be sent to any connected DataChannels every 5 seconds", d1.label(), d1.id());
 
         let d2 = Arc::clone(&d1);
         Box::pin(async move {
@@ -141,7 +144,7 @@ async fn create_WebRTC_offer() -> Result<()> {
     let d_label = data_channel.label().to_owned();
     data_channel.on_message(Box::new(move |msg: DataChannelMessage| {
         let msg_str = String::from_utf8(msg.data.to_vec()).unwrap();
-        println!("Message from DataChannel '{d_label}': '{msg_str}'");
+        info!("Message from DataChannel '{d_label}': '{msg_str}'");
         Box::pin(async {})
     }));
 
@@ -162,10 +165,10 @@ async fn create_WebRTC_offer() -> Result<()> {
     // Output the answer in base64 so we can paste it in browser
     if let Some(local_desc) = peer_connection.local_description().await {
         let json_str = serde_json::to_string(&local_desc)?;
-        let b64 = encode(&json_str);
-        println!("{b64}");
+        //let b64 = encode(&json_str);
+        info!("{json_str}");
     } else {
-        println!("generate local_description failed!");
+        info!("generate local_description failed!");
     }
     Ok(())
 }
@@ -212,7 +215,8 @@ fn main() {
                 .recv_from(&mut buf)
                 .expect("Error saving to buffer");
             OtherSocket.send_to(&buf, &src).expect("UDP: Write failed!");
-            // Create a MediaEngine object to configure the supported codec
+            let rt=Runtime::new().unwrap();
+            rt.block_on(create_WebRTC_offer());
         } else if (config.Type == "TCP") {
             info! {"TCP socket requested"};
             let BindPort = config.Port.clone().expect("Binding port not specified");
