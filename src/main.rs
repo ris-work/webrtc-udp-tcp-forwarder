@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 #![allow(unused_parens)]
-use log::{info, warn, error};
+use log::{info, warn, error, debug};
 use serde::Deserialize;
 use std::env;
 use std::fmt;
@@ -79,7 +79,7 @@ fn main() {
             let (amt, src) = OtherSocket
                 .recv_from(&mut buf)
                 .expect("Error saving to buffer");
-            OtherSocket.send_to(&buf, &src);
+            OtherSocket.send_to(&buf, &src).expect("UDP: Write failed!");   
         } else if (config.Type == "TCP") {
             info! {"TCP socket requested"};
             let BindPort = config.Port.clone().expect("Binding port not specified");
@@ -92,8 +92,8 @@ fn main() {
                 .next()
                 .expect("Error getting the TCP stream")
                 .expect("TCP stream error");
-            OtherSocket.read(&mut buf);
-            OtherSocket.write(&buf);
+            OtherSocket.read(&mut buf).expect("TCP Stream: Read failed!");;
+            OtherSocket.write(&buf).expect("TCP Stream: Write failed!");   
         } else if (config.Type == "UDS"){
             info!{"Unix Domain Socket requested."};
             let Listener = UnixListener::bind(BindAddress);
@@ -103,8 +103,9 @@ fn main() {
                 .next()
                 .expect("Error getting the UDS stream")
                 .expect("UDS stream error");    
-            OtherSocket.read(&mut buf);
-            OtherSocket.write(&buf);   
+            OtherSocket.read(&mut buf).expect("UnixStream: Read failed!");
+            debug!("{:?}", buf);
+            OtherSocket.write(&buf).expect("UnixStream: Write failed!");   
         }
     }
 }
