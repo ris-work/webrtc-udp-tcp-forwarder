@@ -1,4 +1,6 @@
-use log::info;
+#![allow(non_snake_case)]
+#![allow(unused_parens)]
+use log::{info, warn, error};
 use serde::Deserialize;
 use std::env;
 use std::fmt;
@@ -12,7 +14,7 @@ use std::io::Read;
 #[cfg(unix)]
 use std::os::unix::net::UnixStream;
 #[cfg(windows)]
-use uds_windows::stdnet::socket;
+use uds_windows::{UnixStream, UnixListener};
 #[derive(Deserialize)]
 struct Config {
     Type: String,
@@ -51,8 +53,11 @@ fn main() {
     let TOML_file_read = read_to_string(TOML_file_name);
     let TOML_file_contents: String;
     match TOML_file_read {
-        Ok(T) => TOML_file_contents = T,
-        Err(E) => exit(1),
+        Ok (T) => TOML_file_contents = T,
+        Err (E) => {
+            error!{"{}", E};
+            exit(1)
+        }
     }
     info! {"{}", TOML_file_contents};
     let config: Config = toml::from_str(&TOML_file_contents).unwrap();
@@ -62,11 +67,11 @@ fn main() {
             .Address
             .clone()
             .expect("Binding address not specified");
-        let BindPort = config.Port.clone().expect("Binding port not specified");
         let mut buf = [0; 10];
         let SendBytes = "Hello!".bytes();
         if (config.Type == "UDP") {
             info! {"UDP socket requested"};
+            let BindPort = config.Port.clone().expect("Binding port not specified");
             info! {"Binding UDP on address {} port {}", BindAddress, BindPort};
             let OtherSocket = UdpSocket::bind(format! {"{}:{}", BindAddress, BindPort})
                 .expect(&format! {"Could not bind to UDP port: {}:{}", &BindAddress, &BindPort});
@@ -77,6 +82,7 @@ fn main() {
             OtherSocket.send_to(&buf, &src);
         } else if (config.Type == "TCP") {
             info! {"TCP socket requested"};
+            let BindPort = config.Port.clone().expect("Binding port not specified");
             info! {"Binding TCP on address {} port {}", BindAddress, BindPort};
             let Listener = TcpListener::bind(format! {"{}:{}", BindAddress, BindPort})
                 .expect(&format! {"Could not bind to TCP port: {}:{}", &BindAddress, &BindPort});
@@ -88,6 +94,17 @@ fn main() {
                 .expect("TCP stream error");
             OtherSocket.read(&mut buf);
             OtherSocket.write(&buf);
+        } else if (config.Type == "UDS"){
+            info!{"Unix Domain Socket requested."};
+            let Listener = UnixListener::bind(BindAddress);
+            let mut OtherSocket = Listener
+                .expect("UDS listen error")
+                .incoming()
+                .next()
+                .expect("Error getting the UDS stream")
+                .expect("UDS stream error");    
+            OtherSocket.read(&mut buf);
+            OtherSocket.write(&buf);   
         }
     }
 }
