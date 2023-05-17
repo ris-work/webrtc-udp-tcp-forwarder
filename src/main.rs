@@ -1,9 +1,11 @@
 #![allow(non_snake_case)]
 #![allow(unused_parens)]
 use anyhow::Result;
+use futures::executor::block_on;
 use log::{debug, error, info, warn};
 use serde::Deserialize;
 use std::env;
+use std::error;
 use std::fmt;
 use std::fs::read_to_string;
 use std::io::Read;
@@ -15,21 +17,21 @@ use std::net::UdpSocket;
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::process::exit;
 use std::sync::Arc;
-use tokio::time::Duration;
 use tokio::runtime::Runtime;
+use tokio::time::Duration;
 #[cfg(windows)]
 use uds_windows::{UnixListener, UnixStream};
 use webrtc::api::interceptor_registry::register_default_interceptors;
 use webrtc::api::media_engine::MediaEngine;
 use webrtc::api::APIBuilder;
 use webrtc::data_channel::data_channel_message::DataChannelMessage;
+use webrtc::data_channel::RTCDataChannel;
 use webrtc::ice_transport::ice_server::RTCIceServer;
 use webrtc::interceptor::registry::Registry;
 use webrtc::peer_connection::configuration::RTCConfiguration;
 use webrtc::peer_connection::math_rand_alpha;
 use webrtc::peer_connection::peer_connection_state::RTCPeerConnectionState;
 use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
-use futures::executor::block_on;
 
 #[derive(Deserialize)]
 struct Config {
@@ -61,7 +63,7 @@ pub fn decode(s: &str) -> Result<String> {
     Ok(s)
 }
 fn handle_TCP_client(stream: TcpStream) {}
-async fn create_WebRTC_offer() -> Result<()> {
+async fn create_WebRTC_offer() -> Result<Arc<RTCDataChannel>, Box<dyn error::Error>> {
     // Create a MediaEngine object to configure the supported codec
     let mut m = MediaEngine::default();
 
@@ -170,7 +172,7 @@ async fn create_WebRTC_offer() -> Result<()> {
     } else {
         info!("generate local_description failed!");
     }
-    Ok(())
+    Ok(Arc::clone(&data_channel))
 }
 fn main() {
     env_logger::init();
@@ -202,7 +204,7 @@ fn main() {
             .Address
             .clone()
             .expect("Binding address not specified");
-        let mut buf = [0; 10];
+        let mut buf = [0; 65507];
         let SendBytes = "Hello!".bytes();
         if (config.Type == "UDP") {
             info! {"UDP socket requested"};
@@ -214,8 +216,9 @@ fn main() {
             let (amt, src) = OtherSocket
                 .recv_from(&mut buf)
                 .expect("Error saving to buffer");
+            debug!("{:?}", buf);
             OtherSocket.send_to(&buf, &src).expect("UDP: Write failed!");
-            let rt=Runtime::new().unwrap();
+            let rt = Runtime::new().unwrap();
             rt.block_on(create_WebRTC_offer());
         } else if (config.Type == "TCP") {
             info! {"TCP socket requested"};
@@ -232,6 +235,7 @@ fn main() {
             OtherSocket
                 .read(&mut buf)
                 .expect("TCP Stream: Read failed!");
+            debug!("{:?}", buf);
             OtherSocket.write(&buf).expect("TCP Stream: Write failed!");
         } else if (config.Type == "UDS") {
             info! {"Unix Domain Socket requested."};
