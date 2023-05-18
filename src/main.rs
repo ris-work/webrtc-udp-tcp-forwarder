@@ -66,6 +66,7 @@ pub fn decode(s: &str) -> Result<String> {
     let b = general_purpose::STANDARD.decode(s)?;
     debug!{"Base64 to byte buffer: OK"};
     let s = String::from_utf8(b)?;
+    debug!{"Base64 decoded: {}", s};
     Ok(s)
 }
 fn handle_TCP_client(stream: TcpStream) {}
@@ -184,7 +185,11 @@ async fn create_WebRTC_offer(config: Config) -> Result<(Arc<RTCDataChannel>, Arc
 }
 async fn handle_offer(peer_connection: Arc<RTCPeerConnection>, data_channel: Arc<RTCDataChannel>, session_description: RTCSessionDescription) -> Result<(Arc<RTCPeerConnection>, Arc<RTCDataChannel>), Box<dyn error::Error>>{
     let conn = Arc::clone(&peer_connection);
-    conn.set_remote_description(session_description);
+    conn.set_remote_description(session_description).await?;
+    let (done_tx, mut done_rx) = tokio::sync::mpsc::channel::<()>(1);
+    done_rx.recv().await;
+    debug!{"Closing!"};
+    conn.close().await?;
     Ok((peer_connection, data_channel))
 }
 fn main() {
