@@ -4,12 +4,14 @@ use anyhow::Result;
 use futures::executor::block_on;
 use log::{debug, error, info, warn};
 use serde::Deserialize;
+use webrtc::peer_connection::RTCPeerConnection;
 use std::env;
 use std::error;
 use std::fmt;
 use std::fs::read_to_string;
 use std::io::Read;
 use std::io::Write;
+use std::io;
 use std::net::TcpListener;
 use std::net::TcpStream;
 use std::net::UdpSocket;
@@ -32,6 +34,7 @@ use webrtc::peer_connection::configuration::RTCConfiguration;
 use webrtc::peer_connection::math_rand_alpha;
 use webrtc::peer_connection::peer_connection_state::RTCPeerConnectionState;
 use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
+use std::fs;
 
 #[derive(Deserialize)]
 struct Config {
@@ -63,7 +66,7 @@ pub fn decode(s: &str) -> Result<String> {
     Ok(s)
 }
 fn handle_TCP_client(stream: TcpStream) {}
-async fn create_WebRTC_offer(config: Config) -> Result<Arc<RTCDataChannel>, Box<dyn error::Error>> {
+async fn create_WebRTC_offer(config: Config) -> Result<(Arc<RTCDataChannel>, Arc<RTCPeerConnection>), Box<dyn error::Error>> {
     // Create a MediaEngine object to configure the supported codec
     let mut m = MediaEngine::default();
 
@@ -169,10 +172,17 @@ async fn create_WebRTC_offer(config: Config) -> Result<Arc<RTCDataChannel>, Box<
         let json_str = serde_json::to_string(&local_desc)?;
         //let b64 = encode(&json_str);
         info!("{json_str}");
+        let b64 = encode(&json_str);
+        info!("{b64}");
     } else {
         info!("generate local_description failed!");
     }
-    Ok(Arc::clone(&data_channel))
+    Ok((Arc::clone(&data_channel), peer_connection))
+}
+async fn handle_offer(peer_connection: Arc<RTCPeerConnection>, data_channel: Arc<RTCDataChannel>, session_description: RTCSessionDescription) -> Result<(Arc<RTCPeerConnection>, Arc<RTCDataChannel>), Box<dyn error::Error>>{
+    let conn = Arc::clone(&peer_connection);
+    conn.set_remote_description(session_description);
+    Ok((peer_connection, data_channel))
 }
 fn main() {
     env_logger::init();
@@ -219,7 +229,11 @@ fn main() {
             debug!("{:?}", buf);
             OtherSocket.send_to(&buf, &src).expect("UDP: Write failed!");
             let rt = Runtime::new().unwrap();
-            rt.block_on(create_WebRTC_offer(config)).expect("Failed creating a WebRTC Data Channel.");
+            let (mut data_channel, mut peer_connection) = rt.block_on(create_WebRTC_offer(config)).expect("Failed creating a WebRTC Data Channel.");
+            let _ = io::stdin().read(&mut [0u8]).unwrap();
+            let offer = decode(&fs::read_to_string("offer.txt").expect("Cannot read the offer!")).expect("base64 conversion error");
+            let answer = serde_json::from_str::<RTCSessionDescription>(&offer).expect("Error parsing the offer!");
+            (peer_connection, data_channel) = rt.block_on(handle_offer(peer_connection, data_channel, answer)).expect("Error acccepting offer!");
         } else if (config.Type == "TCP") {
             info! {"TCP socket requested"};
             let BindPort = config.Port.clone().expect("Binding port not specified");
@@ -238,7 +252,11 @@ fn main() {
             debug!("{:?}", buf);
             OtherSocket.write(&buf).expect("TCP Stream: Write failed!");
             let rt = Runtime::new().unwrap();
-            rt.block_on(create_WebRTC_offer(config)).expect("Failed creating a WebRTC Data Channel.");
+            let (mut data_channel, mut peer_connection) = rt.block_on(create_WebRTC_offer(config)).expect("Failed creating a WebRTC Data Channel.");
+            let _ = io::stdin().read(&mut [0u8]).unwrap();
+            let offer = decode(&fs::read_to_string("offer.txt").expect("Cannot read the offer!")).expect("base64 conversion error");
+            let answer = serde_json::from_str::<RTCSessionDescription>(&offer).expect("Error parsing the offer!");
+            (peer_connection, data_channel) = rt.block_on(handle_offer(peer_connection, data_channel, answer)).expect("Error acccepting offer!");
         } else if (config.Type == "UDS") {
             info! {"Unix Domain Socket requested."};
             let Listener = UnixListener::bind(BindAddress);
