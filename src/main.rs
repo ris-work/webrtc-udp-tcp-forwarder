@@ -63,7 +63,7 @@ pub fn decode(s: &str) -> Result<String> {
     Ok(s)
 }
 fn handle_TCP_client(stream: TcpStream) {}
-async fn create_WebRTC_offer() -> Result<Arc<RTCDataChannel>, Box<dyn error::Error>> {
+async fn create_WebRTC_offer(config: Config) -> Result<Arc<RTCDataChannel>, Box<dyn error::Error>> {
     // Create a MediaEngine object to configure the supported codec
     let mut m = MediaEngine::default();
 
@@ -89,7 +89,7 @@ async fn create_WebRTC_offer() -> Result<Arc<RTCDataChannel>, Box<dyn error::Err
     // Prepare the configuration
     let config = RTCConfiguration {
         ice_servers: vec![RTCIceServer {
-            urls: vec!["stun:stun.l.google.com:19302".to_owned()],
+            urls: config.ICEServers,
             ..Default::default()
         }],
         ..Default::default()
@@ -219,7 +219,7 @@ fn main() {
             debug!("{:?}", buf);
             OtherSocket.send_to(&buf, &src).expect("UDP: Write failed!");
             let rt = Runtime::new().unwrap();
-            rt.block_on(create_WebRTC_offer());
+            rt.block_on(create_WebRTC_offer(config)).expect("Failed creating a WebRTC Data Channel.");
         } else if (config.Type == "TCP") {
             info! {"TCP socket requested"};
             let BindPort = config.Port.clone().expect("Binding port not specified");
@@ -237,6 +237,8 @@ fn main() {
                 .expect("TCP Stream: Read failed!");
             debug!("{:?}", buf);
             OtherSocket.write(&buf).expect("TCP Stream: Write failed!");
+            let rt = Runtime::new().unwrap();
+            rt.block_on(create_WebRTC_offer(config)).expect("Failed creating a WebRTC Data Channel.");
         } else if (config.Type == "UDS") {
             info! {"Unix Domain Socket requested."};
             let Listener = UnixListener::bind(BindAddress);
