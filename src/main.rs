@@ -2,6 +2,8 @@
 #![allow(unused_parens)]
 use anyhow::Result;
 use futures::executor::block_on;
+use base64::Engine;
+use base64::engine::{self, general_purpose};
 use log::{debug, error, info, warn};
 use serde::Deserialize;
 use webrtc::peer_connection::RTCPeerConnection;
@@ -58,10 +60,11 @@ struct WebRTC_Status {
     SRTP_Params: Option<String>,
 }
 pub fn encode(b: &str) -> String {
-    base64::encode(b)
+    general_purpose::STANDARD.encode(b)
 }
 pub fn decode(s: &str) -> Result<String> {
-    let b = base64::decode(s)?;
+    let b = general_purpose::STANDARD.decode(s)?;
+    debug!{"Base64 to byte buffer: OK"};
     let s = String::from_utf8(b)?;
     Ok(s)
 }
@@ -231,7 +234,9 @@ fn main() {
             let rt = Runtime::new().unwrap();
             let (mut data_channel, mut peer_connection) = rt.block_on(create_WebRTC_offer(config)).expect("Failed creating a WebRTC Data Channel.");
             let _ = io::stdin().read(&mut [0u8]).unwrap();
-            let offer = decode(&fs::read_to_string("offer.txt").expect("Cannot read the offer!")).expect("base64 conversion error");
+            let offerBase64Text = &fs::read_to_string("offer.txt").expect("Cannot read the offer!");
+            info!{"Read offer: {}", offerBase64Text};
+            let offer = decode(&offerBase64Text).expect("base64 conversion error");
             let answer = serde_json::from_str::<RTCSessionDescription>(&offer).expect("Error parsing the offer!");
             (peer_connection, data_channel) = rt.block_on(handle_offer(peer_connection, data_channel, answer)).expect("Error acccepting offer!");
         } else if (config.Type == "TCP") {
@@ -254,7 +259,9 @@ fn main() {
             let rt = Runtime::new().unwrap();
             let (mut data_channel, mut peer_connection) = rt.block_on(create_WebRTC_offer(config)).expect("Failed creating a WebRTC Data Channel.");
             let _ = io::stdin().read(&mut [0u8]).unwrap();
-            let offer = decode(&fs::read_to_string("offer.txt").expect("Cannot read the offer!")).expect("base64 conversion error");
+            let offerBase64Text = &fs::read_to_string("offer.txt").expect("Cannot read the offer!");
+            info!{"Read offer: {}", offerBase64Text};
+            let offer = decode(&offerBase64Text).expect("base64 conversion error");
             let answer = serde_json::from_str::<RTCSessionDescription>(&offer).expect("Error parsing the offer!");
             (peer_connection, data_channel) = rt.block_on(handle_offer(peer_connection, data_channel, answer)).expect("Error acccepting offer!");
         } else if (config.Type == "UDS") {
