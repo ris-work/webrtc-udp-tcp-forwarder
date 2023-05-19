@@ -192,11 +192,14 @@ async fn configure_send_receive_udp(
 ) -> (Arc<RTCDataChannel>, UdpSocket) /*, Box<dyn error::Error>>*/ {
     // Register channel opening handling
     let d1 = Arc::clone(&RTCDC);
-    let ClonedSocket = OtherSocket
+    let ClonedSocketRecv = OtherSocket
+        .try_clone()
+        .expect("Unable to clone the UDP socket. :(");
+    let ClonedSocketSend = OtherSocket
         .try_clone()
         .expect("Unable to clone the UDP socket. :(");
     RTCDC.on_open(Box::new(move || {
-        info!("Data channel '{}'-'{}' open. Random messages will now be sent to any connected DataChannels every 5 seconds", d1.label(), d1.id());
+        info!("Data channel '{}'-'{}' open.", d1.label(), d1.id());
         let d2 = Arc::clone(&d1);
 
         Box::pin(async move {
@@ -204,9 +207,8 @@ async fn configure_send_receive_udp(
             let mut result = Result::<usize>::Ok(0);
             while result.is_ok() {
                 let mut buf = [0; 65507];
-                let mut amt  = ClonedSocket.recv(&mut buf).expect("Unable to save to buffer");
-                let arc_buf = Arc::new(buf);
-                debug!{"{:?}", buf};
+                let mut amt  = ClonedSocketRecv.recv(&mut buf).expect("Unable to save to buffer");
+                debug!{"{:?}", &buf[0..amt]};
                 d2.send(&Bytes::copy_from_slice(&buf[0..amt])).await;
             }
         })
@@ -215,8 +217,9 @@ async fn configure_send_receive_udp(
     // Register text message handling
     let d_label = RTCDC.label().to_owned();
     RTCDC.on_message(Box::new(move |msg: DataChannelMessage| {
-        let msg_str = String::from_utf8(msg.data.to_vec()).unwrap();
-        info!("Message from DataChannel '{d_label}': '{msg_str}'");
+        let msg = msg.data.to_vec();
+        debug!("Message from DataChannel '{d_label}': '{msg:?}'");
+        ClonedSocketSend.send(&msg);
         Box::pin(async {})
     }));
 
