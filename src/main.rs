@@ -129,37 +129,6 @@ async fn create_WebRTC_offer(
         Box::pin(async {})
     }));
 
-    // Register channel opening handling
-    let d1 = Arc::clone(&data_channel);
-    data_channel.on_open(Box::new(move || {
-        info!("Data channel '{}'-'{}' open. Random messages will now be sent to any connected DataChannels every 5 seconds", d1.label(), d1.id());
-
-        let d2 = Arc::clone(&d1);
-        Box::pin(async move {
-            let mut result = Result::<usize>::Ok(0);
-            while result.is_ok() {
-                let timeout = tokio::time::sleep(Duration::from_secs(5));
-                tokio::pin!(timeout);
-
-                tokio::select! {
-                    _ = timeout.as_mut() =>{
-                        let message = math_rand_alpha(15);
-                        println!("Sending '{message}'");
-                        result = d2.send_text(message).await.map_err(Into::into);
-                    }
-                };
-            }
-        })
-    }));
-
-    // Register text message handling
-    let d_label = data_channel.label().to_owned();
-    data_channel.on_message(Box::new(move |msg: DataChannelMessage| {
-        let msg_str = String::from_utf8(msg.data.to_vec()).unwrap();
-        info!("Message from DataChannel '{d_label}': '{msg_str}'");
-        Box::pin(async {})
-    }));
-
     // Create an offer to send to the browser
     let offer = peer_connection.create_offer(None).await?;
 
@@ -203,12 +172,13 @@ async fn configure_send_receive_udp(
         let d2 = Arc::clone(&d1);
 
         Box::pin(async move {
-            
             let mut result = Result::<usize>::Ok(0);
             while result.is_ok() {
                 let mut buf = [0; 65507];
-                let mut amt  = ClonedSocketRecv.recv(&mut buf).expect("Unable to save to buffer");
-                debug!{"{:?}", &buf[0..amt]};
+                let mut amt = ClonedSocketRecv
+                    .recv(&mut buf)
+                    .expect("Unable to save to buffer");
+                debug! {"{:?}", &buf[0..amt]};
                 d2.send(&Bytes::copy_from_slice(&buf[0..amt])).await;
             }
         })
@@ -220,6 +190,88 @@ async fn configure_send_receive_udp(
         let msg = msg.data.to_vec();
         debug!("Message from DataChannel '{d_label}': '{msg:?}'");
         ClonedSocketSend.send(&msg);
+        Box::pin(async {})
+    }));
+
+    /* Ok(*/
+    (Arc::clone(&RTCDC), OtherSocket) /*)*/
+}
+async fn configure_send_receive_tcp(
+    RTCDC: Arc<RTCDataChannel>,
+    OtherSocket: TcpStream,
+) -> (Arc<RTCDataChannel>, TcpStream) /*, Box<dyn error::Error>>*/ {
+    // Register channel opening handling
+    let d1 = Arc::clone(&RTCDC);
+    let mut ClonedSocketRecv = OtherSocket
+        .try_clone()
+        .expect("Unable to clone the UDP socket. :(");
+    let mut ClonedSocketSend = OtherSocket
+        .try_clone()
+        .expect("Unable to clone the UDP socket. :(");
+    RTCDC.on_open(Box::new(move || {
+        info!("Data channel '{}'-'{}' open.", d1.label(), d1.id());
+        let d2 = Arc::clone(&d1);
+
+        Box::pin(async move {
+            let mut result = Result::<usize>::Ok(0);
+            while result.is_ok() {
+                let mut buf = [0; 65507];
+                let mut amt = ClonedSocketRecv
+                    .read(&mut buf)
+                    .expect("Unable to save to buffer");
+                debug! {"{:?}", &buf[0..amt]};
+                d2.send(&Bytes::copy_from_slice(&buf[0..amt])).await;
+            }
+        })
+    }));
+
+    // Register text message handling
+    let d_label = RTCDC.label().to_owned();
+    RTCDC.on_message(Box::new(move |msg: DataChannelMessage| {
+        let msg = msg.data.to_vec();
+        debug!("Message from DataChannel '{d_label}': '{msg:?}'");
+        ClonedSocketSend.write(&msg);
+        Box::pin(async {})
+    }));
+
+    /* Ok(*/
+    (Arc::clone(&RTCDC), OtherSocket) /*)*/
+}
+async fn configure_send_receive_uds(
+    RTCDC: Arc<RTCDataChannel>,
+    OtherSocket: UnixStream,
+) -> (Arc<RTCDataChannel>, UnixStream) /*, Box<dyn error::Error>>*/ {
+    // Register channel opening handling
+    let d1 = Arc::clone(&RTCDC);
+    let mut ClonedSocketRecv = OtherSocket
+        .try_clone()
+        .expect("Unable to clone the UDP socket. :(");
+    let mut ClonedSocketSend = OtherSocket
+        .try_clone()
+        .expect("Unable to clone the UDP socket. :(");
+    RTCDC.on_open(Box::new(move || {
+        info!("Data channel '{}'-'{}' open.", d1.label(), d1.id());
+        let d2 = Arc::clone(&d1);
+
+        Box::pin(async move {
+            let mut result = Result::<usize>::Ok(0);
+            while result.is_ok() {
+                let mut buf = [0; 65507];
+                let mut amt = ClonedSocketRecv
+                    .read(&mut buf)
+                    .expect("Unable to save to buffer");
+                debug! {"{:?}", &buf[0..amt]};
+                d2.send(&Bytes::copy_from_slice(&buf[0..amt])).await;
+            }
+        })
+    }));
+
+    // Register text message handling
+    let d_label = RTCDC.label().to_owned();
+    RTCDC.on_message(Box::new(move |msg: DataChannelMessage| {
+        let msg = msg.data.to_vec();
+        debug!("Message from DataChannel '{d_label}': '{msg:?}'");
+        ClonedSocketSend.write(&msg);
         Box::pin(async {})
     }));
 
@@ -291,15 +343,13 @@ fn main() {
             let mut OtherSocket = UdpSocket::bind(format! {"{}:{}", BindAddress, BindPort})
                 .expect(&format! {"Could not bind to UDP port: {}:{}", &BindAddress, &BindPort});
             info! {"Bound UDP on address {} port {}", BindAddress, BindPort};
-            (data_channel, OtherSocket) =
-                block_on(configure_send_receive_udp(data_channel, OtherSocket));
             let (amt, src) = OtherSocket
                 .peek_from(&mut buf)
                 .expect("Error saving to buffer");
             info!("UDP connecting to: {}", src);
             OtherSocket.connect(src);
-            debug!("{:?}", buf);
-            OtherSocket.send(&buf).expect("UDP: Write failed!");
+            (data_channel, OtherSocket) =
+                block_on(configure_send_receive_udp(data_channel, OtherSocket));
         } else if (config.Type == "TCP") {
             info! {"TCP socket requested"};
             let BindPort = config.Port.clone().expect("Binding port not specified");
@@ -312,11 +362,8 @@ fn main() {
                 .next()
                 .expect("Error getting the TCP stream")
                 .expect("TCP stream error");
-            OtherSocket
-                .read(&mut buf)
-                .expect("TCP Stream: Read failed!");
-            debug!("{:?}", buf);
-            OtherSocket.write(&buf).expect("TCP Stream: Write failed!");
+            (data_channel, OtherSocket) =
+                block_on(configure_send_receive_tcp(data_channel, OtherSocket));
         } else if (config.Type == "UDS") {
             info! {"Unix Domain Socket requested."};
             let Listener = UnixListener::bind(BindAddress);
@@ -326,11 +373,8 @@ fn main() {
                 .next()
                 .expect("Error getting the UDS stream")
                 .expect("UDS stream error");
-            OtherSocket
-                .read(&mut buf)
-                .expect("UnixStream: Read failed!");
-            debug!("{:?}", buf);
-            OtherSocket.write(&buf).expect("UnixStream: Write failed!");
+            (data_channel, OtherSocket) =
+                block_on(configure_send_receive_uds(data_channel, OtherSocket));
         }
     }
 }
