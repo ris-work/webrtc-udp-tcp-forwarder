@@ -3,6 +3,7 @@
 use anyhow::Result;
 use base64::engine::{self, general_purpose};
 use base64::Engine;
+use bytes::Bytes;
 use futures::executor::block_on;
 use log::{debug, error, info, warn};
 use serde::Deserialize;
@@ -188,26 +189,25 @@ async fn create_WebRTC_offer(
 async fn configure_send_receive_udp(
     RTCDC: Arc<RTCDataChannel>,
     OtherSocket: UdpSocket,
-) -> /*Result<*/(Arc<RTCDataChannel>, UdpSocket)/*, Box<dyn error::Error>>*/ {
+) -> (Arc<RTCDataChannel>, UdpSocket) /*, Box<dyn error::Error>>*/ {
     // Register channel opening handling
     let d1 = Arc::clone(&RTCDC);
+    let ClonedSocket = OtherSocket
+        .try_clone()
+        .expect("Unable to clone the UDP socket. :(");
     RTCDC.on_open(Box::new(move || {
         info!("Data channel '{}'-'{}' open. Random messages will now be sent to any connected DataChannels every 5 seconds", d1.label(), d1.id());
-
         let d2 = Arc::clone(&d1);
+
         Box::pin(async move {
+            
             let mut result = Result::<usize>::Ok(0);
             while result.is_ok() {
-                let timeout = tokio::time::sleep(Duration::from_secs(5));
-                tokio::pin!(timeout);
-
-                tokio::select! {
-                    _ = timeout.as_mut() =>{
-                        let message = math_rand_alpha(15);
-                        println!("Sending '{message}'");
-                        result = d2.send_text(message).await.map_err(Into::into);
-                    }
-                };
+                let mut buf = [0; 65507];
+                let mut amt  = ClonedSocket.recv(&mut buf).expect("Unable to save to buffer");
+                let arc_buf = Arc::new(buf);
+                debug!{"{:?}", buf};
+                d2.send(&Bytes::copy_from_slice(&buf[0..amt])).await;
             }
         })
     }));
@@ -220,7 +220,8 @@ async fn configure_send_receive_udp(
         Box::pin(async {})
     }));
 
-   /* Ok(*/(Arc::clone(&RTCDC), OtherSocket)/*)*/
+    /* Ok(*/
+    (Arc::clone(&RTCDC), OtherSocket) /*)*/
 }
 async fn handle_offer(
     peer_connection: Arc<RTCPeerConnection>,
