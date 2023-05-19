@@ -192,6 +192,10 @@ async fn configure_send_receive_udp(
         ClonedSocketSend.send(&msg);
         Box::pin(async {})
     }));
+    let (done_tx, mut done_rx) = tokio::sync::mpsc::channel::<()>(1);
+    done_rx.recv().await;
+    debug! {"Closing!"};
+    RTCDC.close().await.expect("Error closing the connection");
 
     /* Ok(*/
     (Arc::clone(&RTCDC), OtherSocket) /*)*/
@@ -233,6 +237,10 @@ async fn configure_send_receive_tcp(
         ClonedSocketSend.write(&msg);
         Box::pin(async {})
     }));
+    let (done_tx, mut done_rx) = tokio::sync::mpsc::channel::<()>(1);
+    done_rx.recv().await;
+    debug! {"Closing!"};
+    RTCDC.close().await.expect("Error closing the connection");
 
     /* Ok(*/
     (Arc::clone(&RTCDC), OtherSocket) /*)*/
@@ -274,6 +282,10 @@ async fn configure_send_receive_uds(
         ClonedSocketSend.write(&msg);
         Box::pin(async {})
     }));
+    let (done_tx, mut done_rx) = tokio::sync::mpsc::channel::<()>(1);
+    done_rx.recv().await;
+    debug! {"Closing!"};
+    RTCDC.close().await.expect("Error closing the connection");
 
     /* Ok(*/
     (Arc::clone(&RTCDC), OtherSocket) /*)*/
@@ -285,10 +297,6 @@ async fn handle_offer(
 ) -> Result<(Arc<RTCPeerConnection>, Arc<RTCDataChannel>), Box<dyn error::Error>> {
     let conn = Arc::clone(&peer_connection);
     conn.set_remote_description(session_description).await?;
-    let (done_tx, mut done_rx) = tokio::sync::mpsc::channel::<()>(1);
-    done_rx.recv().await;
-    debug! {"Closing!"};
-    conn.close().await?;
     Ok((peer_connection, data_channel))
 }
 fn main() {
@@ -349,7 +357,7 @@ fn main() {
             info!("UDP connecting to: {}", src);
             OtherSocket.connect(src);
             (data_channel, OtherSocket) =
-                block_on(configure_send_receive_udp(data_channel, OtherSocket));
+                rt.block_on(configure_send_receive_udp(data_channel, OtherSocket));
         } else if (config.Type == "TCP") {
             info! {"TCP socket requested"};
             let BindPort = config.Port.clone().expect("Binding port not specified");
@@ -363,7 +371,7 @@ fn main() {
                 .expect("Error getting the TCP stream")
                 .expect("TCP stream error");
             (data_channel, OtherSocket) =
-                block_on(configure_send_receive_tcp(data_channel, OtherSocket));
+                rt.block_on(configure_send_receive_tcp(data_channel, OtherSocket));
         } else if (config.Type == "UDS") {
             info! {"Unix Domain Socket requested."};
             let Listener = UnixListener::bind(BindAddress);
@@ -374,7 +382,7 @@ fn main() {
                 .expect("Error getting the UDS stream")
                 .expect("UDS stream error");
             (data_channel, OtherSocket) =
-                block_on(configure_send_receive_uds(data_channel, OtherSocket));
+                rt.block_on(configure_send_receive_uds(data_channel, OtherSocket));
         }
     }
 }
