@@ -1,19 +1,19 @@
 #![allow(non_snake_case)]
 #![allow(unused_parens)]
 use anyhow::Result;
-use futures::executor::block_on;
-use base64::Engine;
 use base64::engine::{self, general_purpose};
+use base64::Engine;
+use futures::executor::block_on;
 use log::{debug, error, info, warn};
 use serde::Deserialize;
-use webrtc::peer_connection::RTCPeerConnection;
 use std::env;
 use std::error;
 use std::fmt;
+use std::fs;
 use std::fs::read_to_string;
+use std::io;
 use std::io::Read;
 use std::io::Write;
-use std::io;
 use std::net::TcpListener;
 use std::net::TcpStream;
 use std::net::UdpSocket;
@@ -36,7 +36,7 @@ use webrtc::peer_connection::configuration::RTCConfiguration;
 use webrtc::peer_connection::math_rand_alpha;
 use webrtc::peer_connection::peer_connection_state::RTCPeerConnectionState;
 use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
-use std::fs;
+use webrtc::peer_connection::RTCPeerConnection;
 
 #[derive(Deserialize)]
 struct Config {
@@ -64,13 +64,15 @@ pub fn encode(b: &str) -> String {
 }
 pub fn decode(s: &str) -> Result<String> {
     let b = general_purpose::STANDARD.decode(s)?;
-    debug!{"Base64 to byte buffer: OK"};
+    debug! {"Base64 to byte buffer: OK"};
     let s = String::from_utf8(b)?;
     debug!{"Base64 decoded: {}", s};
     Ok(s)
 }
 fn handle_TCP_client(stream: TcpStream) {}
-async fn create_WebRTC_offer(config: Config) -> Result<(Arc<RTCDataChannel>, Arc<RTCPeerConnection>), Box<dyn error::Error>> {
+async fn create_WebRTC_offer(
+    config: &Config,
+) -> Result<(Arc<RTCDataChannel>, Arc<RTCPeerConnection>), Box<dyn error::Error>> {
     // Create a MediaEngine object to configure the supported codec
     let mut m = MediaEngine::default();
 
@@ -96,7 +98,7 @@ async fn create_WebRTC_offer(config: Config) -> Result<(Arc<RTCDataChannel>, Arc
     // Prepare the configuration
     let config = RTCConfiguration {
         ice_servers: vec![RTCIceServer {
-            urls: config.ICEServers,
+            urls: config.ICEServers.clone(),
             ..Default::default()
         }],
         ..Default::default()
@@ -183,7 +185,11 @@ async fn create_WebRTC_offer(config: Config) -> Result<(Arc<RTCDataChannel>, Arc
     }
     Ok((Arc::clone(&data_channel), peer_connection))
 }
-async fn handle_offer(peer_connection: Arc<RTCPeerConnection>, data_channel: Arc<RTCDataChannel>, session_description: RTCSessionDescription) -> Result<(Arc<RTCPeerConnection>, Arc<RTCDataChannel>), Box<dyn error::Error>>{
+async fn handle_offer(
+    peer_connection: Arc<RTCPeerConnection>,
+    data_channel: Arc<RTCDataChannel>,
+    session_description: RTCSessionDescription,
+) -> Result<(Arc<RTCPeerConnection>, Arc<RTCDataChannel>), Box<dyn error::Error>> {
     let conn = Arc::clone(&peer_connection);
     conn.set_remote_description(session_description).await?;
     let (done_tx, mut done_rx) = tokio::sync::mpsc::channel::<()>(1);
@@ -218,6 +224,19 @@ fn main() {
     let config: Config = toml::from_str(&TOML_file_contents).unwrap();
     info!("Configuration: type: {}", config.Type);
     if (config.WebRTCMode == "Offer") {
+        let rt = Runtime::new().unwrap();
+        let (mut data_channel, mut peer_connection) = rt
+            .block_on(create_WebRTC_offer(&config))
+            .expect("Failed creating a WebRTC Data Channel.");
+        let _ = io::stdin().read(&mut [0u8]).unwrap();
+        let offerBase64Text = &fs::read_to_string("offer.txt").expect("Cannot read the offer!");
+        info! {"Read offer: {}", offerBase64Text};
+        let offer = decode(&offerBase64Text).expect("base64 conversion error");
+        let answer = serde_json::from_str::<RTCSessionDescription>(&offer)
+            .expect("Error parsing the offer!");
+        (peer_connection, data_channel) = rt
+            .block_on(handle_offer(peer_connection, data_channel, answer))
+            .expect("Error acccepting offer!");
         let BindAddress = config
             .Address
             .clone()
@@ -236,14 +255,6 @@ fn main() {
                 .expect("Error saving to buffer");
             debug!("{:?}", buf);
             OtherSocket.send_to(&buf, &src).expect("UDP: Write failed!");
-            let rt = Runtime::new().unwrap();
-            let (mut data_channel, mut peer_connection) = rt.block_on(create_WebRTC_offer(config)).expect("Failed creating a WebRTC Data Channel.");
-            let _ = io::stdin().read(&mut [0u8]).unwrap();
-            let offerBase64Text = &fs::read_to_string("offer.txt").expect("Cannot read the offer!");
-            info!{"Read offer: {}", offerBase64Text};
-            let offer = decode(&offerBase64Text).expect("base64 conversion error");
-            let answer = serde_json::from_str::<RTCSessionDescription>(&offer).expect("Error parsing the offer!");
-            (peer_connection, data_channel) = rt.block_on(handle_offer(peer_connection, data_channel, answer)).expect("Error acccepting offer!");
         } else if (config.Type == "TCP") {
             info! {"TCP socket requested"};
             let BindPort = config.Port.clone().expect("Binding port not specified");
@@ -261,14 +272,6 @@ fn main() {
                 .expect("TCP Stream: Read failed!");
             debug!("{:?}", buf);
             OtherSocket.write(&buf).expect("TCP Stream: Write failed!");
-            let rt = Runtime::new().unwrap();
-            let (mut data_channel, mut peer_connection) = rt.block_on(create_WebRTC_offer(config)).expect("Failed creating a WebRTC Data Channel.");
-            let _ = io::stdin().read(&mut [0u8]).unwrap();
-            let offerBase64Text = &fs::read_to_string("offer.txt").expect("Cannot read the offer!");
-            info!{"Read offer: {}", offerBase64Text};
-            let offer = decode(&offerBase64Text).expect("base64 conversion error");
-            let answer = serde_json::from_str::<RTCSessionDescription>(&offer).expect("Error parsing the offer!");
-            (peer_connection, data_channel) = rt.block_on(handle_offer(peer_connection, data_channel, answer)).expect("Error acccepting offer!");
         } else if (config.Type == "UDS") {
             info! {"Unix Domain Socket requested."};
             let Listener = UnixListener::bind(BindAddress);
