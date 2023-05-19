@@ -66,7 +66,7 @@ pub fn decode(s: &str) -> Result<String> {
     let b = general_purpose::STANDARD.decode(s)?;
     debug! {"Base64 to byte buffer: OK"};
     let s = String::from_utf8(b)?;
-    debug!{"Base64 decoded: {}", s};
+    debug! {"Base64 decoded: {}", s};
     Ok(s)
 }
 fn handle_TCP_client(stream: TcpStream) {}
@@ -185,6 +185,43 @@ async fn create_WebRTC_offer(
     }
     Ok((Arc::clone(&data_channel), peer_connection))
 }
+async fn configure_send_receive_udp(
+    RTCDC: Arc<RTCDataChannel>,
+    OtherSocket: UdpSocket,
+) -> /*Result<*/(Arc<RTCDataChannel>, UdpSocket)/*, Box<dyn error::Error>>*/ {
+    // Register channel opening handling
+    let d1 = Arc::clone(&RTCDC);
+    RTCDC.on_open(Box::new(move || {
+        info!("Data channel '{}'-'{}' open. Random messages will now be sent to any connected DataChannels every 5 seconds", d1.label(), d1.id());
+
+        let d2 = Arc::clone(&d1);
+        Box::pin(async move {
+            let mut result = Result::<usize>::Ok(0);
+            while result.is_ok() {
+                let timeout = tokio::time::sleep(Duration::from_secs(5));
+                tokio::pin!(timeout);
+
+                tokio::select! {
+                    _ = timeout.as_mut() =>{
+                        let message = math_rand_alpha(15);
+                        println!("Sending '{message}'");
+                        result = d2.send_text(message).await.map_err(Into::into);
+                    }
+                };
+            }
+        })
+    }));
+
+    // Register text message handling
+    let d_label = RTCDC.label().to_owned();
+    RTCDC.on_message(Box::new(move |msg: DataChannelMessage| {
+        let msg_str = String::from_utf8(msg.data.to_vec()).unwrap();
+        info!("Message from DataChannel '{d_label}': '{msg_str}'");
+        Box::pin(async {})
+    }));
+
+   /* Ok(*/(Arc::clone(&RTCDC), OtherSocket)/*)*/
+}
 async fn handle_offer(
     peer_connection: Arc<RTCPeerConnection>,
     data_channel: Arc<RTCDataChannel>,
@@ -194,7 +231,7 @@ async fn handle_offer(
     conn.set_remote_description(session_description).await?;
     let (done_tx, mut done_rx) = tokio::sync::mpsc::channel::<()>(1);
     done_rx.recv().await;
-    debug!{"Closing!"};
+    debug! {"Closing!"};
     conn.close().await?;
     Ok((peer_connection, data_channel))
 }
@@ -247,9 +284,11 @@ fn main() {
             info! {"UDP socket requested"};
             let BindPort = config.Port.clone().expect("Binding port not specified");
             info! {"Binding UDP on address {} port {}", BindAddress, BindPort};
-            let OtherSocket = UdpSocket::bind(format! {"{}:{}", BindAddress, BindPort})
+            let mut OtherSocket = UdpSocket::bind(format! {"{}:{}", BindAddress, BindPort})
                 .expect(&format! {"Could not bind to UDP port: {}:{}", &BindAddress, &BindPort});
             info! {"Bound UDP on address {} port {}", BindAddress, BindPort};
+            (data_channel, OtherSocket) =
+                block_on(configure_send_receive_udp(data_channel, OtherSocket));
             let (amt, src) = OtherSocket
                 .recv_from(&mut buf)
                 .expect("Error saving to buffer");
