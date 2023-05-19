@@ -290,10 +290,12 @@ fn main() {
             (data_channel, OtherSocket) =
                 block_on(configure_send_receive_udp(data_channel, OtherSocket));
             let (amt, src) = OtherSocket
-                .recv_from(&mut buf)
+                .peek_from(&mut buf)
                 .expect("Error saving to buffer");
+            info!("UDP connecting to: {}", src);
+            OtherSocket.connect(src);
             debug!("{:?}", buf);
-            OtherSocket.send_to(&buf, &src).expect("UDP: Write failed!");
+            OtherSocket.send(&buf).expect("UDP: Write failed!");
         } else if (config.Type == "TCP") {
             info! {"TCP socket requested"};
             let BindPort = config.Port.clone().expect("Binding port not specified");
