@@ -1,5 +1,7 @@
 #![allow(non_snake_case)]
 #![allow(unused_parens)]
+#![allow(unused_assignments)]
+#![allow(non_camel_case_types)]
 use anyhow::Result;
 use base64::engine::{self, general_purpose};
 use base64::Engine;
@@ -78,7 +80,8 @@ async fn create_WebRTC_offer(
     let mut m = MediaEngine::default();
 
     // Register default codecs
-    m.register_default_codecs();
+    m.register_default_codecs()
+        .expect("Could not register the default codecs.");
 
     // Create a InterceptorRegistry. This is the user configurable RTP/RTCP Pipeline.
     // This provides NACKs, RTCP Reports and other features. If you use `webrtc.NewPeerConnection`
@@ -150,6 +153,7 @@ async fn create_WebRTC_offer(
         info!("{json_str}");
         let b64 = encode(&json_str);
         info!("{b64}");
+        println!("{b64}");
     } else {
         info!("generate local_description failed!");
     }
@@ -175,11 +179,13 @@ async fn configure_send_receive_udp(
             let mut result = Result::<usize>::Ok(0);
             while result.is_ok() {
                 let mut buf = [0; 65507];
-                let mut amt = ClonedSocketRecv
+                let amt = ClonedSocketRecv
                     .recv(&mut buf)
-                    .expect("Unable to save to buffer");
+                    .expect("Unable to read or save to buffer");
                 debug! {"{:?}", &buf[0..amt]};
-                d2.send(&Bytes::copy_from_slice(&buf[0..amt])).await;
+                d2.send(&Bytes::copy_from_slice(&buf[0..amt]))
+                    .await
+                    .expect(&format! {"DataConnection {}: unable to send.", d1.label()});
             }
         })
     }));
@@ -189,7 +195,7 @@ async fn configure_send_receive_udp(
     RTCDC.on_message(Box::new(move |msg: DataChannelMessage| {
         let msg = msg.data.to_vec();
         debug!("Message from DataChannel '{d_label}': '{msg:?}'");
-        ClonedSocketSend.send(&msg);
+        ClonedSocketSend.send(&msg).expect("Unable to write data.");
         Box::pin(async {})
     }));
     let (done_tx, mut done_rx) = tokio::sync::mpsc::channel::<()>(1);
@@ -220,11 +226,13 @@ async fn configure_send_receive_tcp(
             let mut result = Result::<usize>::Ok(0);
             while result.is_ok() {
                 let mut buf = [0; 65507];
-                let mut amt = ClonedSocketRecv
+                let amt = ClonedSocketRecv
                     .read(&mut buf)
-                    .expect("Unable to save to buffer");
+                    .expect("Unable to read or save to the buffer");
                 debug! {"{:?}", &buf[0..amt]};
-                d2.send(&Bytes::copy_from_slice(&buf[0..amt])).await;
+                d2.send(&Bytes::copy_from_slice(&buf[0..amt]))
+                    .await
+                    .expect(&format! {"DataConnection {}: unable to send.", d1.label()});
             }
         })
     }));
@@ -234,7 +242,7 @@ async fn configure_send_receive_tcp(
     RTCDC.on_message(Box::new(move |msg: DataChannelMessage| {
         let msg = msg.data.to_vec();
         debug!("Message from DataChannel '{d_label}': '{msg:?}'");
-        ClonedSocketSend.write(&msg);
+        ClonedSocketSend.write(&msg).expect("Unable to write data.");
         Box::pin(async {})
     }));
     let (done_tx, mut done_rx) = tokio::sync::mpsc::channel::<()>(1);
@@ -265,11 +273,13 @@ async fn configure_send_receive_uds(
             let mut result = Result::<usize>::Ok(0);
             while result.is_ok() {
                 let mut buf = [0; 65507];
-                let mut amt = ClonedSocketRecv
+                let amt = ClonedSocketRecv
                     .read(&mut buf)
-                    .expect("Unable to save to buffer");
+                    .expect("Unable to read or save to the buffer");
                 debug! {"{:?}", &buf[0..amt]};
-                d2.send(&Bytes::copy_from_slice(&buf[0..amt])).await;
+                d2.send(&Bytes::copy_from_slice(&buf[0..amt]))
+                    .await
+                    .expect(&format! {"DataConnection {}: unable to send.", d1.label()});
             }
         })
     }));
@@ -279,7 +289,7 @@ async fn configure_send_receive_uds(
     RTCDC.on_message(Box::new(move |msg: DataChannelMessage| {
         let msg = msg.data.to_vec();
         debug!("Message from DataChannel '{d_label}': '{msg:?}'");
-        ClonedSocketSend.write(&msg);
+        ClonedSocketSend.write(&msg).expect("Unable to write data.");
         Box::pin(async {})
     }));
     let (done_tx, mut done_rx) = tokio::sync::mpsc::channel::<()>(1);
@@ -329,10 +339,13 @@ fn main() {
         let (mut data_channel, mut peer_connection) = rt
             .block_on(create_WebRTC_offer(&config))
             .expect("Failed creating a WebRTC Data Channel.");
-        let _ = io::stdin().read(&mut [0u8]).unwrap();
-        let offerBase64Text = &fs::read_to_string("offer.txt").expect("Cannot read the offer!");
-        info! {"Read offer: {}", offerBase64Text};
-        let offer = decode(&offerBase64Text).expect("base64 conversion error");
+        let mut offerBase64Text: String = String::new();
+        let _ = io::stdin()
+            .read_line(&mut offerBase64Text)
+            .expect("Cannot read the offer!");
+        let offerBase64TextTrimmed=offerBase64Text.trim();
+        info! {"Read offer: {}", offerBase64TextTrimmed};
+        let offer = decode(&offerBase64TextTrimmed).expect("base64 conversion error");
         let answer = serde_json::from_str::<RTCSessionDescription>(&offer)
             .expect("Error parsing the offer!");
         (peer_connection, data_channel) = rt
@@ -343,7 +356,6 @@ fn main() {
             .clone()
             .expect("Binding address not specified");
         let mut buf = [0; 65507];
-        let SendBytes = "Hello!".bytes();
         if (config.Type == "UDP") {
             info! {"UDP socket requested"};
             let BindPort = config.Port.clone().expect("Binding port not specified");
@@ -355,7 +367,9 @@ fn main() {
                 .peek_from(&mut buf)
                 .expect("Error saving to buffer");
             info!("UDP connecting to: {}", src);
-            OtherSocket.connect(src);
+            OtherSocket
+                .connect(src)
+                .expect(&format! {"UDP connect error: connect() to {}", src});
             (data_channel, OtherSocket) =
                 rt.block_on(configure_send_receive_udp(data_channel, OtherSocket));
         } else if (config.Type == "TCP") {
