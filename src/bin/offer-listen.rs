@@ -23,7 +23,12 @@ use std::net::UdpSocket;
 #[cfg(unix)]
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::process::exit;
+use std::sync::atomic::AtomicU64;
+use std::sync::atomic::Ordering;
 use std::sync::Arc;
+use std::sync::Mutex;
+use std::thread;
+use std::time;
 use tokio::runtime::Runtime;
 use tokio::time::Duration;
 #[cfg(windows)]
@@ -40,6 +45,8 @@ use webrtc::peer_connection::math_rand_alpha;
 use webrtc::peer_connection::peer_connection_state::RTCPeerConnectionState;
 use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
 use webrtc::peer_connection::RTCPeerConnection;
+
+static STREAM_LAST_ACTIVE_TIME: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Deserialize)]
 struct Config {
@@ -343,7 +350,7 @@ fn main() {
         let _ = io::stdin()
             .read_line(&mut offerBase64Text)
             .expect("Cannot read the offer!");
-        let offerBase64TextTrimmed=offerBase64Text.trim();
+        let offerBase64TextTrimmed = offerBase64Text.trim();
         info! {"Read offer: {}", offerBase64TextTrimmed};
         let offer = decode(&offerBase64TextTrimmed).expect("base64 conversion error");
         let answer = serde_json::from_str::<RTCSessionDescription>(&offer)
@@ -370,6 +377,24 @@ fn main() {
             OtherSocket
                 .connect(src)
                 .expect(&format! {"UDP connect error: connect() to {}", src});
+            STREAM_LAST_ACTIVE_TIME.store(
+                chrono::Utc::now()
+                    .timestamp()
+                    .try_into()
+                    .expect("This software is not supposed to be used before UNIX was invented."),
+                Ordering::Relaxed,
+            );
+            thread::Builder::new()
+                .name("Watchdog".to_string())
+                .spawn(move || {
+                    debug! {"Inactivity monitoring watchdog has started"}
+                    while (true) {
+                        let five_seconds = time::Duration::from_secs(5);
+                        debug! {"Watchdog will sleep for five seconds."};
+                        thread::sleep(five_seconds);
+                        debug! {"Resuming..."};
+                    }
+                });
             (data_channel, OtherSocket) =
                 rt.block_on(configure_send_receive_udp(data_channel, OtherSocket));
         } else if (config.Type == "TCP") {
@@ -384,6 +409,17 @@ fn main() {
                 .next()
                 .expect("Error getting the TCP stream")
                 .expect("TCP stream error");
+            thread::Builder::new()
+                .name("Watchdog".to_string())
+                .spawn(move || {
+                    debug! {"Inactivity monitoring watchdog has started"}
+                    while (true) {
+                        let five_seconds = time::Duration::from_secs(5);
+                        debug! {"Watchdog will sleep for five seconds."};
+                        thread::sleep(five_seconds);
+                        debug! {"Resuming..."};
+                    }
+                });
             (data_channel, OtherSocket) =
                 rt.block_on(configure_send_receive_tcp(data_channel, OtherSocket));
         } else if (config.Type == "UDS") {
@@ -395,6 +431,17 @@ fn main() {
                 .next()
                 .expect("Error getting the UDS stream")
                 .expect("UDS stream error");
+            thread::Builder::new()
+                .name("Watchdog".to_string())
+                .spawn(move || {
+                    debug! {"Inactivity monitoring watchdog has started"}
+                    while (true) {
+                        let five_seconds = time::Duration::from_secs(5);
+                        debug! {"Watchdog will sleep for five seconds."};
+                        thread::sleep(five_seconds);
+                        debug! {"Resuming..."};
+                    }
+                });
             (data_channel, OtherSocket) =
                 rt.block_on(configure_send_receive_uds(data_channel, OtherSocket));
         }
