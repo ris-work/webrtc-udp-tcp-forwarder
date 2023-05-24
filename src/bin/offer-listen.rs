@@ -362,6 +362,26 @@ fn main() {
             .Address
             .clone()
             .expect("Binding address not specified");
+        let Watchdog = thread::Builder::new()
+            .name("Watchdog".to_string())
+            .spawn(move || {
+                debug! {"Inactivity monitoring watchdog has started"}
+                while (true) {
+                    let five_seconds = time::Duration::from_secs(15);
+                    debug! {"Watchdog will sleep for five seconds."};
+                    let current_time : u64 = chrono::Utc::now().timestamp().try_into().expect(
+                        "This software is not supposed to be used before UNIX was invented.",
+                    );
+                    debug!{
+                        "Stream was last active {} seconds ago. The current time is: {}. Last active time: {}.", 
+                        current_time - STREAM_LAST_ACTIVE_TIME.load(Ordering::Relaxed),
+                        current_time,
+                        STREAM_LAST_ACTIVE_TIME.load(Ordering::Relaxed)
+                    };
+                    thread::sleep(five_seconds);
+                    debug! {"Watchdog: Resuming..."};
+                }
+            });
         let mut buf = [0; 65507];
         if (config.Type == "UDP") {
             info! {"UDP socket requested"};
@@ -384,17 +404,6 @@ fn main() {
                     .expect("This software is not supposed to be used before UNIX was invented."),
                 Ordering::Relaxed,
             );
-            thread::Builder::new()
-                .name("Watchdog".to_string())
-                .spawn(move || {
-                    debug! {"Inactivity monitoring watchdog has started"}
-                    while (true) {
-                        let five_seconds = time::Duration::from_secs(5);
-                        debug! {"Watchdog will sleep for five seconds."};
-                        thread::sleep(five_seconds);
-                        debug! {"Resuming..."};
-                    }
-                });
             (data_channel, OtherSocket) =
                 rt.block_on(configure_send_receive_udp(data_channel, OtherSocket));
         } else if (config.Type == "TCP") {
@@ -409,17 +418,13 @@ fn main() {
                 .next()
                 .expect("Error getting the TCP stream")
                 .expect("TCP stream error");
-            thread::Builder::new()
-                .name("Watchdog".to_string())
-                .spawn(move || {
-                    debug! {"Inactivity monitoring watchdog has started"}
-                    while (true) {
-                        let five_seconds = time::Duration::from_secs(5);
-                        debug! {"Watchdog will sleep for five seconds."};
-                        thread::sleep(five_seconds);
-                        debug! {"Resuming..."};
-                    }
-                });
+            STREAM_LAST_ACTIVE_TIME.store(
+                chrono::Utc::now()
+                    .timestamp()
+                    .try_into()
+                    .expect("This software is not supposed to be used before UNIX was invented."),
+                Ordering::Relaxed,
+            );
             (data_channel, OtherSocket) =
                 rt.block_on(configure_send_receive_tcp(data_channel, OtherSocket));
         } else if (config.Type == "UDS") {
@@ -431,17 +436,6 @@ fn main() {
                 .next()
                 .expect("Error getting the UDS stream")
                 .expect("UDS stream error");
-            thread::Builder::new()
-                .name("Watchdog".to_string())
-                .spawn(move || {
-                    debug! {"Inactivity monitoring watchdog has started"}
-                    while (true) {
-                        let five_seconds = time::Duration::from_secs(5);
-                        debug! {"Watchdog will sleep for five seconds."};
-                        thread::sleep(five_seconds);
-                        debug! {"Resuming..."};
-                    }
-                });
             (data_channel, OtherSocket) =
                 rt.block_on(configure_send_receive_uds(data_channel, OtherSocket));
         }
