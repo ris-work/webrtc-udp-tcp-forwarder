@@ -1,0 +1,19 @@
+/*
+SPDX-FileCopyrightText: 2023 The Pion community <https://pion.ly>
+SPDX-License-Identifier: MIT
+ */
+textarea {
+	width: 78em;
+	min-height: 15em;
+	border-radius: 0px;
+	border: solid blueviolet;
+	color: cyan;
+	background: #111;
+}
+body {
+	background: black;
+}
+#logs {
+	color: #fb7;
+	font-family: monospace;
+}
