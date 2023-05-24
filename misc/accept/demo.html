@@ -2,10 +2,12 @@
 	SPDX-FileCopyrightText: 2023 The Pion community <https://pion.ly>
 	SPDX-License-Identifier: MIT
 -->
-<head><script src="demo.js"></script></head>
+<head><script src="demo.js"></script>
+	<link rel="stylesheet" type="text/css" href="demo.css">
+</head>
 <body>
 Browser base64 Session Description<br />
-<textarea id="localSessionDescription" readonly="true" style="width: 78em; height: 16em;"></textarea> <br />
+<textarea id="localSessionDescription" readonly="true"></textarea> <br />
 <button onclick="window.copySDP()">
 	Copy browser SDP to clipboard
 </button>
@@ -13,7 +15,7 @@ Browser base64 Session Description<br />
 <br />
 
 Golang base64 Session Description<br />
-<textarea id="remoteSessionDescription" style="width: 78em; height: 16em;"></textarea><br/>
+<textarea id="remoteSessionDescription"></textarea><br/>
 <button onclick="window.startSession()">Start Session</button><br />
 
 <br />
