@@ -1,1 +1,1 @@
-dc.onmessage = e => log(`Message: '${dc.label}' receives '${(new TextDecoder()).decode(new Uint8Array(e.data))}'`)
+dc.onmessage = async function(e){let x = await e.data.text(); log(`Message: '${dc.label}' receives '${x}'`)}
