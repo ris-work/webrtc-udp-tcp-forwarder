@@ -37,7 +37,14 @@ window.startSession = () => {
 		let dc = e.channel;
 		dc.onclose = () => console.log('sendChannel has closed')
 		dc.onopen = () => console.log('sendChannel has opened')
-		dc.onmessage = async function(e){let x = await e.data.text(); log(`Message: '${dc.label}' receives '${x}'`)}
+		dc.onmessage = async function(e){let x;
+		try{
+			if(e.data.text) {x = (await e.data.text())}
+			else {x = (new TextDecoder).decode(new Uint8Array(e.data)); }
+		}
+		catch (err) {console.log(err)};
+		log(`Message: '${dc.label}' receives '${x}'`)
+		}
 		window.sendMessage = () => {
 			const message = document.getElementById('message').value
 			if (message === '') {
