@@ -317,7 +317,6 @@ async fn handle_offer(
     session_description: RTCSessionDescription,
 ) -> Result<(Arc<RTCPeerConnection>, Arc<RTCDataChannel>), Box<dyn error::Error>> {
     let conn = Arc::clone(&peer_connection);
-    conn.set_remote_description(session_description).await?;
     Ok((peer_connection, data_channel))
 }
 fn main() {
