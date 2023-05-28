@@ -80,9 +80,10 @@ pub fn decode(s: &str) -> Result<String> {
     Ok(s)
 }
 fn handle_TCP_client(stream: TcpStream) {}
-async fn create_WebRTC_offer(
+async fn accept_WebRTC_offer(
+    offer: RTCSessionDescription,
     config: &Config,
-) -> Result<(Arc<RTCDataChannel>, Arc<RTCPeerConnection>), Box<dyn error::Error>> {
+) -> Result<(Arc<RTCDataChannel>, Arc<RTCPeerConnection>, Arc<RTCSessionDescription>), Box<dyn error::Error>> {
     // Create a MediaEngine object to configure the supported codec
     let mut m = MediaEngine::default();
 
@@ -139,14 +140,16 @@ async fn create_WebRTC_offer(
         Box::pin(async {})
     }));
 
+    // Sets the RemoteDescription, and starts our UDP listeners
+    peer_connection.set_remote_description(offer).await?;
     // Create an offer to send to the browser
-    let offer = peer_connection.create_offer(None).await?;
+    let answer = peer_connection.create_answer(None).await?;
 
     // Create channel that is blocked until ICE Gathering is complete
     let mut gather_complete = peer_connection.gathering_complete_promise().await;
 
-    // Sets the LocalDescription, and starts our UDP listeners
-    peer_connection.set_local_description(offer).await?;
+    peer_connection.set_local_description(answer.clone()).await?;
+
 
     // Block until ICE Gathering is complete, disabling trickle ICE
     // we do this because we only can exchange one signaling message
@@ -164,7 +167,7 @@ async fn create_WebRTC_offer(
     } else {
         info!("generate local_description failed!");
     }
-    Ok((Arc::clone(&data_channel), peer_connection))
+    Ok((Arc::clone(&data_channel), peer_connection, Arc::new(answer)))
 }
 async fn configure_send_receive_udp(
     RTCDC: Arc<RTCDataChannel>,
@@ -342,11 +345,8 @@ fn main() {
     info! {"{}", TOML_file_contents};
     let config: Config = toml::from_str(&TOML_file_contents).unwrap();
     info!("Configuration: type: {}", config.Type);
-    if (config.WebRTCMode == "Offer") {
+    if (config.WebRTCMode == "Accept") {
         let rt = Runtime::new().unwrap();
-        let (mut data_channel, mut peer_connection) = rt
-            .block_on(create_WebRTC_offer(&config))
-            .expect("Failed creating a WebRTC Data Channel.");
         let mut offerBase64Text: String = String::new();
         let _ = io::stdin()
             .read_line(&mut offerBase64Text)
@@ -354,12 +354,15 @@ fn main() {
         let offerBase64TextTrimmed = offerBase64Text.trim();
         info! {"Read offer: {}", offerBase64TextTrimmed};
         let offer = decode(&offerBase64TextTrimmed).expect("base64 conversion error");
-        let answer = serde_json::from_str::<RTCSessionDescription>(&offer)
+        let offerRTCSD = serde_json::from_str::<RTCSessionDescription>(&offer)
             .expect("Error parsing the offer!");
+        let (mut data_channel, mut peer_connection, mut answer) = rt
+            .block_on(accept_WebRTC_offer(offerRTCSD, &config))
+            .expect("Failed creating a WebRTC Data Channel.");
         (peer_connection, data_channel) = rt
-            .block_on(handle_offer(peer_connection, data_channel, answer))
+            .block_on(handle_offer(peer_connection, data_channel, (*answer).clone()))
             .expect("Error acccepting offer!");
-        let BindAddress = config
+        let ConnectAddress = config
             .Address
             .clone()
             .expect("Binding address not specified");
@@ -386,18 +389,14 @@ fn main() {
         let mut buf = [0; 65507];
         if (config.Type == "UDP") {
             info! {"UDP socket requested"};
-            let BindPort = config.Port.clone().expect("Binding port not specified");
-            info! {"Binding UDP on address {} port {}", BindAddress, BindPort};
-            let mut OtherSocket = UdpSocket::bind(format! {"{}:{}", BindAddress, BindPort})
-                .expect(&format! {"Could not bind to UDP port: {}:{}", &BindAddress, &BindPort});
-            info! {"Bound UDP on address {} port {}", BindAddress, BindPort};
-            let (amt, src) = OtherSocket
-                .peek_from(&mut buf)
-                .expect("Error saving to buffer");
-            info!("UDP connecting to: {}", src);
+            let ConnectPort = config.Port.clone().expect("Connecting port not specified");
+            info! {"Connecting to UDP to address {} port {}", ConnectAddress, ConnectPort};
+            let mut OtherSocket = UdpSocket::bind(format! {"{}:{}", ConnectAddress, ConnectPort})
+                .expect(&format! {"Could not connect to UDP port: {}:{}", &ConnectAddress, &ConnectPort});
+            info! {"Connected UDP on address {} port {}", ConnectAddress, ConnectPort};
             OtherSocket
-                .connect(src)
-                .expect(&format! {"UDP connect error: connect() to {}", src});
+                .connect(format!("{}:{}", ConnectAddress, ConnectPort))
+                .expect(&format! {"UDP connect error: connect() to {}", format!{"{}:{}", ConnectAddress, ConnectPort}});
             STREAM_LAST_ACTIVE_TIME.store(
                 chrono::Utc::now()
                     .timestamp()
@@ -409,16 +408,11 @@ fn main() {
                 rt.block_on(configure_send_receive_udp(data_channel, OtherSocket));
         } else if (config.Type == "TCP") {
             info! {"TCP socket requested"};
-            let BindPort = config.Port.clone().expect("Binding port not specified");
-            info! {"Binding TCP on address {} port {}", BindAddress, BindPort};
-            let Listener = TcpListener::bind(format! {"{}:{}", BindAddress, BindPort})
-                .expect(&format! {"Could not bind to TCP port: {}:{}", &BindAddress, &BindPort});
-            info! {"Bound TCP on address {} port {}", BindAddress, BindPort};
-            let mut OtherSocket = Listener
-                .incoming()
-                .next()
-                .expect("Error getting the TCP stream")
-                .expect("TCP stream error");
+            let ConnectPort = config.Port.clone().expect("Connecting port not specified");
+            info! {"Connecting TCP on address {} port {}", ConnectAddress, ConnectPort};
+            let mut OtherSocket = TcpStream::connect(format!("{}:{}", ConnectAddress, ConnectPort))
+                .expect("Error getting the TCP stream");
+            info! {"Connected to TCP: address {} port {}", ConnectAddress, ConnectPort};
             match (OtherSocket.set_nodelay(true)) {
                 Ok(_) => debug! {"NODELAY set"},
                 Err(_) => warn!("SO_NODELAY failed."),
@@ -434,13 +428,7 @@ fn main() {
                 rt.block_on(configure_send_receive_tcp(data_channel, OtherSocket));
         } else if (config.Type == "UDS") {
             info! {"Unix Domain Socket requested."};
-            let Listener = UnixListener::bind(BindAddress);
-            let mut OtherSocket = Listener
-                .expect("UDS listen error")
-                .incoming()
-                .next()
-                .expect("Error getting the UDS stream")
-                .expect("UDS stream error");
+            let mut OtherSocket = UnixStream::connect(ConnectAddress).expect("UDS connect error");
             (data_channel, OtherSocket) =
                 rt.block_on(configure_send_receive_uds(data_channel, OtherSocket));
         }
