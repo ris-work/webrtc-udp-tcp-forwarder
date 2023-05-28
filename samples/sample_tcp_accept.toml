@@ -1,5 +1,5 @@
-Type = "UDP"
-WebRTCMode = "Offer"
+Type = "TCP"
+WebRTCMode = "Accept"
 Address = "127.0.0.1"
-Port = "10500"
+Port = "11500"
 ICEServers = ['stun:vz.al']
