@@ -7,6 +7,7 @@ use base64::engine::{self, general_purpose};
 use base64::Engine;
 use bytes::Bytes;
 use futures::executor::block_on;
+use lazy_static::lazy_static;
 use log::{debug, error, info, warn};
 use serde::Deserialize;
 use std::env;
@@ -47,6 +48,9 @@ use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
 use webrtc::peer_connection::RTCPeerConnection;
 
 static STREAM_LAST_ACTIVE_TIME: AtomicU64 = AtomicU64::new(0);
+lazy_static! {
+    static ref CAN_RECV: Mutex<bool> = Mutex::new(false);
+}
 
 #[derive(Deserialize)]
 struct Config {
@@ -186,6 +190,15 @@ async fn configure_send_receive_udp(
             let mut result = Result::<usize>::Ok(0);
             while result.is_ok() {
                 let mut buf = [0; 65507];
+                {
+                    let mut ready = CAN_RECV.lock().unwrap();
+                    if (*ready == false) {
+                        let mut temp: String = String::new();
+                        let _ = io::stdin().read_line(&mut temp);
+                        *ready = true;
+                    }
+                    drop(ready);
+                };
                 let amt = ClonedSocketRecv
                     .recv(&mut buf)
                     .expect("Unable to read or save to buffer");
@@ -233,13 +246,22 @@ async fn configure_send_receive_tcp(
             let mut result = Result::<usize>::Ok(0);
             while result.is_ok() {
                 let mut buf = [0; 65507];
+                {
+                    let mut ready = CAN_RECV.lock().unwrap();
+                    if (*ready == false) {
+                        let mut temp: String = String::new();
+                        let _ = io::stdin().read_line(&mut temp);
+                        *ready = true;
+                    }
+                    drop(ready);
+                };
                 let amt = ClonedSocketRecv
                     .read(&mut buf)
                     .expect("Unable to read or save to the buffer");
                 debug! {"{:?}", &buf[0..amt]};
-                d2.send(&Bytes::copy_from_slice(&buf[0..amt]))
-                    .await
+                block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])))
                     .expect(&format! {"DataConnection {}: unable to send.", d1.label()});
+                debug! {"Written!"};
             }
         })
     }));
@@ -281,13 +303,22 @@ async fn configure_send_receive_uds(
             let mut result = Result::<usize>::Ok(0);
             while result.is_ok() {
                 let mut buf = [0; 65507];
+                {
+                    let mut ready = CAN_RECV.lock().unwrap();
+                    if (*ready == false) {
+                        let mut temp: String = String::new();
+                        let _ = io::stdin().read_line(&mut temp);
+                        *ready = true;
+                    }
+                    drop(ready);
+                };
                 let amt = ClonedSocketRecv
                     .read(&mut buf)
                     .expect("Unable to read or save to the buffer");
                 debug! {"{:?}", &buf[0..amt]};
-                d2.send(&Bytes::copy_from_slice(&buf[0..amt]))
-                    .await
+                block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])))
                     .expect(&format! {"DataConnection {}: unable to send.", d1.label()});
+                debug! {"Written!"};
             }
         })
     }));

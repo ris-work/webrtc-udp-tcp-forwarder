@@ -208,16 +208,15 @@ async fn configure_send_receive_udp(
                         let _ = io::stdin().read_line(&mut temp);
                         *ready = true;
                     }
-
                     drop(ready);
                 };
                 let amt = ClonedSocketRecv
                     .recv(&mut buf)
                     .expect("Unable to read or save to buffer");
                 debug! {"{:?}", &buf[0..amt]};
-                d2.send(&Bytes::copy_from_slice(&buf[0..amt]))
-                    .await
+                let written_bytes = block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])))
                     .expect(&format! {"DataConnection {}: unable to send.", d1.label()});
+                debug! {"Written!"};
             }
         })
     }));
@@ -251,25 +250,30 @@ async fn configure_send_receive_tcp(
     let mut ClonedSocketSend = OtherSocket
         .try_clone()
         .expect("Unable to clone the TCP socket. :(");
-    RTCPC
-.on_data_channel(Box::new(move |d: Arc<RTCDataChannel>| {
-    let d_label = d.label().to_owned();
-    let d_id = d.id();
-    println!("New DataChannel {d_label} {d_id}");
+    RTCPC.on_data_channel(Box::new(move |d: Arc<RTCDataChannel>| {
+        let d_label = d.label().to_owned();
+        let d_id = d.id();
+        println!("New DataChannel {d_label} {d_id}");
 
-    // Register channel opening handling
-    Box::pin({let d1=d1.clone();
+        // Register channel opening handling
+        Box::pin({
+            let d1 = d1.clone();
 
-
-        let (mut ClonedSocketRecv, mut ClonedSocketSend) = (ClonedSocketRecv.try_clone().expect(""), ClonedSocketSend.try_clone().expect(""));
-        async move {
-        let d1 = Arc::clone(&d1);
-        let d2 = Arc::clone(&d);
-        let d_label2 = d_label.clone();
-        let d_id2 = d_id;
-        let (mut ClonedSocketRecv, mut ClonedSocketSend) = (ClonedSocketRecv.try_clone().expect(""), ClonedSocketSend.try_clone().expect(""));
-        d.on_open(Box::new({let d1 = d1.clone(); move || {
-            println!("Data channel '{d_label2}'-'{d_id2}' open. Random messages will now be sent to any connected DataChannels every 5 seconds");
+            let (mut ClonedSocketRecv, mut ClonedSocketSend) = (
+                ClonedSocketRecv.try_clone().expect(""),
+                ClonedSocketSend.try_clone().expect(""),
+            );
+            async move {
+                let d1 = Arc::clone(&d1);
+                let d2 = Arc::clone(&d);
+                let d_label2 = d_label.clone();
+                let d_id2 = d_id;
+                let (mut ClonedSocketRecv, mut ClonedSocketSend) = (
+                    ClonedSocketRecv.try_clone().expect(""),
+                    ClonedSocketSend.try_clone().expect(""),
+                );
+                d.on_open(Box::new({let d1 = d1.clone(); move || {
+            println!("Data channel '{d_label2}'-'{d_id2}' open.");
             let d1=d1.clone();
 
             Box::pin(async move {
@@ -285,7 +289,6 @@ async fn configure_send_receive_tcp(
                             let _ = io::stdin().read_line(&mut temp);
                             *ready = true;
                         }
-    
                         drop(ready);
                     };
                     let d1=d1.clone();
@@ -294,24 +297,25 @@ async fn configure_send_receive_tcp(
                         .read(&mut buf)
                         .expect("Unable to read or save to the buffer");
                     debug! {"{:?}", &buf[0..amt]};
-                    d2.send(&Bytes::copy_from_slice(&buf[0..amt]))
-                        .await
+                    let written_bytes = block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])))
                         .expect(&format! {"DataConnection {}: unable to send.", d1.label()});
+                    debug!{"Written!"};
                 }
             })
         }}));
 
-        // Register text message handling
-        d.on_message(Box::new(move |msg: DataChannelMessage| {
-            let (mut ClonedSocketSend) = (ClonedSocketSend.try_clone().expect(""));
-            let msg = msg.data.to_vec();
-            debug!("Message from DataChannel '{d_label}': '{msg:?}'");
-            ClonedSocketSend.write(&msg).expect("Unable to write data.");
-            ClonedSocketSend.flush();
-            Box::pin(async {})
-        }));
-    }})
-}));
+                // Register text message handling
+                d.on_message(Box::new(move |msg: DataChannelMessage| {
+                    let (mut ClonedSocketSend) = (ClonedSocketSend.try_clone().expect(""));
+                    let msg = msg.data.to_vec();
+                    debug!("Message from DataChannel '{d_label}': '{msg:?}'");
+                    ClonedSocketSend.write(&msg).expect("Unable to write data.");
+                    ClonedSocketSend.flush();
+                    Box::pin(async {})
+                }));
+            }
+        })
+    }));
 
     debug! {"Successfully registered the on_message handle"};
     let (done_tx, mut done_rx) = tokio::sync::mpsc::channel::<()>(1);
@@ -342,6 +346,15 @@ async fn configure_send_receive_uds(
             let mut result = Result::<usize>::Ok(0);
             while result.is_ok() {
                 let mut buf = [0; 65507];
+                {
+                    let mut ready = CAN_RECV.lock().unwrap();
+                    if (*ready == false) {
+                        let mut temp: String = String::new();
+                        let _ = io::stdin().read_line(&mut temp);
+                        *ready = true;
+                    }
+                    drop(ready);
+                };
                 let amt = ClonedSocketRecv
                     .read(&mut buf)
                     .expect("Unable to read or save to the buffer");
