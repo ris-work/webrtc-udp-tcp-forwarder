@@ -1,5 +1,5 @@
 Type = "TCP"
 WebRTCMode = "Accept"
-Address = "127.0.0.1"
-Port = "11500"
+Address = "vz.al"
+Port = "22"
 ICEServers = ['stun:vz.al']

@@ -218,6 +218,7 @@ async fn configure_send_receive_udp(
 }
 async fn configure_send_receive_tcp(
     RTCDC: Arc<RTCDataChannel>,
+    RTCPC: Arc<RTCPeerConnection>,
     OtherSocket: TcpStream,
 ) -> (Arc<RTCDataChannel>, TcpStream) /*, Box<dyn error::Error>>*/ {
     // Register channel opening handling
@@ -228,12 +229,12 @@ async fn configure_send_receive_tcp(
     let mut ClonedSocketSend = OtherSocket
         .try_clone()
         .expect("Unable to clone the UDP socket. :(");
-    RTCDC.on_open(Box::new(move || {
+    /*RTCDC.on_open(Box::new(move || {
         info!("Data channel '{}'-'{}' open.", d1.label(), d1.id());
         let d2 = Arc::clone(&d1);
 
         Box::pin(async move {
-            let mut result = Result::<usize>::Ok(0);
+            /*let mut result = Result::<usize>::Ok(0);
             while result.is_ok() {
                 let mut buf = [0; 65507];
                 let amt = ClonedSocketRecv
@@ -243,19 +244,60 @@ async fn configure_send_receive_tcp(
                 d2.send(&Bytes::copy_from_slice(&buf[0..amt]))
                     .await
                     .expect(&format! {"DataConnection {}: unable to send.", d1.label()});
-            }
+            }*/
         })
-    }));
+    }));*/
+     RTCPC
+        .on_data_channel(Box::new(move |d: Arc<RTCDataChannel>| {
+            let d_label = d.label().to_owned();
+            let d_id = d.id();
+            println!("New DataChannel {d_label} {d_id}");
+
+            // Register channel opening handling
+            Box::pin(async move {
+                let d2 = Arc::clone(&d);
+                let d_label2 = d_label.clone();
+                let d_id2 = d_id;
+                d.on_open(Box::new(move || {
+                    println!("Data channel '{d_label2}'-'{d_id2}' open. Random messages will now be sent to any connected DataChannels every 5 seconds");
+
+                    Box::pin(async move {
+                        let mut result = Result::<usize>::Ok(0);
+                        while result.is_ok() {
+                            let timeout = tokio::time::sleep(Duration::from_secs(5));
+                            tokio::pin!(timeout);
+
+                            tokio::select! {
+                                _ = timeout.as_mut() =>{
+                                    let message = math_rand_alpha(15);
+                                    println!("Sending '{message}'");
+                                    result = d2.send_text(message).await.map_err(Into::into);
+                                }
+                            };
+                        }
+                    })
+                }));
+
+                // Register text message handling
+                d.on_message(Box::new(move |msg: DataChannelMessage| {
+                    let msg_str = String::from_utf8(msg.data.to_vec()).unwrap();
+                    println!("Message from DataChannel '{d_label}': '{msg_str}'");
+                    Box::pin(async {})
+                }));
+            })
+        }));
+
 
     // Register text message handling
     let d_label = RTCDC.label().to_owned();
-    RTCDC.on_message(Box::new(move |msg: DataChannelMessage| {
+    /*RTCDC.on_message(Box::new(move |msg: DataChannelMessage| {
         let msg = msg.data.to_vec();
         debug!("Message from DataChannel '{d_label}': '{msg:?}'");
         ClonedSocketSend.write(&msg).expect("Unable to write data.");
         ClonedSocketSend.flush();
         Box::pin(async {})
-    }));
+    }));*/
+    debug!{"Successfully registered the on_message handle"};
     let (done_tx, mut done_rx) = tokio::sync::mpsc::channel::<()>(1);
     done_rx.recv().await;
     debug! {"Closing!"};
@@ -424,7 +466,7 @@ fn main() {
                 Ordering::Relaxed,
             );
             (data_channel, OtherSocket) =
-                rt.block_on(configure_send_receive_tcp(data_channel, OtherSocket));
+                rt.block_on(configure_send_receive_tcp(data_channel, peer_connection, OtherSocket));
         } else if (config.Type == "UDS") {
             info! {"Unix Domain Socket requested."};
             let mut OtherSocket = UnixStream::connect(ConnectAddress).expect("UDS connect error");
