@@ -253,7 +253,7 @@ RTCPC
             println!("Data channel '{d_label2}'-'{d_id2}' open. Random messages will now be sent to any connected DataChannels every 5 seconds");
 
             Box::pin(async move {
-                let (mut ClonedSocketRecv2) = (ClonedSocketRecv.try_clone().expect(""));
+                let (mut ClonedSocketRecv) = (ClonedSocketRecv.try_clone().expect(""));
                 let mut result = Result::<usize>::Ok(0);
                 while result.is_ok() {
                     let mut buf = [0; 65507];
@@ -270,11 +270,11 @@ RTCPC
 
         // Register text message handling
         d.on_message(Box::new(move |msg: DataChannelMessage| {
-            let (mut ClonedSocketSend3) = (ClonedSocketSend.try_clone().expect(""));
+            let (mut ClonedSocketSend) = (ClonedSocketSend.try_clone().expect(""));
             let msg = msg.data.to_vec();
             debug!("Message from DataChannel '{d_label}': '{msg:?}'");
-            ClonedSocketSend3.write(&msg).expect("Unable to write data.");
-            ClonedSocketSend3.flush();
+            ClonedSocketSend.write(&msg).expect("Unable to write data.");
+            ClonedSocketSend.flush();
             Box::pin(async {})
         }));
     })
