@@ -244,20 +244,28 @@ RTCPC
     println!("New DataChannel {d_label} {d_id}");
 
     // Register channel opening handling
-    Box::pin(async move {
+    Box::pin({let d1=d1.clone(); 
+
+
+        let (mut ClonedSocketRecv, mut ClonedSocketSend) = (ClonedSocketRecv.try_clone().expect(""), ClonedSocketSend.try_clone().expect(""));
+        async move {
+        let d1 = Arc::clone(&d1);
         let d2 = Arc::clone(&d);
         let d_label2 = d_label.clone();
         let d_id2 = d_id;
-        let (ClonedSocketRecv, ClonedSocketSend) = (ClonedSocketRecv.try_clone().expect(""), ClonedSocketSend.try_clone().expect(""));
-        d.on_open(Box::new(move || {
+        let (mut ClonedSocketRecv, mut ClonedSocketSend) = (ClonedSocketRecv.try_clone().expect(""), ClonedSocketSend.try_clone().expect(""));
+        d.on_open(Box::new({let d1 = d1.clone(); move || {
             println!("Data channel '{d_label2}'-'{d_id2}' open. Random messages will now be sent to any connected DataChannels every 5 seconds");
+            let d1=d1.clone();
 
             Box::pin(async move {
+                let d1 = d1.clone();
                 let (mut ClonedSocketRecv) = (ClonedSocketRecv.try_clone().expect(""));
                 let mut result = Result::<usize>::Ok(0);
                 while result.is_ok() {
+                    let d1=d1.clone();
                     let mut buf = [0; 65507];
-                    let amt = ClonedSocketRecv2
+                    let amt = ClonedSocketRecv
                         .read(&mut buf)
                         .expect("Unable to read or save to the buffer");
                     debug! {"{:?}", &buf[0..amt]};
@@ -266,7 +274,7 @@ RTCPC
                         .expect(&format! {"DataConnection {}: unable to send.", d1.label()});
                 }
             })
-        }));
+        }}));
 
         // Register text message handling
         d.on_message(Box::new(move |msg: DataChannelMessage| {
@@ -277,7 +285,7 @@ RTCPC
             ClonedSocketSend.flush();
             Box::pin(async {})
         }));
-    })
+    }})
 }));
 
 debug! {"Successfully registered the on_message handle"};
