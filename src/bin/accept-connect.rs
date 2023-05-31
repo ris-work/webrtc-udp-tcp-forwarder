@@ -197,7 +197,7 @@ async fn configure_send_receive_udp(
     RTCPC.on_data_channel(Box::new(move |d: Arc<RTCDataChannel>| {
         let d_label = d.label().to_owned();
         let d_id = d.id();
-        println!("New DataChannel {d_label} {d_id}");
+        info!("New DataChannel {d_label} {d_id}");
 
         // Register channel opening handling
         Box::pin({
@@ -217,7 +217,7 @@ async fn configure_send_receive_udp(
                     ClonedSocketSend.try_clone().expect(""),
                     );
                 d.on_open(Box::new({let d1 = d1.clone(); move || {
-                    println!("Data channel '{d_label2}'-'{d_id2}' open.");
+                    info!("Data channel '{d_label2}'-'{d_id2}' open.");
                     let d1=d1.clone();
 
                     Box::pin(async move {
@@ -535,11 +535,15 @@ fn main() {
             let ConnectPort = config.Port.clone().expect("Connecting port not specified");
             info! {"Connecting to UDP to address {} port {}", ConnectAddress, ConnectPort};
             let mut OtherSocket = UdpSocket::bind(format! {"{}:{}", ConnectAddress, ConnectPort})
-                .expect(&format! {"Could not connect to UDP port: {}:{}", &ConnectAddress, &ConnectPort});
+                .expect(&format! {
+                    "Could not connect to UDP port: {}:{}", &ConnectAddress, &ConnectPort
+                });
             info! {"Connected UDP on address {} port {}", ConnectAddress, ConnectPort};
             OtherSocket
                 .connect(format!("{}:{}", ConnectAddress, ConnectPort))
-                .expect(&format! {"UDP connect error: connect() to {}", format!{"{}:{}", ConnectAddress, ConnectPort}});
+                .expect(&format! {"UDP connect error: connect() to {}", format!{
+                    "{}:{}", ConnectAddress, ConnectPort
+                }});
             STREAM_LAST_ACTIVE_TIME.store(
                 chrono::Utc::now()
                     .timestamp()
