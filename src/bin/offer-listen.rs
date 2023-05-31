@@ -187,6 +187,7 @@ async fn configure_send_receive_udp(
         let d2 = Arc::clone(&d1);
 
         Box::pin(async move {
+            thread::spawn(move || {
             let mut result = Result::<usize>::Ok(0);
             while result.is_ok() {
                 let mut buf = [0; 65507];
@@ -203,10 +204,9 @@ async fn configure_send_receive_udp(
                     .recv(&mut buf)
                     .expect("Unable to read or save to buffer");
                 debug! {"{:?}", &buf[0..amt]};
-                d2.send(&Bytes::copy_from_slice(&buf[0..amt]))
-                    .await
+                block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])))
                     .expect(&format! {"DataConnection {}: unable to send.", d1.label()});
-            }
+            }});
         })
     }));
 
@@ -243,6 +243,7 @@ async fn configure_send_receive_tcp(
         let d2 = Arc::clone(&d1);
 
         Box::pin(async move {
+            thread::spawn(move || {
             let mut result = Result::<usize>::Ok(0);
             while result.is_ok() {
                 let mut buf = [0; 65507];
@@ -262,7 +263,7 @@ async fn configure_send_receive_tcp(
                 block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])))
                     .expect(&format! {"DataConnection {}: unable to send.", d1.label()});
                 debug! {"Written!"};
-            }
+            }});
         })
     }));
 
