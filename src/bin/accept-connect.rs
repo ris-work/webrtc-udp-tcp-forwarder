@@ -277,6 +277,7 @@ async fn configure_send_receive_tcp(
             let d1=d1.clone();
 
             Box::pin(async move {
+                thread::spawn(move || {
                 let d1 = d1.clone();
                 let (mut ClonedSocketRecv) = (ClonedSocketRecv.try_clone().expect(""));
                 let mut result = Result::<usize>::Ok(0);
@@ -300,7 +301,7 @@ async fn configure_send_receive_tcp(
                     let written_bytes = block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])))
                         .expect(&format! {"DataConnection {}: unable to send.", d1.label()});
                     debug!{"Written!"};
-                }
+                }});
             })
         }}));
 
