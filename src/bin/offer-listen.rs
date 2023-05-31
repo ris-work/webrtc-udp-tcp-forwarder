@@ -188,25 +188,26 @@ async fn configure_send_receive_udp(
 
         Box::pin(async move {
             thread::spawn(move || {
-            let mut result = Result::<usize>::Ok(0);
-            while result.is_ok() {
-                let mut buf = [0; 65507];
-                {
-                    let mut ready = CAN_RECV.lock().unwrap();
-                    if (*ready == false) {
-                        let mut temp: String = String::new();
-                        let _ = io::stdin().read_line(&mut temp);
-                        *ready = true;
-                    }
-                    drop(ready);
-                };
-                let amt = ClonedSocketRecv
-                    .recv(&mut buf)
-                    .expect("Unable to read or save to buffer");
-                debug! {"{:?}", &buf[0..amt]};
-                block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])))
-                    .expect(&format! {"DataConnection {}: unable to send.", d1.label()});
-            }});
+                let mut result = Result::<usize>::Ok(0);
+                while result.is_ok() {
+                    let mut buf = [0; 65507];
+                    {
+                        let mut ready = CAN_RECV.lock().unwrap();
+                        if (*ready == false) {
+                            let mut temp: String = String::new();
+                            let _ = io::stdin().read_line(&mut temp);
+                            *ready = true;
+                        }
+                        drop(ready);
+                    };
+                    let amt = ClonedSocketRecv
+                        .recv(&mut buf)
+                        .expect("Unable to read or save to buffer");
+                    debug! {"{:?}", &buf[0..amt]};
+                    block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])))
+                        .expect(&format! {"DataConnection {}: unable to send.", d1.label()});
+                }
+            });
         })
     }));
 
@@ -244,26 +245,28 @@ async fn configure_send_receive_tcp(
 
         Box::pin(async move {
             thread::spawn(move || {
-            let mut result = Result::<usize>::Ok(0);
-            while result.is_ok() {
-                let mut buf = [0; 65507];
-                {
-                    let mut ready = CAN_RECV.lock().unwrap();
-                    if (*ready == false) {
-                        let mut temp: String = String::new();
-                        let _ = io::stdin().read_line(&mut temp);
-                        *ready = true;
-                    }
-                    drop(ready);
-                };
-                let amt = ClonedSocketRecv
-                    .read(&mut buf)
-                    .expect("Unable to read or save to the buffer");
-                debug! {"{:?}", &buf[0..amt]};
-                block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])))
-                    .expect(&format! {"DataConnection {}: unable to send.", d1.label()});
-                debug! {"Written!"};
-            }});
+                let mut result = Result::<usize>::Ok(0);
+                while result.is_ok() {
+                    let mut buf = [0; 65507];
+                    {
+                        let mut ready = CAN_RECV.lock().unwrap();
+                        if (*ready == false) {
+                            let mut temp: String = String::new();
+                            println! {"Please press RETURN when you are ready to connect."};
+                            let _ = io::stdin().read_line(&mut temp);
+                            *ready = true;
+                        }
+                        drop(ready);
+                    };
+                    let amt = ClonedSocketRecv
+                        .read(&mut buf)
+                        .expect("Unable to read or save to the buffer");
+                    debug! {"{:?}", &buf[0..amt]};
+                    block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])))
+                        .expect(&format! {"DataConnection {}: unable to send.", d1.label()});
+                    debug! {"Written!"};
+                }
+            });
         })
     }));
 
@@ -404,7 +407,7 @@ fn main() {
                     debug! {"Watchdog will sleep for five seconds."};
                     let current_time : u64 = chrono::Utc::now().timestamp().try_into().expect(
                         "This software is not supposed to be used before UNIX was invented.",
-                    );
+                        );
                     debug!{
                         "Stream was last active {} seconds ago. The current time is: {}. Last active time: {}.", 
                         current_time - STREAM_LAST_ACTIVE_TIME.load(Ordering::Relaxed),
