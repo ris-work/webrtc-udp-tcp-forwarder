@@ -176,10 +176,10 @@ async fn configure_send_receive_udp(
 ) -> (Arc<RTCDataChannel>, UdpSocket) /*, Box<dyn error::Error>>*/ {
     // Register channel opening handling
     let d1 = Arc::clone(&RTCDC);
-    let ClonedSocketRecv = OtherSocket
+    let mut ClonedSocketRecv = OtherSocket
         .try_clone()
         .expect("Unable to clone the UDP socket. :(");
-    let ClonedSocketSend = OtherSocket
+    let mut ClonedSocketSend = OtherSocket
         .try_clone()
         .expect("Unable to clone the UDP socket. :(");
     RTCDC.on_open(Box::new(move || {
@@ -195,6 +195,7 @@ async fn configure_send_receive_udp(
                         let mut ready = CAN_RECV.lock().unwrap();
                         if (*ready == false) {
                             let mut temp: String = String::new();
+                            println! {"Please press RETURN when you are ready to connect."};
                             let _ = io::stdin().read_line(&mut temp);
                             *ready = true;
                         }
@@ -202,10 +203,11 @@ async fn configure_send_receive_udp(
                     };
                     let amt = ClonedSocketRecv
                         .recv(&mut buf)
-                        .expect("Unable to read or save to buffer");
+                        .expect("Unable to read or save to the buffer");
                     debug! {"{:?}", &buf[0..amt]};
                     block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])))
                         .expect(&format! {"DataConnection {}: unable to send.", d1.label()});
+                    debug! {"Written!"};
                 }
             });
         })
@@ -217,6 +219,7 @@ async fn configure_send_receive_udp(
         let msg = msg.data.to_vec();
         debug!("Message from DataChannel '{d_label}': '{msg:?}'");
         ClonedSocketSend.send(&msg).expect("Unable to write data.");
+        //ClonedSocketSend.flush();
         Box::pin(async {})
     }));
     let (done_tx, mut done_rx) = tokio::sync::mpsc::channel::<()>(1);
@@ -304,26 +307,29 @@ async fn configure_send_receive_uds(
         let d2 = Arc::clone(&d1);
 
         Box::pin(async move {
-            let mut result = Result::<usize>::Ok(0);
-            while result.is_ok() {
-                let mut buf = [0; 65507];
-                {
-                    let mut ready = CAN_RECV.lock().unwrap();
-                    if (*ready == false) {
-                        let mut temp: String = String::new();
-                        let _ = io::stdin().read_line(&mut temp);
-                        *ready = true;
-                    }
-                    drop(ready);
-                };
-                let amt = ClonedSocketRecv
-                    .read(&mut buf)
-                    .expect("Unable to read or save to the buffer");
-                debug! {"{:?}", &buf[0..amt]};
-                block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])))
-                    .expect(&format! {"DataConnection {}: unable to send.", d1.label()});
-                debug! {"Written!"};
-            }
+            thread::spawn(move || {
+                let mut result = Result::<usize>::Ok(0);
+                while result.is_ok() {
+                    let mut buf = [0; 65507];
+                    {
+                        let mut ready = CAN_RECV.lock().unwrap();
+                        if (*ready == false) {
+                            let mut temp: String = String::new();
+                            println! {"Please press RETURN when you are ready to connect."};
+                            let _ = io::stdin().read_line(&mut temp);
+                            *ready = true;
+                        }
+                        drop(ready);
+                    };
+                    let amt = ClonedSocketRecv
+                        .read(&mut buf)
+                        .expect("Unable to read or save to the buffer");
+                    debug! {"{:?}", &buf[0..amt]};
+                    block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])))
+                        .expect(&format! {"DataConnection {}: unable to send.", d1.label()});
+                    debug! {"Written!"};
+                }
+            });
         })
     }));
 
@@ -333,6 +339,7 @@ async fn configure_send_receive_uds(
         let msg = msg.data.to_vec();
         debug!("Message from DataChannel '{d_label}': '{msg:?}'");
         ClonedSocketSend.write(&msg).expect("Unable to write data.");
+        ClonedSocketSend.flush();
         Box::pin(async {})
     }));
     let (done_tx, mut done_rx) = tokio::sync::mpsc::channel::<()>(1);
