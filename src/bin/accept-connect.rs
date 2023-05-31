@@ -287,7 +287,7 @@ async fn configure_send_receive_tcp(
     RTCPC.on_data_channel(Box::new(move |d: Arc<RTCDataChannel>| {
         let d_label = d.label().to_owned();
         let d_id = d.id();
-        println!("New DataChannel {d_label} {d_id}");
+        info!("New DataChannel {d_label} {d_id}");
 
         // Register channel opening handling
         Box::pin({
@@ -307,7 +307,7 @@ async fn configure_send_receive_tcp(
                     ClonedSocketSend.try_clone().expect(""),
                     );
                 d.on_open(Box::new({let d1 = d1.clone(); move || {
-                    println!("Data channel '{d_label2}'-'{d_id2}' open.");
+                    info!("Data channel '{d_label2}'-'{d_id2}' open.");
                     let d1=d1.clone();
 
                     Box::pin(async move {
@@ -377,7 +377,7 @@ async fn configure_send_receive_uds(
     RTCPC.on_data_channel(Box::new(move |d: Arc<RTCDataChannel>| {
         let d_label = d.label().to_owned();
         let d_id = d.id();
-        println!("New DataChannel {d_label} {d_id}");
+        info!("New DataChannel {d_label} {d_id}");
 
         // Register channel opening handling
         Box::pin({
@@ -397,7 +397,7 @@ async fn configure_send_receive_uds(
                     ClonedSocketSend.try_clone().expect(""),
                     );
                 d.on_open(Box::new({let d1 = d1.clone(); move || {
-                    println!("Data channel '{d_label2}'-'{d_id2}' open.");
+                    info!("Data channel '{d_label2}'-'{d_id2}' open.");
                     let d1=d1.clone();
 
                     Box::pin(async move {
