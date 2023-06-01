@@ -9,6 +9,7 @@ use bytes::Bytes;
 use futures::executor::block_on;
 use lazy_static::lazy_static;
 use log::{debug, error, info, warn};
+use parking_lot::Mutex;
 use serde::Deserialize;
 use std::env;
 use std::error;
@@ -27,7 +28,6 @@ use std::process::exit;
 use std::sync::atomic::AtomicU64;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
-use std::sync::Mutex;
 use std::thread;
 use std::time;
 use tokio::runtime::Runtime;
@@ -192,7 +192,7 @@ async fn configure_send_receive_udp(
                 while result.is_ok() {
                     let mut buf = [0; 65507];
                     {
-                        let mut ready = CAN_RECV.lock().unwrap();
+                        let mut ready = CAN_RECV.lock(); //.unwrap();
                         if (*ready == false) {
                             let mut temp: String = String::new();
                             println! {"Please press RETURN when you are ready to connect."};
@@ -252,7 +252,7 @@ async fn configure_send_receive_tcp(
                 while result.is_ok() {
                     let mut buf = [0; 65507];
                     {
-                        let mut ready = CAN_RECV.lock().unwrap();
+                        let mut ready = CAN_RECV.lock(); //.unwrap();
                         if (*ready == false) {
                             let mut temp: String = String::new();
                             println! {"Please press RETURN when you are ready to connect."};
@@ -312,7 +312,7 @@ async fn configure_send_receive_uds(
                 while result.is_ok() {
                     let mut buf = [0; 65507];
                     {
-                        let mut ready = CAN_RECV.lock().unwrap();
+                        let mut ready = CAN_RECV.lock(); //.unwrap();
                         if (*ready == false) {
                             let mut temp: String = String::new();
                             println! {"Please press RETURN when you are ready to connect."};

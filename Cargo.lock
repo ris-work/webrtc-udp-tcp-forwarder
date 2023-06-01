@@ -2383,6 +2383,7 @@ dependencies = [
  "futures",
  "lazy_static",
  "log",
+ "parking_lot",
  "serde",
  "serde_json",
  "tokio",

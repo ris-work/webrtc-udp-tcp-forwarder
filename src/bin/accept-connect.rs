@@ -9,6 +9,7 @@ use bytes::Bytes;
 use futures::executor::block_on;
 use lazy_static::lazy_static;
 use log::{debug, error, info, warn};
+use parking_lot::Mutex;
 use serde::Deserialize;
 use std::env;
 use std::error;
@@ -27,7 +28,6 @@ use std::process::exit;
 use std::sync::atomic::AtomicU64;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
-use std::sync::Mutex;
 use std::thread;
 use std::time;
 use tokio::runtime::Runtime;
@@ -227,7 +227,7 @@ async fn configure_send_receive_udp(
                             let mut result = Result::<usize>::Ok(0);
                             while result.is_ok() {
                                 {
-                                    let mut ready = CAN_RECV.lock().unwrap();
+                                    let mut ready = CAN_RECV.lock(); //.unwrap();
                                     if (*ready == false) {
                                         let mut temp: String = String::new();
                                         println!{"Waiting for a newline; please press RETURN on ready."};
@@ -307,6 +307,7 @@ async fn configure_send_receive_tcp(
                     ClonedSocketSend.try_clone().expect(""),
                     );
                 d.on_open(Box::new({let d1 = d1.clone(); move || {
+
                     info!("Data channel '{d_label2}'-'{d_id2}' open.");
                     let d1=d1.clone();
 
@@ -317,7 +318,7 @@ async fn configure_send_receive_tcp(
                             let mut result = Result::<usize>::Ok(0);
                             while result.is_ok() {
                                 {
-                                    let mut ready = CAN_RECV.lock().unwrap();
+                                    let mut ready = CAN_RECV.lock(); //.unwrap();
                                     if (*ready == false) {
                                         let mut temp: String = String::new();
                                         println!{"Waiting for a newline; please press RETURN on ready."};
@@ -338,6 +339,7 @@ async fn configure_send_receive_tcp(
                             }});
                     })
                 }}));
+
 
                 // Register text message handling
                 d.on_message(Box::new(move |msg: DataChannelMessage| {
@@ -407,7 +409,7 @@ async fn configure_send_receive_uds(
                             let mut result = Result::<usize>::Ok(0);
                             while result.is_ok() {
                                 {
-                                    let mut ready = CAN_RECV.lock().unwrap();
+                                    let mut ready = CAN_RECV.lock(); //.unwrap();
                                     if (*ready == false) {
                                         let mut temp: String = String::new();
                                         println!{"Waiting for a newline; please press RETURN on ready."};
