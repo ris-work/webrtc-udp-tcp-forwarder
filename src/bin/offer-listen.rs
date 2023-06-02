@@ -12,7 +12,7 @@ use base64::Engine;
 use bytes::Bytes;
 use futures::executor::block_on;
 use lazy_static::lazy_static;
-use log::{debug, error, info, warn};
+use log::{trace, debug, error, info, warn};
 use parking_lot::Mutex;
 use serde::Deserialize;
 use std::env;
@@ -266,13 +266,19 @@ async fn configure_send_receive_tcp(
                         }
                         //drop(ready);
                     };
-                    let amt = ClonedSocketRecv
-                        .read(&mut buf)
-                        .expect("Unable to read or save to the buffer");
-                    debug! {"{:?}", &buf[0..amt]};
-                    block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])))
-                        .expect(&format! {"DataConnection {}: unable to send.", d1.label()});
-                    debug! {"Written!"};
+                    match (ClonedSocketRecv.read(&mut buf)) {
+                        Ok(amt) => {
+                            debug! {"{:?}", &buf[0..amt]};
+                            block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt]))).expect(
+                                &format! {"DataConnection {}: unable to send.", d1.label()},
+                            );
+                            debug! {"Written!"};
+                        }
+                        Err(E) => {
+                            warn!("Unable to read or save to the buffer");
+                            break;
+                        }
+                    }
                 }
             });
         })
@@ -284,16 +290,23 @@ async fn configure_send_receive_tcp(
         let msg = msg.data.to_vec();
         debug!("Message from DataChannel '{d_label}': '{msg:?}'");
         if (CAN_RECV.load(Ordering::Relaxed)) {
-            ClonedSocketSend.write(&msg).expect("Unable to write data.");
-            ClonedSocketSend
-                .flush()
-                .expect("Unable to flush the stream.");
+            match (ClonedSocketSend.write(&msg)) {
+                Ok(amt) => {
+                    trace! {"Written {} bytes.", amt};
+                    ClonedSocketSend
+                        .flush()
+                        .expect("Unable to flush the stream.");
+                }
+                Err(E) => {
+                    warn!("Unable to write data.");
+                }
+            }
         } else {
             if (OtherSocketSendBuf.lock().len() + msg.len() > MaxOtherSocketSendBufSize) {
                 warn! {"Buffer FULL: {} + {} > {}",
-                    OtherSocketSendBuf.lock().len(),
-                    msg.len(),
-                    MaxOtherSocketSendBufSize
+                OtherSocketSendBuf.lock().len(),
+                msg.len(),
+                MaxOtherSocketSendBufSize
                 };
             } else {
                 OtherSocketSendBuf.lock().extend_from_slice(&msg);

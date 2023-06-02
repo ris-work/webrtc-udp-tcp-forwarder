@@ -12,7 +12,7 @@ use base64::Engine;
 use bytes::Bytes;
 use futures::executor::block_on;
 use lazy_static::lazy_static;
-use log::{trace, debug, error, info, warn};
+use log::{debug, error, info, trace, warn};
 use parking_lot::Mutex;
 use serde::Deserialize;
 use std::env;
