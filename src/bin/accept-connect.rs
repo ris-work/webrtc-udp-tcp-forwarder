@@ -5,6 +5,7 @@
 #![allow(dead_code)]
 #![allow(unused_mut)]
 #![allow(unused_variables)]
+#![allow(non_upper_case_globals)]
 use anyhow::Result;
 use base64::engine::{self, general_purpose};
 use base64::Engine;
@@ -52,6 +53,11 @@ use webrtc::peer_connection::RTCPeerConnection;
 
 static STREAM_LAST_ACTIVE_TIME: AtomicU64 = AtomicU64::new(0);
 static CAN_RECV: AtomicBool = AtomicBool::new(false);
+static MaxOtherSocketSendBufSize: usize = 2048;
+
+lazy_static! {
+    static ref OtherSocketSendBuf: Mutex<Vec<u8>> = Mutex::new(Vec::new());
+}
 
 #[derive(Deserialize)]
 struct Config {
@@ -344,11 +350,25 @@ async fn configure_send_receive_tcp(
 
                 // Register text message handling
                 d.on_message(Box::new(move |msg: DataChannelMessage| {
-                    let (mut ClonedSocketSend) = (ClonedSocketSend.try_clone().expect(""));
                     let msg = msg.data.to_vec();
                     debug!("Message from DataChannel '{d_label}': '{msg:?}'");
-                    ClonedSocketSend.write(&msg).expect("Unable to write data.");
-                    ClonedSocketSend.flush().expect("Unable to flush the stream.");
+                    if (CAN_RECV.load(Ordering::Relaxed)){
+                        let (mut ClonedSocketSend) = (ClonedSocketSend.try_clone().expect(""));
+                        ClonedSocketSend.write(&msg).expect("Unable to write data.");
+                        ClonedSocketSend.flush().expect("Unable to flush the stream.");
+                    }
+                    else {
+                        if (OtherSocketSendBuf.lock().len() + msg.len() > MaxOtherSocketSendBufSize) {
+                            warn! {"Buffer FULL: {} + {} > {}",
+                            OtherSocketSendBuf.lock().len(),
+                            msg.len(),
+                            MaxOtherSocketSendBufSize
+                            };
+                        } else {
+                            debug!{"OtherSocket not ready yet!"};
+                            OtherSocketSendBuf.lock().extend_from_slice(&msg);
+                        }
+                    }
                     Box::pin(async {})
                 }));
             }
@@ -516,7 +536,7 @@ fn main() {
             .name("Watchdog".to_string())
             .spawn(move || {
                 debug! {"Inactivity monitoring watchdog has started"}
-                while (true) {
+                loop {
                     let five_seconds = time::Duration::from_secs(15);
                     debug! {"Watchdog will sleep for five seconds."};
                     let current_time : u64 = chrono::Utc::now().timestamp().try_into().expect(
@@ -565,6 +585,7 @@ fn main() {
             info! {"Connecting TCP on address {} port {}", ConnectAddress, ConnectPort};
             let mut OtherSocket = TcpStream::connect(format!("{}:{}", ConnectAddress, ConnectPort))
                 .expect("Error getting the TCP stream");
+            OtherSocket.write(&OtherSocketSendBuf.lock());
             info! {"Connected to TCP: address {} port {}", ConnectAddress, ConnectPort};
             match (OtherSocket.set_nodelay(true)) {
                 Ok(_) => debug! {"NODELAY set"},
