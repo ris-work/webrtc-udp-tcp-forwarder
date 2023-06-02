@@ -606,6 +606,7 @@ fn main() {
             info! {"Connecting TCP on address {} port {}", ConnectAddress, ConnectPort};
             let mut OtherSocket = TcpStream::connect(format!("{}:{}", ConnectAddress, ConnectPort))
                 .expect("Error getting the TCP stream");
+            debug!{"Attempting to write the send buffer: {:?}", &OtherSocketSendBuf.lock()};
             OtherSocket.write(&OtherSocketSendBuf.lock());
             info! {"Connected to TCP: address {} port {}", ConnectAddress, ConnectPort};
             match (OtherSocket.set_nodelay(true)) {
