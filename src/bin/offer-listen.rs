@@ -504,6 +504,7 @@ fn main() {
                     .expect("This software is not supposed to be used before UNIX was invented."),
                 Ordering::Relaxed,
             );
+            debug!{"Attempting to write the send buffer: {:?}", &OtherSocketSendBuf.lock()};
             OtherSocket.write(&OtherSocketSendBuf.lock());
             (data_channel, OtherSocket) =
                 rt.block_on(configure_send_receive_tcp(data_channel, OtherSocket));
