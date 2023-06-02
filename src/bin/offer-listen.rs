@@ -2,6 +2,9 @@
 #![allow(unused_parens)]
 #![allow(unused_assignments)]
 #![allow(non_camel_case_types)]
+#![allow(dead_code)]
+#![allow(unused_mut)]
+#![allow(unused_variables)]
 use anyhow::Result;
 use base64::engine::{self, general_purpose};
 use base64::Engine;
@@ -25,8 +28,8 @@ use std::net::UdpSocket;
 #[cfg(unix)]
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::process::exit;
-use std::sync::atomic::AtomicU64;
 use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicBool, AtomicU64};
 use std::sync::Arc;
 use std::thread;
 use std::time;
@@ -48,9 +51,7 @@ use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
 use webrtc::peer_connection::RTCPeerConnection;
 
 static STREAM_LAST_ACTIVE_TIME: AtomicU64 = AtomicU64::new(0);
-lazy_static! {
-    static ref CAN_RECV: Mutex<bool> = Mutex::new(false);
-}
+static CAN_RECV: AtomicBool = AtomicBool::new(false);
 
 #[derive(Deserialize)]
 struct Config {
@@ -192,14 +193,12 @@ async fn configure_send_receive_udp(
                 while result.is_ok() {
                     let mut buf = [0; 65507];
                     {
-                        let mut ready = CAN_RECV.lock(); //.unwrap();
-                        if (*ready == false) {
+                        if (CAN_RECV.load(Ordering::Relaxed) == false) {
                             let mut temp: String = String::new();
                             println! {"Please press RETURN when you are ready to connect."};
                             let _ = io::stdin().read_line(&mut temp);
-                            *ready = true;
+                            CAN_RECV.store(true, Ordering::Relaxed);
                         }
-                        drop(ready);
                     };
                     let amt = ClonedSocketRecv
                         .recv(&mut buf)
@@ -252,14 +251,14 @@ async fn configure_send_receive_tcp(
                 while result.is_ok() {
                     let mut buf = [0; 65507];
                     {
-                        let mut ready = CAN_RECV.lock(); //.unwrap();
-                        if (*ready == false) {
+                        //let mut ready = CAN_RECV.lock(); //.unwrap();
+                        if (CAN_RECV.load(Ordering::Relaxed) == false) {
                             let mut temp: String = String::new();
                             println! {"Please press RETURN when you are ready to connect."};
                             let _ = io::stdin().read_line(&mut temp);
-                            *ready = true;
+                            CAN_RECV.store(true, Ordering::Relaxed);
                         }
-                        drop(ready);
+                        //drop(ready);
                     };
                     let amt = ClonedSocketRecv
                         .read(&mut buf)
@@ -279,7 +278,9 @@ async fn configure_send_receive_tcp(
         let msg = msg.data.to_vec();
         debug!("Message from DataChannel '{d_label}': '{msg:?}'");
         ClonedSocketSend.write(&msg).expect("Unable to write data.");
-        ClonedSocketSend.flush();
+        ClonedSocketSend
+            .flush()
+            .expect("Unable to flush the stream.");
         Box::pin(async {})
     }));
     let (done_tx, mut done_rx) = tokio::sync::mpsc::channel::<()>(1);
@@ -312,14 +313,12 @@ async fn configure_send_receive_uds(
                 while result.is_ok() {
                     let mut buf = [0; 65507];
                     {
-                        let mut ready = CAN_RECV.lock(); //.unwrap();
-                        if (*ready == false) {
+                        if (CAN_RECV.load(Ordering::Relaxed) == false) {
                             let mut temp: String = String::new();
                             println! {"Please press RETURN when you are ready to connect."};
                             let _ = io::stdin().read_line(&mut temp);
-                            *ready = true;
+                            CAN_RECV.store(true, Ordering::Relaxed);
                         }
-                        drop(ready);
                     };
                     let amt = ClonedSocketRecv
                         .read(&mut buf)
@@ -339,7 +338,9 @@ async fn configure_send_receive_uds(
         let msg = msg.data.to_vec();
         debug!("Message from DataChannel '{d_label}': '{msg:?}'");
         ClonedSocketSend.write(&msg).expect("Unable to write data.");
-        ClonedSocketSend.flush();
+        ClonedSocketSend
+            .flush()
+            .expect("Unable to flush the stream.");
         Box::pin(async {})
     }));
     let (done_tx, mut done_rx) = tokio::sync::mpsc::channel::<()>(1);

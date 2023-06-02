@@ -2,6 +2,9 @@
 #![allow(unused_parens)]
 #![allow(unused_assignments)]
 #![allow(non_camel_case_types)]
+#![allow(dead_code)]
+#![allow(unused_mut)]
+#![allow(unused_variables)]
 use anyhow::Result;
 use base64::engine::{self, general_purpose};
 use base64::Engine;
@@ -25,8 +28,8 @@ use std::net::UdpSocket;
 #[cfg(unix)]
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::process::exit;
-use std::sync::atomic::AtomicU64;
 use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicBool, AtomicU64};
 use std::sync::Arc;
 use std::thread;
 use std::time;
@@ -48,9 +51,7 @@ use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
 use webrtc::peer_connection::RTCPeerConnection;
 
 static STREAM_LAST_ACTIVE_TIME: AtomicU64 = AtomicU64::new(0);
-lazy_static! {
-    static ref CAN_RECV: Mutex<bool> = Mutex::new(false);
-}
+static CAN_RECV: AtomicBool = AtomicBool::new(false);
 
 #[derive(Deserialize)]
 struct Config {
@@ -227,14 +228,14 @@ async fn configure_send_receive_udp(
                             let mut result = Result::<usize>::Ok(0);
                             while result.is_ok() {
                                 {
-                                    let mut ready = CAN_RECV.lock(); //.unwrap();
-                                    if (*ready == false) {
+                                    //let mut ready = CAN_RECV.lock(); //.unwrap();
+                                    if (CAN_RECV.load(Ordering::Relaxed) == false) {
                                         let mut temp: String = String::new();
-                                        println!{"Waiting for a newline; please press RETURN on ready."};
+                                        println! {"Please press RETURN when you are ready to connect."};
                                         let _ = io::stdin().read_line(&mut temp);
-                                        *ready = true;
+                                        CAN_RECV.store(true, Ordering::Relaxed);
                                     }
-                                    drop(ready);
+                                    //drop(ready);
                                 };
                                 let d1=d1.clone();
                                 let mut buf = [0; 65507];
@@ -318,14 +319,14 @@ async fn configure_send_receive_tcp(
                             let mut result = Result::<usize>::Ok(0);
                             while result.is_ok() {
                                 {
-                                    let mut ready = CAN_RECV.lock(); //.unwrap();
-                                    if (*ready == false) {
+                                    //let mut ready = CAN_RECV.lock(); //.unwrap();
+                                    if (CAN_RECV.load(Ordering::Relaxed) == false) {
                                         let mut temp: String = String::new();
-                                        println!{"Waiting for a newline; please press RETURN on ready."};
+                                        println! {"Please press RETURN when you are ready to connect."};
                                         let _ = io::stdin().read_line(&mut temp);
-                                        *ready = true;
+                                        CAN_RECV.store(true, Ordering::Relaxed);
                                     }
-                                    drop(ready);
+                                    //drop(ready);
                                 };
                                 let d1=d1.clone();
                                 let mut buf = [0; 65507];
@@ -347,7 +348,7 @@ async fn configure_send_receive_tcp(
                     let msg = msg.data.to_vec();
                     debug!("Message from DataChannel '{d_label}': '{msg:?}'");
                     ClonedSocketSend.write(&msg).expect("Unable to write data.");
-                    ClonedSocketSend.flush();
+                    ClonedSocketSend.flush().expect("Unable to flush the stream.");
                     Box::pin(async {})
                 }));
             }
@@ -409,14 +410,14 @@ async fn configure_send_receive_uds(
                             let mut result = Result::<usize>::Ok(0);
                             while result.is_ok() {
                                 {
-                                    let mut ready = CAN_RECV.lock(); //.unwrap();
-                                    if (*ready == false) {
+                                    //let mut ready = CAN_RECV.lock(); //.unwrap();
+                                    if (CAN_RECV.load(Ordering::Relaxed) == false) {
                                         let mut temp: String = String::new();
-                                        println!{"Waiting for a newline; please press RETURN on ready."};
+                                        println! {"Please press RETURN when you are ready to connect."};
                                         let _ = io::stdin().read_line(&mut temp);
-                                        *ready = true;
+                                        CAN_RECV.store(true, Ordering::Relaxed);
                                     }
-                                    drop(ready);
+                                    //drop(ready);
                                 };
                                 let d1=d1.clone();
                                 let mut buf = [0; 65507];
@@ -437,7 +438,7 @@ async fn configure_send_receive_uds(
                     let msg = msg.data.to_vec();
                     debug!("Message from DataChannel '{d_label}': '{msg:?}'");
                     ClonedSocketSend.write(&msg).expect("Unable to write data.");
-                    ClonedSocketSend.flush();
+                    ClonedSocketSend.flush().expect("Unable to flush the stream.");
                     Box::pin(async {})
                 }));
             }
