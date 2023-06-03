@@ -7,18 +7,17 @@
 #![allow(unused_variables)]
 #![allow(non_upper_case_globals)]
 use anyhow::Result;
-use base64::engine::{self, general_purpose};
+use base64::engine::general_purpose;
 use base64::Engine;
 use bytes::Bytes;
 use futures::executor::block_on;
 use lazy_static::lazy_static;
-use log::{trace, debug, error, info, warn};
+use log::{debug, error, info, trace, warn};
 use parking_lot::Mutex;
 use serde::Deserialize;
 use std::env;
 use std::error;
-use std::fmt;
-use std::fs;
+
 use std::fs::read_to_string;
 use std::io;
 use std::io::Read;
@@ -35,7 +34,7 @@ use std::sync::Arc;
 use std::thread;
 use std::time;
 use tokio::runtime::Runtime;
-use tokio::time::Duration;
+
 #[cfg(windows)]
 use uds_windows::{UnixListener, UnixStream};
 use webrtc::api::interceptor_registry::register_default_interceptors;
@@ -46,7 +45,7 @@ use webrtc::data_channel::RTCDataChannel;
 use webrtc::ice_transport::ice_server::RTCIceServer;
 use webrtc::interceptor::registry::Registry;
 use webrtc::peer_connection::configuration::RTCConfiguration;
-use webrtc::peer_connection::math_rand_alpha;
+
 use webrtc::peer_connection::peer_connection_state::RTCPeerConnectionState;
 use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
 use webrtc::peer_connection::RTCPeerConnection;
@@ -507,7 +506,7 @@ fn main() {
                     .expect("This software is not supposed to be used before UNIX was invented."),
                 Ordering::Relaxed,
             );
-            debug!{"Attempting to write the send buffer: {:?}", &OtherSocketSendBuf.lock()};
+            debug! {"Attempting to write the send buffer: {:?}", &OtherSocketSendBuf.lock()};
             OtherSocket.write(&OtherSocketSendBuf.lock());
             (data_channel, OtherSocket) =
                 rt.block_on(configure_send_receive_tcp(data_channel, OtherSocket));
