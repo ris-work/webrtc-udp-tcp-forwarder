@@ -282,13 +282,15 @@ async fn configure_send_receive_tcp(
                                     Err(E) => {
                                         warn! {"DataConnection {}: unable to send: {:?}.", d1.label(), E};
                                         DataChannelReady.store(false, Ordering::Relaxed);
+                                        info!{"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
                                         break;
                                     }
                                 }
                             }
                             Err(E) => {
                                 warn!("Unable to read or save to the buffer: {:?}", E);
-                                ClonedSocketReady.store(false, Ordering::Relaxed);
+                                OtherSocketReady.store(false, Ordering::Relaxed);
+                                info!{"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
                                 break;
                             }
                         }
