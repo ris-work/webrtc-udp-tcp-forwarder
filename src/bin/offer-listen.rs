@@ -55,7 +55,7 @@ static OtherSocketReady: AtomicBool = AtomicBool::new(false);
 static DataChannelReady: AtomicBool = AtomicBool::new(false);
 static CAN_RECV: AtomicBool = AtomicBool::new(true);
 static MaxOtherSocketSendBufSize: usize = 2048;
-static THREAD_STACK_SIZE: usize = 2048;
+static THREAD_STACK_SIZE: usize = 204800;
 
 lazy_static! {
     static ref OtherSocketSendBuf: Mutex<Vec<u8>> = Mutex::new(Vec::new());
@@ -95,7 +95,7 @@ pub fn decode(s: &str) -> Result<String> {
 fn handle_TCP_client(stream: TcpStream) {}
 async fn create_WebRTC_offer(
     config: &Config,
-) -> Result<(Arc<RTCDataChannel>, Arc<RTCPeerConnection>), Box<dyn error::Error>> {
+    ) -> Result<(Arc<RTCDataChannel>, Arc<RTCPeerConnection>), Box<dyn error::Error>> {
     // Create a MediaEngine object to configure the supported codec
     let mut m = MediaEngine::default();
 
@@ -182,7 +182,7 @@ async fn create_WebRTC_offer(
 async fn configure_send_receive_udp(
     RTCDC: Arc<RTCDataChannel>,
     OtherSocket: UdpSocket,
-) -> (Arc<RTCDataChannel>, UdpSocket) /*, Box<dyn error::Error>>*/ {
+    ) -> (Arc<RTCDataChannel>, UdpSocket) /*, Box<dyn error::Error>>*/ {
     // Register channel opening handling
     let d1 = Arc::clone(&RTCDC);
     let mut ClonedSocketRecv = OtherSocket
@@ -240,9 +240,9 @@ async fn configure_send_receive_udp(
 async fn configure_send_receive_tcp(
     RTCDC: Arc<RTCDataChannel>,
     OtherSocket: TcpStream,
-) -> (Arc<RTCDataChannel>, TcpStream) /*, Box<dyn error::Error>>*/ {
+    ) -> (Arc<RTCDataChannel>, TcpStream) /*, Box<dyn error::Error>>*/ {
     // Register channel opening handling
-    info!{"Configuring TCP<=>RTCDC..."};
+    info! {"Configuring TCP<=>RTCDC..."};
     let d1 = Arc::clone(&RTCDC);
     let mut ClonedSocketRecv = OtherSocket
         .try_clone()
@@ -253,50 +253,50 @@ async fn configure_send_receive_tcp(
     RTCDC.on_open(Box::new(move || {
         info!("Data channel '{}'-'{}' open.", d1.label(), d1.id());
         let d2 = Arc::clone(&d1);
-
-        Box::pin(async move {
-            thread::Builder::new()
-                .stack_size(THREAD_STACK_SIZE)
-                .spawn(move || {
-                    info!{"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
-                    loop {
-                        let mut buf = [0; 65507];
-                        {
-                            //let mut ready = CAN_RECV.lock(); //.unwrap();
-                            if (CAN_RECV.load(Ordering::Relaxed) == false) {
-                                let mut temp: String = String::new();
-                                println! {"Please press RETURN when you are ready to connect."};
-                                let _ = io::stdin().read_line(&mut temp);
-                                CAN_RECV.store(true, Ordering::Relaxed);
-                            }
-                            //drop(ready);
-                        };
-                        match (ClonedSocketRecv.read(&mut buf)) {
-                            Ok(amt) => {
-                                debug! {"{:?}", &buf[0..amt]};
-                                let written_bytes =
-                                    block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])));
-                                match (written_bytes) {
-                                    Ok(Bytes) => {
-                                        debug! {"Written!"};
-                                    }
-                                    Err(E) => {
-                                        warn! {"DataConnection {}: unable to send: {:?}.", d1.label(), E};
-                                        DataChannelReady.store(false, Ordering::Relaxed);
-                                        info!{"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
-                                        break;
-                                    }
+        thread::Builder::new()
+            .stack_size(THREAD_STACK_SIZE)
+            .spawn(move || {
+                info!{"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
+                loop {
+                    let mut buf = [0; 65507];
+                    {
+                        //let mut ready = CAN_RECV.lock(); //.unwrap();
+                        if (CAN_RECV.load(Ordering::Relaxed) == false) {
+                            let mut temp: String = String::new();
+                            println! {"Please press RETURN when you are ready to connect."};
+                            let _ = io::stdin().read_line(&mut temp);
+                            CAN_RECV.store(true, Ordering::Relaxed);
+                        }
+                        //drop(ready);
+                    };
+                    match (ClonedSocketRecv.read(&mut buf)) {
+                        Ok(amt) => {
+                            debug! {"{:?}", &buf[0..amt]};
+                            let written_bytes =
+                                block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])));
+                            match (written_bytes) {
+                                Ok(Bytes) => {
+                                    debug! {"Written!"};
+                                }
+                                Err(E) => {
+                                    warn! {"DataConnection {}: unable to send: {:?}.", d1.label(), E};
+                                    DataChannelReady.store(false, Ordering::Relaxed);
+                                    info!{"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
+                                    break;
                                 }
                             }
-                            Err(E) => {
-                                warn!("Unable to read or save to the buffer: {:?}", E);
-                                OtherSocketReady.store(false, Ordering::Relaxed);
-                                info!{"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
-                                break;
-                            }
+                        }
+                        Err(E) => {
+                            warn!("Unable to read or save to the buffer: {:?}", E);
+                            OtherSocketReady.store(false, Ordering::Relaxed);
+                            info!{"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
+                            break;
                         }
                     }
-                });
+                }
+            });
+
+        Box::pin(async move {
         })
     }));
 
@@ -341,7 +341,7 @@ async fn configure_send_receive_tcp(
 async fn configure_send_receive_uds(
     RTCDC: Arc<RTCDataChannel>,
     OtherSocket: UnixStream,
-) -> (Arc<RTCDataChannel>, UnixStream) /*, Box<dyn error::Error>>*/ {
+    ) -> (Arc<RTCDataChannel>, UnixStream) /*, Box<dyn error::Error>>*/ {
     // Register channel opening handling
     let d1 = Arc::clone(&RTCDC);
     let mut ClonedSocketRecv = OtherSocket
@@ -402,7 +402,7 @@ async fn handle_offer(
     peer_connection: Arc<RTCPeerConnection>,
     data_channel: Arc<RTCDataChannel>,
     session_description: RTCSessionDescription,
-) -> Result<(Arc<RTCPeerConnection>, Arc<RTCDataChannel>), Box<dyn error::Error>> {
+    ) -> Result<(Arc<RTCPeerConnection>, Arc<RTCDataChannel>), Box<dyn error::Error>> {
     let conn = Arc::clone(&peer_connection);
     conn.set_remote_description(session_description).await?;
     Ok((peer_connection, data_channel))
@@ -490,11 +490,11 @@ fn main() {
                 .expect(&format! {"UDP connect error: connect() to {}", src});
             STREAM_LAST_ACTIVE_TIME.store(
                 chrono::Utc::now()
-                    .timestamp()
-                    .try_into()
-                    .expect("This software is not supposed to be used before UNIX was invented."),
+                .timestamp()
+                .try_into()
+                .expect("This software is not supposed to be used before UNIX was invented."),
                 Ordering::Relaxed,
-            );
+                );
             (data_channel, OtherSocket) =
                 rt.block_on(configure_send_receive_udp(data_channel, OtherSocket));
         } else if (config.Type == "TCP") {
@@ -515,11 +515,11 @@ fn main() {
             }
             STREAM_LAST_ACTIVE_TIME.store(
                 chrono::Utc::now()
-                    .timestamp()
-                    .try_into()
-                    .expect("This software is not supposed to be used before UNIX was invented."),
+                .timestamp()
+                .try_into()
+                .expect("This software is not supposed to be used before UNIX was invented."),
                 Ordering::Relaxed,
-            );
+                );
             debug! {"Attempting to write the send buffer: {:?}", &OtherSocketSendBuf.lock()};
             OtherSocket.write(&OtherSocketSendBuf.lock());
             (data_channel, OtherSocket) =
