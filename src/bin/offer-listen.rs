@@ -55,7 +55,7 @@ static OtherSocketReady: AtomicBool = AtomicBool::new(false);
 static DataChannelReady: AtomicBool = AtomicBool::new(false);
 static CAN_RECV: AtomicBool = AtomicBool::new(true);
 static MaxOtherSocketSendBufSize: usize = 2048;
-
+static THREAD_STACK_SIZE: usize = 2048;
 
 lazy_static! {
     static ref OtherSocketSendBuf: Mutex<Vec<u8>> = Mutex::new(Vec::new());
@@ -254,35 +254,37 @@ async fn configure_send_receive_tcp(
         let d2 = Arc::clone(&d1);
 
         Box::pin(async move {
-            thread::spawn(move || {
-                let mut result = Result::<usize>::Ok(0);
-                while result.is_ok() {
-                    let mut buf = [0; 65507];
-                    {
-                        //let mut ready = CAN_RECV.lock(); //.unwrap();
-                        if (CAN_RECV.load(Ordering::Relaxed) == false) {
-                            let mut temp: String = String::new();
-                            println! {"Please press RETURN when you are ready to connect."};
-                            let _ = io::stdin().read_line(&mut temp);
-                            CAN_RECV.store(true, Ordering::Relaxed);
-                        }
-                        //drop(ready);
-                    };
-                    match (ClonedSocketRecv.read(&mut buf)) {
-                        Ok(amt) => {
-                            debug! {"{:?}", &buf[0..amt]};
-                            block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt]))).expect(
-                                &format! {"DataConnection {}: unable to send.", d1.label()},
-                            );
-                            debug! {"Written!"};
-                        }
-                        Err(E) => {
-                            warn!("Unable to read or save to the buffer");
-                            break;
+            thread::Builder::new()
+                .stack_size(THREAD_STACK_SIZE)
+                .spawn(move || {
+                    let mut result = Result::<usize>::Ok(0);
+                    while result.is_ok() {
+                        let mut buf = [0; 65507];
+                        {
+                            //let mut ready = CAN_RECV.lock(); //.unwrap();
+                            if (CAN_RECV.load(Ordering::Relaxed) == false) {
+                                let mut temp: String = String::new();
+                                println! {"Please press RETURN when you are ready to connect."};
+                                let _ = io::stdin().read_line(&mut temp);
+                                CAN_RECV.store(true, Ordering::Relaxed);
+                            }
+                            //drop(ready);
+                        };
+                        match (ClonedSocketRecv.read(&mut buf)) {
+                            Ok(amt) => {
+                                debug! {"{:?}", &buf[0..amt]};
+                                block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt]))).expect(
+                                    &format! {"DataConnection {}: unable to send.", d1.label()},
+                                );
+                                debug! {"Written!"};
+                            }
+                            Err(E) => {
+                                warn!("Unable to read or save to the buffer");
+                                break;
+                            }
                         }
                     }
-                }
-            });
+                });
         })
     }));
 
@@ -439,7 +441,7 @@ fn main() {
             .Address
             .clone()
             .expect("Binding address not specified");
-        let Watchdog = thread::Builder::new()
+        let Watchdog = thread::Builder::new().stack_size(THREAD_STACK_SIZE)
             .name("Watchdog".to_string())
             .spawn(move || {
                 debug! {"Inactivity monitoring watchdog has started"}
