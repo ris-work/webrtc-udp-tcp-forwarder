@@ -273,13 +273,22 @@ async fn configure_send_receive_tcp(
                         match (ClonedSocketRecv.read(&mut buf)) {
                             Ok(amt) => {
                                 debug! {"{:?}", &buf[0..amt]};
-                                block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt]))).expect(
-                                    &format! {"DataConnection {}: unable to send.", d1.label()},
-                                );
-                                debug! {"Written!"};
+                                let written_bytes =
+                                    block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])));
+                                match (written_bytes) {
+                                    Ok(Bytes) => {
+                                        debug! {"Written!"};
+                                    }
+                                    Err(E) => {
+                                        warn! {"DataConnection {}: unable to send: {:?}.", d1.label(), E};
+                                        DataChannelReady.store(false, Ordering::Relaxed);
+                                        break;
+                                    }
+                                }
                             }
                             Err(E) => {
-                                warn!("Unable to read or save to the buffer");
+                                warn!("Unable to read or save to the buffer: {:?}", E);
+                                ClonedSocketReady.store(false, Ordering::Relaxed);
                                 break;
                             }
                         }

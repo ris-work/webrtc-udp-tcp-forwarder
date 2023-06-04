@@ -348,7 +348,9 @@ async fn configure_send_receive_tcp(
                                             match(written_bytes) {
                                                 Ok(Bytes) => {debug!{"Written!"};},
                                                 Err(E) => {
-                                                    warn!{"DataConnection {}: unable to send.", d1.label()}; 
+                                                    info!{"DataConnection {}: unable to send: {:?}.",
+                                                    d1.label(),
+                                                    E};
                                                     break;
                                                 }
                                             }
@@ -380,7 +382,8 @@ async fn configure_send_receive_tcp(
                                 ClonedSocketSend.flush().expect("Unable to flush the stream.");
                             },
                             Err(E) => {
-                                warn!("DataChannel: Unable to write data.");
+                                warn!("OtherSocket: Unable to write data.");
+                                OtherSocketReady.store(false, Ordering::Relaxed);
                                 block_on(d.close());
                             }
                         }
