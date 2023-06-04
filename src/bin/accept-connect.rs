@@ -325,8 +325,7 @@ async fn configure_send_receive_tcp(
                             info!{"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
                             let d1 = d1.clone();
                             let (mut ClonedSocketRecv) = (ClonedSocketRecv.try_clone().expect(""));
-                            let mut result = Result::<usize>::Ok(0);
-                            while result.is_ok() {
+                            loop {
                                 {
                                     //let mut ready = CAN_RECV.lock(); //.unwrap();
                                     if (CAN_RECV.load(Ordering::Relaxed) == false) {

@@ -242,6 +242,7 @@ async fn configure_send_receive_tcp(
     OtherSocket: TcpStream,
 ) -> (Arc<RTCDataChannel>, TcpStream) /*, Box<dyn error::Error>>*/ {
     // Register channel opening handling
+    info!{"Configuring TCP<=>RTCDC..."};
     let d1 = Arc::clone(&RTCDC);
     let mut ClonedSocketRecv = OtherSocket
         .try_clone()
@@ -258,8 +259,7 @@ async fn configure_send_receive_tcp(
                 .stack_size(THREAD_STACK_SIZE)
                 .spawn(move || {
                     info!{"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
-                    let mut result = Result::<usize>::Ok(0);
-                    while result.is_ok() {
+                    loop {
                         let mut buf = [0; 65507];
                         {
                             //let mut ready = CAN_RECV.lock(); //.unwrap();
