@@ -32,6 +32,7 @@ use std::sync::atomic::Ordering;
 use std::sync::atomic::{AtomicBool, AtomicU64};
 use std::sync::Arc;
 use std::thread;
+use std::thread::JoinHandle;
 use std::time;
 use tokio::runtime::Runtime;
 
@@ -59,6 +60,7 @@ static THREAD_STACK_SIZE: usize = 204800;
 
 lazy_static! {
     static ref OtherSocketSendBuf: Mutex<Vec<u8>> = Mutex::new(Vec::new());
+    static ref Threads: Mutex<Vec<JoinHandle<()>>> = Mutex::new(Vec::new());
 }
 
 #[derive(Deserialize)]
@@ -96,105 +98,105 @@ fn handle_TCP_client(stream: TcpStream) {}
 async fn accept_WebRTC_offer(
     offer: RTCSessionDescription,
     config: &Config,
-    ) -> Result<
-(
-    Arc<RTCDataChannel>,
-    Arc<RTCPeerConnection>,
-    Arc<RTCSessionDescription>,
+) -> Result<
+    (
+        Arc<RTCDataChannel>,
+        Arc<RTCPeerConnection>,
+        Arc<RTCSessionDescription>,
     ),
     Box<dyn error::Error>,
-    > {
-        // Create a MediaEngine object to configure the supported codec
-        let mut m = MediaEngine::default();
+> {
+    // Create a MediaEngine object to configure the supported codec
+    let mut m = MediaEngine::default();
 
-        // Register default codecs
-        m.register_default_codecs()
-            .expect("Could not register the default codecs.");
+    // Register default codecs
+    m.register_default_codecs()
+        .expect("Could not register the default codecs.");
 
-        // Create a InterceptorRegistry. This is the user configurable RTP/RTCP Pipeline.
-        // This provides NACKs, RTCP Reports and other features. If you use `webrtc.NewPeerConnection`
-        // this is enabled by default. If you are manually managing You MUST create a InterceptorRegistry
-        // for each PeerConnection.
-        let mut registry = Registry::new();
+    // Create a InterceptorRegistry. This is the user configurable RTP/RTCP Pipeline.
+    // This provides NACKs, RTCP Reports and other features. If you use `webrtc.NewPeerConnection`
+    // this is enabled by default. If you are manually managing You MUST create a InterceptorRegistry
+    // for each PeerConnection.
+    let mut registry = Registry::new();
 
-        // Use the default set of Interceptors
-        registry = register_default_interceptors(registry, &mut m)
-            .expect("Could not register the interceptor!");
+    // Use the default set of Interceptors
+    registry = register_default_interceptors(registry, &mut m)
+        .expect("Could not register the interceptor!");
 
-        // Create the API object with the MediaEngine
-        let api = APIBuilder::new()
-            .with_media_engine(m)
-            .with_interceptor_registry(registry)
-            .build();
+    // Create the API object with the MediaEngine
+    let api = APIBuilder::new()
+        .with_media_engine(m)
+        .with_interceptor_registry(registry)
+        .build();
 
-        // Prepare the configuration
-        let config = RTCConfiguration {
-            ice_servers: vec![RTCIceServer {
-                urls: config.ICEServers.clone(),
-                ..Default::default()
-            }],
+    // Prepare the configuration
+    let config = RTCConfiguration {
+        ice_servers: vec![RTCIceServer {
+            urls: config.ICEServers.clone(),
             ..Default::default()
-        };
+        }],
+        ..Default::default()
+    };
 
-        // Create a new RTCPeerConnection
-        let peer_connection = Arc::new(api.new_peer_connection(config).await?);
+    // Create a new RTCPeerConnection
+    let peer_connection = Arc::new(api.new_peer_connection(config).await?);
 
-        // Create a datachannel with label 'data'
-        let data_channel = peer_connection.create_data_channel("data", None).await?;
+    // Create a datachannel with label 'data'
+    let data_channel = peer_connection.create_data_channel("data", None).await?;
 
-        let (done_tx, mut done_rx) = tokio::sync::mpsc::channel::<()>(1);
+    let (done_tx, mut done_rx) = tokio::sync::mpsc::channel::<()>(1);
 
-        // Set the handler for Peer connection state
-        // This will notify you when the peer has connected/disconnected
-        peer_connection.on_peer_connection_state_change(Box::new(move |s: RTCPeerConnectionState| {
-            info!("Peer Connection State has changed: {s}");
+    // Set the handler for Peer connection state
+    // This will notify you when the peer has connected/disconnected
+    peer_connection.on_peer_connection_state_change(Box::new(move |s: RTCPeerConnectionState| {
+        info!("Peer Connection State has changed: {s}");
 
-            if s == RTCPeerConnectionState::Failed {
-                // Wait until PeerConnection has had no network activity for 30 seconds or another failure. It may be reconnected using an ICE Restart.
-                // Use webrtc.PeerConnectionStateDisconnected if you are interested in detecting faster timeout.
-                // Note that the PeerConnection may come back from PeerConnectionStateDisconnected.
-                info!("Peer Connection has gone to failed exiting");
-                let _ = done_tx.try_send(());
-            }
-
-            Box::pin(async {})
-        }));
-
-        // Sets the RemoteDescription, and starts our UDP listeners
-        peer_connection.set_remote_description(offer).await?;
-        // Create an offer to send to the browser
-        let answer = peer_connection.create_answer(None).await?;
-
-        // Create channel that is blocked until ICE Gathering is complete
-        let mut gather_complete = peer_connection.gathering_complete_promise().await;
-
-        peer_connection
-            .set_local_description(answer.clone())
-            .await?;
-
-        // Block until ICE Gathering is complete, disabling trickle ICE
-        // we do this because we only can exchange one signaling message
-        // in a production application you should exchange ICE Candidates via OnICECandidate
-        let _ = gather_complete.recv().await;
-
-        // Output the answer in base64 so we can paste it in browser
-        if let Some(local_desc) = peer_connection.local_description().await {
-            let json_str = serde_json::to_string(&local_desc)?;
-            //let b64 = encode(&json_str);
-            info!("{json_str}");
-            let b64 = encode(&json_str);
-            info!("{b64}");
-            println!("{b64}");
-        } else {
-            info!("generate local_description failed!");
+        if s == RTCPeerConnectionState::Failed {
+            // Wait until PeerConnection has had no network activity for 30 seconds or another failure. It may be reconnected using an ICE Restart.
+            // Use webrtc.PeerConnectionStateDisconnected if you are interested in detecting faster timeout.
+            // Note that the PeerConnection may come back from PeerConnectionStateDisconnected.
+            info!("Peer Connection has gone to failed exiting");
+            let _ = done_tx.try_send(());
         }
-        Ok((Arc::clone(&data_channel), peer_connection, Arc::new(answer)))
+
+        Box::pin(async {})
+    }));
+
+    // Sets the RemoteDescription, and starts our UDP listeners
+    peer_connection.set_remote_description(offer).await?;
+    // Create an offer to send to the browser
+    let answer = peer_connection.create_answer(None).await?;
+
+    // Create channel that is blocked until ICE Gathering is complete
+    let mut gather_complete = peer_connection.gathering_complete_promise().await;
+
+    peer_connection
+        .set_local_description(answer.clone())
+        .await?;
+
+    // Block until ICE Gathering is complete, disabling trickle ICE
+    // we do this because we only can exchange one signaling message
+    // in a production application you should exchange ICE Candidates via OnICECandidate
+    let _ = gather_complete.recv().await;
+
+    // Output the answer in base64 so we can paste it in browser
+    if let Some(local_desc) = peer_connection.local_description().await {
+        let json_str = serde_json::to_string(&local_desc)?;
+        //let b64 = encode(&json_str);
+        info!("{json_str}");
+        let b64 = encode(&json_str);
+        info!("{b64}");
+        println!("{b64}");
+    } else {
+        info!("generate local_description failed!");
     }
+    Ok((Arc::clone(&data_channel), peer_connection, Arc::new(answer)))
+}
 async fn configure_send_receive_udp(
     RTCDC: Arc<RTCDataChannel>,
     RTCPC: Arc<RTCPeerConnection>,
     OtherSocket: UdpSocket,
-    ) -> (Arc<RTCDataChannel>, UdpSocket) /*, Box<dyn error::Error>>*/ {
+) -> (Arc<RTCDataChannel>, UdpSocket) /*, Box<dyn error::Error>>*/ {
     // Register channel opening handling
     let d1 = Arc::clone(&RTCDC);
     let mut ClonedSocketRecv = OtherSocket
@@ -284,7 +286,7 @@ async fn configure_send_receive_tcp(
     RTCDC: Arc<RTCDataChannel>,
     RTCPC: Arc<RTCPeerConnection>,
     OtherSocket: TcpStream,
-    ) -> (Arc<RTCDataChannel>, TcpStream) /*, Box<dyn error::Error>>*/ {
+) -> (Arc<RTCDataChannel>, TcpStream) /*, Box<dyn error::Error>>*/ {
     // Register channel opening handling
     let d1 = Arc::clone(&RTCDC);
     let mut ClonedSocketRecv = OtherSocket
@@ -319,7 +321,7 @@ async fn configure_send_receive_tcp(
 
                     info!("Data channel '{d_label2}'-'{d_id2}' open.");
                     let d1=d1.clone();
-                    thread::Builder::new().stack_size(THREAD_STACK_SIZE).spawn(move || {
+                    let spawned = thread::Builder::new().stack_size(THREAD_STACK_SIZE).spawn(move || {
                         info!{"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
                         let d1 = d1.clone();
                         let (mut ClonedSocketRecv) = (ClonedSocketRecv.try_clone().expect(""));
@@ -341,7 +343,7 @@ async fn configure_send_receive_tcp(
                             match (amt){
 
                                 Ok(amt) => {
-                                    debug! {"{:?}", &buf[0..amt]};
+                                    trace! {"{:?}", &buf[0..amt]};
                                     let written_bytes = block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])));
                                     match(written_bytes) {
                                         Ok(Bytes) => {debug!{"Written!"};},
@@ -362,6 +364,10 @@ async fn configure_send_receive_tcp(
                                 }
                             }
                         }});
+                    match(spawned){
+                        Ok(JH)=>{Threads.lock().push(JH)},
+                        Err(E) =>{error!{"Unable to spawn: {:?}", E}} 
+                    }
 
                     Box::pin(async move {
                     })
@@ -372,7 +378,7 @@ async fn configure_send_receive_tcp(
                 d.on_message(Box::new({let d=d.clone();
                     move |msg: DataChannelMessage| {
                         let msg = msg.data.to_vec();
-                        debug!("Message from DataChannel '{d_label}': '{msg:?}'");
+                        trace!("Message from DataChannel '{d_label}': '{msg:?}'");
                         if (CAN_RECV.load(Ordering::Relaxed)){
                             let (mut ClonedSocketSend) = (ClonedSocketSend.try_clone().expect(""));
                             match(
@@ -421,7 +427,7 @@ async fn configure_send_receive_uds(
     RTCDC: Arc<RTCDataChannel>,
     RTCPC: Arc<RTCPeerConnection>,
     OtherSocket: UnixStream,
-    ) -> (Arc<RTCDataChannel>, UnixStream) /*, Box<dyn error::Error>>*/ {
+) -> (Arc<RTCDataChannel>, UnixStream) /*, Box<dyn error::Error>>*/ {
     // Register channel opening handling
     let d1 = Arc::clone(&RTCDC);
     let mut ClonedSocketRecv = OtherSocket
@@ -511,7 +517,7 @@ async fn handle_offer(
     peer_connection: Arc<RTCPeerConnection>,
     data_channel: Arc<RTCDataChannel>,
     session_description: RTCSessionDescription,
-    ) -> Result<(Arc<RTCPeerConnection>, Arc<RTCDataChannel>), Box<dyn error::Error>> {
+) -> Result<(Arc<RTCPeerConnection>, Arc<RTCDataChannel>), Box<dyn error::Error>> {
     let conn = Arc::clone(&peer_connection);
     Ok((peer_connection, data_channel))
 }
@@ -556,10 +562,10 @@ fn main() {
             .expect("Failed creating a WebRTC Data Channel.");
         (peer_connection, data_channel) = rt
             .block_on(handle_offer(
-                    peer_connection,
-                    data_channel,
-                    (*answer).clone(),
-                    ))
+                peer_connection,
+                data_channel,
+                (*answer).clone(),
+            ))
             .expect("Error acccepting offer!");
         let ConnectAddress = config
             .Address
@@ -570,7 +576,7 @@ fn main() {
             .spawn(move || {
                 debug! {"Inactivity monitoring watchdog has started"}
                 loop {
-                    let five_seconds = time::Duration::from_secs(15);
+                    let five_seconds = time::Duration::from_secs(60);
                     debug! {"Watchdog will sleep for five seconds."};
                     let current_time : u64 = chrono::Utc::now().timestamp().try_into().expect(
                         "This software is not supposed to be used before UNIX was invented.",
@@ -581,6 +587,14 @@ fn main() {
                         current_time,
                         STREAM_LAST_ACTIVE_TIME.load(Ordering::Relaxed)
                     };
+                    for thread in Threads.lock().iter(){
+                        if (thread.is_finished()){
+                            info!{"Done, dead or killed: {:?}", thread};
+                        }
+                        else{
+                            debug!{"Alive: {:?}", thread};
+                        }
+                    }
                     thread::sleep(five_seconds);
                     debug! {"Watchdog: Resuming..."};
                 }
@@ -602,16 +616,16 @@ fn main() {
                 }});
             STREAM_LAST_ACTIVE_TIME.store(
                 chrono::Utc::now()
-                .timestamp()
-                .try_into()
-                .expect("This software is not supposed to be used before UNIX was invented."),
+                    .timestamp()
+                    .try_into()
+                    .expect("This software is not supposed to be used before UNIX was invented."),
                 Ordering::Relaxed,
-                );
+            );
             (data_channel, OtherSocket) = rt.block_on(configure_send_receive_udp(
-                    data_channel,
-                    peer_connection,
-                    OtherSocket,
-                    ));
+                data_channel,
+                peer_connection,
+                OtherSocket,
+            ));
         } else if (config.Type == "TCP") {
             info! {"TCP socket requested"};
             let ConnectPort = config.Port.clone().expect("Connecting port not specified");
@@ -627,24 +641,24 @@ fn main() {
             }
             STREAM_LAST_ACTIVE_TIME.store(
                 chrono::Utc::now()
-                .timestamp()
-                .try_into()
-                .expect("This software is not supposed to be used before UNIX was invented."),
+                    .timestamp()
+                    .try_into()
+                    .expect("This software is not supposed to be used before UNIX was invented."),
                 Ordering::Relaxed,
-                );
+            );
             (data_channel, OtherSocket) = rt.block_on(configure_send_receive_tcp(
-                    data_channel,
-                    peer_connection,
-                    OtherSocket,
-                    ));
+                data_channel,
+                peer_connection,
+                OtherSocket,
+            ));
         } else if (config.Type == "UDS") {
             info! {"Unix Domain Socket requested."};
             let mut OtherSocket = UnixStream::connect(ConnectAddress).expect("UDS connect error");
             (data_channel, OtherSocket) = rt.block_on(configure_send_receive_uds(
-                    data_channel,
-                    peer_connection,
-                    OtherSocket,
-                    ));
+                data_channel,
+                peer_connection,
+                OtherSocket,
+            ));
         }
     }
 }

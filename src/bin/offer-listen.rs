@@ -95,7 +95,7 @@ pub fn decode(s: &str) -> Result<String> {
 fn handle_TCP_client(stream: TcpStream) {}
 async fn create_WebRTC_offer(
     config: &Config,
-    ) -> Result<(Arc<RTCDataChannel>, Arc<RTCPeerConnection>), Box<dyn error::Error>> {
+) -> Result<(Arc<RTCDataChannel>, Arc<RTCPeerConnection>), Box<dyn error::Error>> {
     // Create a MediaEngine object to configure the supported codec
     let mut m = MediaEngine::default();
 
@@ -182,7 +182,7 @@ async fn create_WebRTC_offer(
 async fn configure_send_receive_udp(
     RTCDC: Arc<RTCDataChannel>,
     OtherSocket: UdpSocket,
-    ) -> (Arc<RTCDataChannel>, UdpSocket) /*, Box<dyn error::Error>>*/ {
+) -> (Arc<RTCDataChannel>, UdpSocket) /*, Box<dyn error::Error>>*/ {
     // Register channel opening handling
     let d1 = Arc::clone(&RTCDC);
     let mut ClonedSocketRecv = OtherSocket
@@ -240,7 +240,7 @@ async fn configure_send_receive_udp(
 async fn configure_send_receive_tcp(
     RTCDC: Arc<RTCDataChannel>,
     OtherSocket: TcpStream,
-    ) -> (Arc<RTCDataChannel>, TcpStream) /*, Box<dyn error::Error>>*/ {
+) -> (Arc<RTCDataChannel>, TcpStream) /*, Box<dyn error::Error>>*/ {
     // Register channel opening handling
     info! {"Configuring TCP<=>RTCDC..."};
     let d1 = Arc::clone(&RTCDC);
@@ -341,7 +341,7 @@ async fn configure_send_receive_tcp(
 async fn configure_send_receive_uds(
     RTCDC: Arc<RTCDataChannel>,
     OtherSocket: UnixStream,
-    ) -> (Arc<RTCDataChannel>, UnixStream) /*, Box<dyn error::Error>>*/ {
+) -> (Arc<RTCDataChannel>, UnixStream) /*, Box<dyn error::Error>>*/ {
     // Register channel opening handling
     let d1 = Arc::clone(&RTCDC);
     let mut ClonedSocketRecv = OtherSocket
@@ -402,7 +402,7 @@ async fn handle_offer(
     peer_connection: Arc<RTCPeerConnection>,
     data_channel: Arc<RTCDataChannel>,
     session_description: RTCSessionDescription,
-    ) -> Result<(Arc<RTCPeerConnection>, Arc<RTCDataChannel>), Box<dyn error::Error>> {
+) -> Result<(Arc<RTCPeerConnection>, Arc<RTCDataChannel>), Box<dyn error::Error>> {
     let conn = Arc::clone(&peer_connection);
     conn.set_remote_description(session_description).await?;
     Ok((peer_connection, data_channel))
@@ -490,11 +490,11 @@ fn main() {
                 .expect(&format! {"UDP connect error: connect() to {}", src});
             STREAM_LAST_ACTIVE_TIME.store(
                 chrono::Utc::now()
-                .timestamp()
-                .try_into()
-                .expect("This software is not supposed to be used before UNIX was invented."),
+                    .timestamp()
+                    .try_into()
+                    .expect("This software is not supposed to be used before UNIX was invented."),
                 Ordering::Relaxed,
-                );
+            );
             (data_channel, OtherSocket) =
                 rt.block_on(configure_send_receive_udp(data_channel, OtherSocket));
         } else if (config.Type == "TCP") {
@@ -515,11 +515,11 @@ fn main() {
             }
             STREAM_LAST_ACTIVE_TIME.store(
                 chrono::Utc::now()
-                .timestamp()
-                .try_into()
-                .expect("This software is not supposed to be used before UNIX was invented."),
+                    .timestamp()
+                    .try_into()
+                    .expect("This software is not supposed to be used before UNIX was invented."),
                 Ordering::Relaxed,
-                );
+            );
             debug! {"Attempting to write the send buffer: {:?}", &OtherSocketSendBuf.lock()};
             OtherSocket.write(&OtherSocketSendBuf.lock());
             (data_channel, OtherSocket) =
