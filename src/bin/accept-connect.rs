@@ -351,6 +351,7 @@ async fn configure_send_receive_tcp(
                                                     info!{"DataConnection {}: unable to send: {:?}.",
                                                     d1.label(),
                                                     E};
+                                                    info!{"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
                                                     break;
                                                 }
                                             }
@@ -358,6 +359,7 @@ async fn configure_send_receive_tcp(
                                     Err(E) => {
                                         info!{"OtherSocket: Connection closed."};
                                         info!{"{:?}", E};
+                                        info!{"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
                                         break;
                                     }
                                 }
