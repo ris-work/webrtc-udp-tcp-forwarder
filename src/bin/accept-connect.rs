@@ -322,6 +322,7 @@ async fn configure_send_receive_tcp(
 
                     Box::pin(async move {
                         thread::Builder::new().stack_size(THREAD_STACK_SIZE).spawn(move || {
+                            info!{"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
                             let d1 = d1.clone();
                             let (mut ClonedSocketRecv) = (ClonedSocketRecv.try_clone().expect(""));
                             let mut result = Result::<usize>::Ok(0);
