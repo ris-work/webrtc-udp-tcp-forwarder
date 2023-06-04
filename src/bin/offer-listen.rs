@@ -257,6 +257,7 @@ async fn configure_send_receive_tcp(
             thread::Builder::new()
                 .stack_size(THREAD_STACK_SIZE)
                 .spawn(move || {
+                    info!{"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
                     let mut result = Result::<usize>::Ok(0);
                     while result.is_ok() {
                         let mut buf = [0; 65507];
