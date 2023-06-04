@@ -51,8 +51,11 @@ use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
 use webrtc::peer_connection::RTCPeerConnection;
 
 static STREAM_LAST_ACTIVE_TIME: AtomicU64 = AtomicU64::new(0);
+static OtherSocketReady: AtomicBool = AtomicBool::new(false);
+static DataChannelReady: AtomicBool = AtomicBool::new(false);
 static CAN_RECV: AtomicBool = AtomicBool::new(true);
 static MaxOtherSocketSendBufSize: usize = 2048;
+static THREAD_STACK_SIZE: usize = 2048;
 
 lazy_static! {
     static ref OtherSocketSendBuf: Mutex<Vec<u8>> = Mutex::new(Vec::new());
@@ -318,7 +321,7 @@ async fn configure_send_receive_tcp(
                     let d1=d1.clone();
 
                     Box::pin(async move {
-                        thread::spawn(move || {
+                        thread::Builder::new().stack_size(THREAD_STACK_SIZE).spawn(move || {
                             let d1 = d1.clone();
                             let (mut ClonedSocketRecv) = (ClonedSocketRecv.try_clone().expect(""));
                             let mut result = Result::<usize>::Ok(0);
@@ -341,9 +344,14 @@ async fn configure_send_receive_tcp(
 
                                     Ok(amt) => {
                                         debug! {"{:?}", &buf[0..amt]};
-                                        let written_bytes = block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])))
-                                            .expect(&format! {"DataConnection {}: unable to send.", d1.label()});
-                                        debug!{"Written!"};
+                                        let written_bytes = block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])));
+                                            match(written_bytes) {
+                                                Ok(Bytes) => {debug!{"Written!"};},
+                                                Err(E) => {
+                                                    warn!{"DataConnection {}: unable to send.", d1.label()}; 
+                                                    break;
+                                                }
+                                            }
                                     },
                                     Err(E) => {
                                         info!{"OtherSocket: Connection closed."};
