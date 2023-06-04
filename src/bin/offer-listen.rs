@@ -259,7 +259,7 @@ async fn configure_send_receive_tcp(
                 info!{"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
                 loop {
                     let mut buf = [0; 65507];
-                    {
+                    /*{
                         //let mut ready = CAN_RECV.lock(); //.unwrap();
                         if (CAN_RECV.load(Ordering::Relaxed) == false) {
                             let mut temp: String = String::new();
@@ -268,7 +268,7 @@ async fn configure_send_receive_tcp(
                             CAN_RECV.store(true, Ordering::Relaxed);
                         }
                         //drop(ready);
-                    };
+                    };*/
                     match (ClonedSocketRecv.read(&mut buf)) {
                         Ok(amt) => {
                             debug! {"{:?}", &buf[0..amt]};
