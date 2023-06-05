@@ -271,7 +271,7 @@ async fn configure_send_receive_tcp(
                     };*/
                     match (ClonedSocketRecv.read(&mut buf)) {
                         Ok(amt) => {
-                            debug! {"{:?}", &buf[0..amt]};
+                            trace! {"{:?}", &buf[0..amt]};
                             let written_bytes =
                                 block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])));
                             match (written_bytes) {
@@ -304,7 +304,7 @@ async fn configure_send_receive_tcp(
     let d_label = RTCDC.label().to_owned();
     RTCDC.on_message(Box::new(move |msg: DataChannelMessage| {
         let msg = msg.data.to_vec();
-        debug!("Message from DataChannel '{d_label}': '{msg:?}'");
+        trace!("Message from DataChannel '{d_label}': '{msg:?}'");
         if (CAN_RECV.load(Ordering::Relaxed)) {
             match (ClonedSocketSend.write(&msg)) {
                 Ok(amt) => {
@@ -404,7 +404,22 @@ async fn handle_offer(
     session_description: RTCSessionDescription,
 ) -> Result<(Arc<RTCPeerConnection>, Arc<RTCDataChannel>), Box<dyn error::Error>> {
     let conn = Arc::clone(&peer_connection);
+    data_channel.on_message(Box::new(move |msg: DataChannelMessage| {
+        let msg = msg.data.to_vec();
+        debug!("Message from DataChannel (before OtherSocket was set up): '{msg:?}'");
+        if (OtherSocketSendBuf.lock().len() + msg.len() > MaxOtherSocketSendBufSize) {
+            warn! {"Buffer FULL: {} + {} > {}",
+            OtherSocketSendBuf.lock().len(),
+            msg.len(),
+            MaxOtherSocketSendBufSize
+            };
+        } else {
+            OtherSocketSendBuf.lock().extend_from_slice(&msg);
+        }
+        Box::pin(async {})
+    }));
     conn.set_remote_description(session_description).await?;
+
     Ok((peer_connection, data_channel))
 }
 fn main() {
