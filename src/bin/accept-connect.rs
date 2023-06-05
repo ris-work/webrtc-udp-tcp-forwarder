@@ -178,6 +178,7 @@ async fn accept_WebRTC_offer(
     // we do this because we only can exchange one signaling message
     // in a production application you should exchange ICE Candidates via OnICECandidate
     let _ = gather_complete.recv().await;
+    //RTCPC.on_data_channel(Box::new(move |d: Arc<RTCDataChannel>| {}))
 
     // Output the answer in base64 so we can paste it in browser
     if let Some(local_desc) = peer_connection.local_description().await {
