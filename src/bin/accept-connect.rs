@@ -146,7 +146,7 @@ async fn accept_WebRTC_offer(
     let data_channel = peer_connection.create_data_channel("data", Some(RTCDataChannelInit{
         ordered: Some(true),
         max_packet_life_time: Some(1000),
-        max_retransmits: Some(3),
+        max_retransmits: None,
         protocol: Some("raw".to_string()),
         negotiated: None
     })).await?;
