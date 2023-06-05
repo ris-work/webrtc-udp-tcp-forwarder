@@ -260,32 +260,36 @@ async fn configure_send_receive_tcp(
                 loop {
                     let mut buf = [0; 65507];
                     /*{
-                        //let mut ready = CAN_RECV.lock(); //.unwrap();
-                        if (CAN_RECV.load(Ordering::Relaxed) == false) {
-                            let mut temp: String = String::new();
-                            println! {"Please press RETURN when you are ready to connect."};
-                            let _ = io::stdin().read_line(&mut temp);
-                            CAN_RECV.store(true, Ordering::Relaxed);
-                        }
-                        //drop(ready);
+                    //let mut ready = CAN_RECV.lock(); //.unwrap();
+                    if (CAN_RECV.load(Ordering::Relaxed) == false) {
+                    let mut temp: String = String::new();
+                    println! {"Please press RETURN when you are ready to connect."};
+                    let _ = io::stdin().read_line(&mut temp);
+                    CAN_RECV.store(true, Ordering::Relaxed);
+                    }
+                    //drop(ready);
                     };*/
+                    let rt=Runtime::new().unwrap();
                     match (ClonedSocketRecv.read(&mut buf)) {
                         Ok(amt) => {
                             trace! {"{:?}", &buf[0..amt]};
                             debug!{"Blocking on DC send"};
-                            let written_bytes =
-                                block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])));
-                            match (written_bytes) {
-                                Ok(Bytes) => {
-                                    debug! {"OS->DC: Written {Bytes} bytes!"};
-                                }
-                                Err(E) => {
-                                    warn! {"DataConnection {}: unable to send: {:?}.", d1.label(), E};
-                                    DataChannelReady.store(false, Ordering::Relaxed);
-                                    info!{"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
-                                    break;
-                                }
-                            }
+                            rt.spawn({let d1=d1.clone();
+                                let d2=d2.clone();
+                                async move {
+                                    let written_bytes =
+                                        (d2.send(&Bytes::copy_from_slice(&buf[0..amt]))).await;
+                                    match (written_bytes) {
+                                        Ok(Bytes) => {
+                                            debug! {"OS->DC: Written {Bytes} bytes!"};
+                                        }
+                                        Err(E) => {
+                                            warn! {"DataConnection {}: unable to send: {:?}.", d1.label(), E};
+                                            DataChannelReady.store(false, Ordering::Relaxed);
+                                            info!{"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
+                                            //break;
+                                        }
+                                    }}});
                         }
                         Err(E) => {
                             warn!("Unable to read or save to the buffer: {:?}", E);
