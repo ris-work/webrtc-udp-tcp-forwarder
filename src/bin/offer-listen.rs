@@ -33,7 +33,9 @@ use std::sync::atomic::{AtomicBool, AtomicU64};
 use std::sync::Arc;
 use std::thread;
 use std::time;
+use tokio::runtime::Builder;
 use tokio::runtime::Runtime;
+use tokio::sync::Semaphore;
 
 #[cfg(windows)]
 use uds_windows::{UnixListener, UnixStream};
@@ -55,7 +57,7 @@ static OtherSocketReady: AtomicBool = AtomicBool::new(false);
 static DataChannelReady: AtomicBool = AtomicBool::new(false);
 static CAN_RECV: AtomicBool = AtomicBool::new(true);
 static MaxOtherSocketSendBufSize: usize = 2048;
-static THREAD_STACK_SIZE: usize = 204800;
+static THREAD_STACK_SIZE: usize = 10240000;
 
 lazy_static! {
     static ref OtherSocketSendBuf: Mutex<Vec<u8>> = Mutex::new(Vec::new());
@@ -255,8 +257,11 @@ async fn configure_send_receive_tcp(
         let d2 = Arc::clone(&d1);
         thread::Builder::new()
             .stack_size(THREAD_STACK_SIZE)
+            .name("OS->DC".to_string())
             .spawn(move || {
                 info!{"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
+                let rt=Builder::new_multi_thread().worker_threads(1).thread_name("TOKIO: OS->DC").build().unwrap();
+                let signal : Arc<Semaphore>= Arc::new(Semaphore::new(100));
                 loop {
                     let mut buf = [0; 65507];
                     /*{
@@ -269,14 +274,15 @@ async fn configure_send_receive_tcp(
                     }
                     //drop(ready);
                     };*/
-                    let rt=Runtime::new().unwrap();
                     match (ClonedSocketRecv.read(&mut buf)) {
                         Ok(amt) => {
                             trace! {"{:?}", &buf[0..amt]};
                             debug!{"Blocking on DC send"};
+                            let permit = block_on(Arc::clone(&signal).acquire_owned());
                             rt.spawn({let d1=d1.clone();
                                 let d2=d2.clone();
                                 async move {
+                                    let _permit = permit;
                                     let written_bytes =
                                         (d2.send(&Bytes::copy_from_slice(&buf[0..amt]))).await;
                                     match (written_bytes) {
