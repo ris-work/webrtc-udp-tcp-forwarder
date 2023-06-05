@@ -139,7 +139,7 @@ async fn create_WebRTC_offer(
     let data_channel = peer_connection.create_data_channel("data", Some(RTCDataChannelInit{
         ordered: Some(true),
         max_packet_life_time: Some(1000),
-        max_retransmits: Some(3),
+        max_retransmits: None,
         protocol: Some("raw".to_string()),
         negotiated: None
     })).await?;
@@ -269,7 +269,7 @@ async fn configure_send_receive_tcp(
             .spawn(move || {
                 info!{"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
                 let rt=Builder::new_multi_thread().worker_threads(1).thread_name("TOKIO: OS->DC").build().unwrap();
-                let signal : Arc<Semaphore>= Arc::new(Semaphore::new(100));
+                let signal : Arc<Semaphore>= Arc::new(Semaphore::new(1000));
                 loop {
                     let mut buf = [0; 65507];
                     /*{
