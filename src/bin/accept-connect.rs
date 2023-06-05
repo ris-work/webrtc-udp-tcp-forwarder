@@ -43,6 +43,7 @@ use webrtc::api::media_engine::MediaEngine;
 use webrtc::api::APIBuilder;
 use webrtc::data_channel::data_channel_message::DataChannelMessage;
 use webrtc::data_channel::RTCDataChannel;
+use webrtc::data_channel::data_channel_init::RTCDataChannelInit;
 use webrtc::ice_transport::ice_server::RTCIceServer;
 use webrtc::interceptor::registry::Registry;
 use webrtc::peer_connection::configuration::RTCConfiguration;
@@ -142,7 +143,13 @@ async fn accept_WebRTC_offer(
     let peer_connection = Arc::new(api.new_peer_connection(config).await?);
 
     // Create a datachannel with label 'data'
-    let data_channel = peer_connection.create_data_channel("data", None).await?;
+    let data_channel = peer_connection.create_data_channel("data", Some(RTCDataChannelInit{
+        ordered: Some(true),
+        max_packet_life_time: Some(1000),
+        max_retransmits: Some(3),
+        protocol: Some("raw".to_string()),
+        negotiated: None
+    })).await?;
 
     let (done_tx, mut done_rx) = tokio::sync::mpsc::channel::<()>(1);
 
