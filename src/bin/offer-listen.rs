@@ -272,11 +272,12 @@ async fn configure_send_receive_tcp(
                     match (ClonedSocketRecv.read(&mut buf)) {
                         Ok(amt) => {
                             trace! {"{:?}", &buf[0..amt]};
+                            debug!{"Blocking on DC send"};
                             let written_bytes =
                                 block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])));
                             match (written_bytes) {
                                 Ok(Bytes) => {
-                                    debug! {"Written!"};
+                                    debug! {"OS->DC: Written {Bytes} bytes!"};
                                 }
                                 Err(E) => {
                                     warn! {"DataConnection {}: unable to send: {:?}.", d1.label(), E};
@@ -308,7 +309,7 @@ async fn configure_send_receive_tcp(
         if (CAN_RECV.load(Ordering::Relaxed)) {
             match (ClonedSocketSend.write(&msg)) {
                 Ok(amt) => {
-                    trace! {"Written {} bytes.", amt};
+                    debug! {"DC->OS: Written {} bytes.", amt};
                     ClonedSocketSend
                         .flush()
                         .expect("Unable to flush the stream.");

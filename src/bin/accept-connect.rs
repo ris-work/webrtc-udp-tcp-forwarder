@@ -253,7 +253,7 @@ async fn configure_send_receive_udp(
                                 let amt = ClonedSocketRecv
                                     .recv(&mut buf)
                                     .expect("Unable to read or save to the buffer");
-                                debug! {"{:?}", &buf[0..amt]};
+                                trace! {"{:?}", &buf[0..amt]};
                                 let written_bytes = block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])))
                                     .expect(&format! {"DataConnection {}: unable to send.", d1.label()});
                                 debug!{"Written!"};
@@ -345,9 +345,10 @@ async fn configure_send_receive_tcp(
 
                                 Ok(amt) => {
                                     trace! {"{:?}", &buf[0..amt]};
+                                    debug!{"Blocking on DC send..."};
                                     let written_bytes = block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])));
                                     match(written_bytes) {
-                                        Ok(Bytes) => {debug!{"Written!"};},
+                                        Ok(Bytes) => {debug!{"OS->DC: Written {Bytes} bytes!"};},
                                         Err(E) => {
                                             info!{"DataConnection {}: unable to send: {:?}.",
                                             d1.label(),
@@ -387,7 +388,7 @@ async fn configure_send_receive_tcp(
                                 )
                             {
                                 Ok(amt) => {
-                                    trace!{"Written {} bytes.", amt};
+                                    debug!{"DC->OS: Written {} bytes.", amt};
                                     ClonedSocketSend.flush().expect("Unable to flush the stream.");
                                 },
                                 Err(E) => {
