@@ -134,7 +134,14 @@ async fn create_WebRTC_offer(
     let peer_connection = Arc::new(api.new_peer_connection(config).await?);
 
     // Create a datachannel with label 'data'
-    let data_channel = peer_connection.create_data_channel("data", None).await?;
+    //let data_channel = peer_connection.create_data_channel("data", None).await?;
+    let data_channel = peer_connection.create_data_channel("data", Some(RTCDataChannelInit{
+        ordered: Some(true),
+        max_packet_life_time: Some(1000),
+        max_retransmits: Some(3),
+        protocol: Some("raw".to_string()),
+        negotiated: None
+    })).await?;
 
     let (done_tx, mut done_rx) = tokio::sync::mpsc::channel::<()>(1);
 
