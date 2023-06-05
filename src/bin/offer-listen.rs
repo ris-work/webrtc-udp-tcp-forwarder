@@ -44,6 +44,7 @@ use webrtc::api::media_engine::MediaEngine;
 use webrtc::api::APIBuilder;
 use webrtc::data_channel::data_channel_message::DataChannelMessage;
 use webrtc::data_channel::RTCDataChannel;
+use webrtc::data_channel::data_channel_init::RTCDataChannelInit;
 use webrtc::ice_transport::ice_server::RTCIceServer;
 use webrtc::interceptor::registry::Registry;
 use webrtc::peer_connection::configuration::RTCConfiguration;
@@ -285,6 +286,7 @@ async fn configure_send_receive_tcp(
                         Ok(amt) => {
                             trace! {"{:?}", &buf[0..amt]};
                             debug!{"Blocking on DC send"};
+                            debug!{"Available permits: {}.", signal.available_permits()};
                             let permit = block_on(Arc::clone(&signal).acquire_owned());
                             rt.spawn({let d1=d1.clone();
                                 let d2=d2.clone();
