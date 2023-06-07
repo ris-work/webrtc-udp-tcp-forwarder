@@ -42,9 +42,9 @@ use uds_windows::{UnixListener, UnixStream};
 use webrtc::api::interceptor_registry::register_default_interceptors;
 use webrtc::api::media_engine::MediaEngine;
 use webrtc::api::APIBuilder;
+use webrtc::data_channel::data_channel_init::RTCDataChannelInit;
 use webrtc::data_channel::data_channel_message::DataChannelMessage;
 use webrtc::data_channel::RTCDataChannel;
-use webrtc::data_channel::data_channel_init::RTCDataChannelInit;
 use webrtc::ice_transport::ice_server::RTCIceServer;
 use webrtc::interceptor::registry::Registry;
 use webrtc::peer_connection::configuration::RTCConfiguration;
@@ -136,13 +136,18 @@ async fn create_WebRTC_offer(
 
     // Create a datachannel with label 'data'
     //let data_channel = peer_connection.create_data_channel("data", None).await?;
-    let data_channel = peer_connection.create_data_channel("data", Some(RTCDataChannelInit{
-        ordered: Some(false),
-        max_packet_life_time: None,
-        max_retransmits: None,
-        protocol: Some("raw".to_string()),
-        negotiated: None
-    })).await?;
+    let data_channel = peer_connection
+        .create_data_channel(
+            "data",
+            Some(RTCDataChannelInit {
+                ordered: Some(false),
+                max_packet_life_time: None,
+                max_retransmits: None,
+                protocol: Some("raw".to_string()),
+                negotiated: None,
+            }),
+        )
+        .await?;
 
     let (done_tx, mut done_rx) = tokio::sync::mpsc::channel::<()>(1);
 
