@@ -57,7 +57,7 @@ static STREAM_LAST_ACTIVE_TIME: AtomicU64 = AtomicU64::new(0);
 static OtherSocketReady: AtomicBool = AtomicBool::new(false);
 static DataChannelReady: AtomicBool = AtomicBool::new(false);
 static CAN_RECV: AtomicBool = AtomicBool::new(true);
-static MaxOtherSocketSendBufSize: usize = 2048;
+static MaxOtherSocketSendBufSize: usize = 2048000;
 static THREAD_STACK_SIZE: usize = 10240000;
 
 lazy_static! {
