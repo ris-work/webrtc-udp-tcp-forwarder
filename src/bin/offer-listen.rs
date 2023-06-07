@@ -57,7 +57,7 @@ static STREAM_LAST_ACTIVE_TIME: AtomicU64 = AtomicU64::new(0);
 static OtherSocketReady: AtomicBool = AtomicBool::new(false);
 static DataChannelReady: AtomicBool = AtomicBool::new(false);
 static CAN_RECV: AtomicBool = AtomicBool::new(true);
-static MaxOtherSocketSendBufSize: usize = 2048000;
+static MaxOtherSocketSendBufSize: usize = 2048;
 static THREAD_STACK_SIZE: usize = 10240000;
 
 lazy_static! {
@@ -498,7 +498,7 @@ fn main() {
             .spawn(move || {
                 debug! {"Inactivity monitoring watchdog has started"}
                 loop {
-                    let five_seconds = time::Duration::from_secs(15);
+                    let five_seconds = time::Duration::from_secs(600);
                     debug! {"Watchdog will sleep for five seconds."};
                     let current_time : u64 = chrono::Utc::now().timestamp().try_into().expect(
                         "This software is not supposed to be used before UNIX was invented.",
