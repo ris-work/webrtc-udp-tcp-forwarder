@@ -138,8 +138,8 @@ async fn create_WebRTC_offer(
     //let data_channel = peer_connection.create_data_channel("data", None).await?;
     let data_channel = peer_connection.create_data_channel("data", Some(RTCDataChannelInit{
         ordered: Some(true),
-        max_packet_life_time: Some(1000),
-        max_retransmits: None,
+        max_packet_life_time: None,
+        max_retransmits: Some(0),
         protocol: Some("raw".to_string()),
         negotiated: None
     })).await?;
@@ -269,7 +269,7 @@ async fn configure_send_receive_tcp(
             .spawn(move || {
                 info!{"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
                 let rt=Builder::new_multi_thread().worker_threads(1).thread_name("TOKIO: OS->DC").build().unwrap();
-                let signal : Arc<Semaphore>= Arc::new(Semaphore::new(1000));
+                let signal : Arc<Semaphore>= Arc::new(Semaphore::new(1000000000));
                 loop {
                     let mut buf = [0; 65507];
                     /*{
@@ -288,7 +288,7 @@ async fn configure_send_receive_tcp(
                             debug!{"Blocking on DC send"};
                             debug!{"Available permits: {}.", signal.available_permits()};
                             let permit = block_on(Arc::clone(&signal).acquire_owned());
-                            rt.spawn({let d1=d1.clone();
+                            rt.block_on({let d1=d1.clone();
                                 let d2=d2.clone();
                                 async move {
                                     let _permit = permit;
