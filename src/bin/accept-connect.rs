@@ -339,54 +339,54 @@ async fn configure_send_receive_tcp(
                         .name("OS->DC".to_string())
                         .stack_size(THREAD_STACK_SIZE)
                         .spawn(move || {
-                        info!{"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
-                        let rt=Builder::new_multi_thread()
-                            .worker_threads(1)
-                            .thread_name("TOKIO: OS->DC")
-                            .build()
-                            .unwrap();
-                        let d1 = d1.clone();
-                        let (mut ClonedSocketRecv) = (ClonedSocketRecv.try_clone().expect(""));
-                        loop {
-                            /*{
+                            info!{"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
+                            let rt=Builder::new_multi_thread()
+                                .worker_threads(1)
+                                .thread_name("TOKIO: OS->DC")
+                                .build()
+                                .unwrap();
+                            let d1 = d1.clone();
+                            let (mut ClonedSocketRecv) = (ClonedSocketRecv.try_clone().expect(""));
+                            loop {
+                                /*{
                                 //let mut ready = CAN_RECV.lock(); //.unwrap();
                                 if (CAN_RECV.load(Ordering::Relaxed) == false) {
-                                    let mut temp: String = String::new();
-                                    println! {"Please press RETURN when you are ready to connect."};
-                                    let _ = io::stdin().read_line(&mut temp);
-                                    CAN_RECV.store(true, Ordering::Relaxed);
+                                let mut temp: String = String::new();
+                                println! {"Please press RETURN when you are ready to connect."};
+                                let _ = io::stdin().read_line(&mut temp);
+                                CAN_RECV.store(true, Ordering::Relaxed);
                                 }
                                 //drop(ready);
-                            };*/
-                            let d1=d1.clone();
-                            let mut buf = [0; 65507];
-                            let amt = ClonedSocketRecv
-                                .read(&mut buf);
-                            match (amt){
+                                };*/
+                                let d1=d1.clone();
+                                let mut buf = [0; 65507];
+                                let amt = ClonedSocketRecv
+                                    .read(&mut buf);
+                                match (amt){
 
-                                Ok(amt) => {
-                                    trace! {"{:?}", &buf[0..amt]};
-                                    debug!{"Blocking on DC send..."};
-                                    let written_bytes = rt.block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])));
-                                    match(written_bytes) {
-                                        Ok(Bytes) => {debug!{"OS->DC: Written {Bytes} bytes!"};},
-                                        Err(E) => {
-                                            info!{"DataConnection {}: unable to send: {:?}.",
-                                            d1.label(),
-                                            E};
-                                            info!{"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
-                                            break;
+                                    Ok(amt) => {
+                                        trace! {"{:?}", &buf[0..amt]};
+                                        debug!{"Blocking on DC send..."};
+                                        let written_bytes = rt.block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])));
+                                        match(written_bytes) {
+                                            Ok(Bytes) => {debug!{"OS->DC: Written {Bytes} bytes!"};},
+                                            Err(E) => {
+                                                info!{"DataConnection {}: unable to send: {:?}.",
+                                                d1.label(),
+                                                E};
+                                                info!{"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
+                                                break;
+                                            }
                                         }
+                                    },
+                                    Err(E) => {
+                                        info!{"OtherSocket: Connection closed."};
+                                        info!{"{:?}", E};
+                                        info!{"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
+                                        break;
                                     }
-                                },
-                                Err(E) => {
-                                    info!{"OtherSocket: Connection closed."};
-                                    info!{"{:?}", E};
-                                    info!{"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
-                                    break;
                                 }
-                            }
-                        }});
+                            }});
                     match(spawned){
                         Ok(JH)=>{Threads.lock().push(JH)},
                         Err(E) =>{error!{"Unable to spawn: {:?}", E}} 
@@ -569,6 +569,14 @@ fn main() {
     info! {"{}", TOML_file_contents};
     let config: Config = toml::from_str(&TOML_file_contents).unwrap();
     info!("Configuration: type: {}", config.Type);
+    let rt_debug = Builder::new_multi_thread()
+        .worker_threads(1)
+        .thread_name("TOKIO: CONSOLE")
+        .build()
+        .unwrap();
+    thread::Builder::new()
+        .name("TOKIO_CONSOLE".to_string())
+        .spawn(move || console_subscriber::init());
     if (config.WebRTCMode == "Accept") {
         let rt = Runtime::new().unwrap();
         let mut offerBase64Text: String = String::new();
