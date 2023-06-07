@@ -137,9 +137,9 @@ async fn create_WebRTC_offer(
     // Create a datachannel with label 'data'
     //let data_channel = peer_connection.create_data_channel("data", None).await?;
     let data_channel = peer_connection.create_data_channel("data", Some(RTCDataChannelInit{
-        ordered: Some(true),
+        ordered: Some(false),
         max_packet_life_time: None,
-        max_retransmits: Some(0),
+        max_retransmits: None,
         protocol: Some("raw".to_string()),
         negotiated: None
     })).await?;
@@ -269,7 +269,7 @@ async fn configure_send_receive_tcp(
             .spawn(move || {
                 info!{"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
                 let rt=Builder::new_multi_thread().worker_threads(1).thread_name("TOKIO: OS->DC").build().unwrap();
-                let signal : Arc<Semaphore>= Arc::new(Semaphore::new(1000000000));
+                //let signal : Arc<Semaphore>= Arc::new(Semaphore::new(1000000000));
                 loop {
                     let mut buf = [0; 65507];
                     /*{
@@ -286,12 +286,12 @@ async fn configure_send_receive_tcp(
                         Ok(amt) => {
                             trace! {"{:?}", &buf[0..amt]};
                             debug!{"Blocking on DC send"};
-                            debug!{"Available permits: {}.", signal.available_permits()};
-                            let permit = block_on(Arc::clone(&signal).acquire_owned());
+                            //debug!{"Available permits: {}.", signal.available_permits()};
+                            //let permit = block_on(Arc::clone(&signal).acquire_owned());
                             rt.block_on({let d1=d1.clone();
                                 let d2=d2.clone();
                                 async move {
-                                    let _permit = permit;
+                                    //let _permit = permit;
                                     let written_bytes =
                                         (d2.send(&Bytes::copy_from_slice(&buf[0..amt]))).await;
                                     match (written_bytes) {
