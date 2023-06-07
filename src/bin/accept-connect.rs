@@ -590,7 +590,7 @@ fn main() {
             .spawn(move || {
                 debug! {"Inactivity monitoring watchdog has started"}
                 loop {
-                    let five_seconds = time::Duration::from_secs(60);
+                    let five_seconds = time::Duration::from_secs(600);
                     debug! {"Watchdog will sleep for five seconds."};
                     let current_time : u64 = chrono::Utc::now().timestamp().try_into().expect(
                         "This software is not supposed to be used before UNIX was invented.",
