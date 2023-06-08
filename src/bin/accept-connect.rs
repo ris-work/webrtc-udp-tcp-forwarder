@@ -569,14 +569,18 @@ fn main() {
     info! {"{}", TOML_file_contents};
     let config: Config = toml::from_str(&TOML_file_contents).unwrap();
     info!("Configuration: type: {}", config.Type);
-    let rt_debug = Builder::new_multi_thread()
-        .worker_threads(1)
-        .thread_name("TOKIO: CONSOLE")
-        .build()
-        .unwrap();
-    thread::Builder::new()
-        .name("TOKIO_CONSOLE".to_string())
-        .spawn(move || console_subscriber::init());
+    debug_assert! {
+        {
+            let rt_debug = Builder::new_multi_thread()
+                .worker_threads(1)
+                .thread_name("TOKIO: CONSOLE")
+                .build()
+                .unwrap();
+            thread::Builder::new()
+                .name("TOKIO_CONSOLE".to_string())
+                .spawn(move || console_subscriber::init());
+        }
+    }
     if (config.WebRTCMode == "Accept") {
         let rt = Runtime::new().unwrap();
         let mut offerBase64Text: String = String::new();
