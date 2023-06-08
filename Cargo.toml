@@ -1,13 +1,19 @@
+cargo-features = ["profile-rustflags"]
+
 [package]
 name = "webrtc-udp-forwarder"
 version = "0.1.0"
 edition = "2021"
+
+#[profile.debug]
+rustflags = ["--cfg tokio_unstable"]
 
 [profile.release]
 opt-level=3
 debug=0
 strip="symbols"
 lto=true
+#rustflags = ["--cfg tokio_unstable"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -30,4 +36,4 @@ uds_windows = "1.0.2"
 webrtc =  "0.7.2"
 
 [build]
-rustflags = ["--cfg", "tokio_unstable"]
+rustflags = ["--cfg tokio_unstable"]
