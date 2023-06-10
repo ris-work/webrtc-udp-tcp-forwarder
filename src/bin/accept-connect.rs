@@ -34,6 +34,7 @@ use std::sync::Arc;
 use std::thread;
 use std::thread::JoinHandle;
 use std::time;
+use tokio::runtime::Builder;
 use tokio::runtime::Runtime;
 
 #[cfg(windows)]
@@ -334,8 +335,16 @@ async fn configure_send_receive_tcp(
 
                     info!("Data channel '{d_label2}'-'{d_id2}' open.");
                     let d1=d1.clone();
-                    let spawned = thread::Builder::new().stack_size(THREAD_STACK_SIZE).spawn(move || {
+                    let spawned = thread::Builder::new()
+                        .name("OS->DC".to_string())
+                        .stack_size(THREAD_STACK_SIZE)
+                        .spawn(move || {
                         info!{"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
+                        let rt=Builder::new_multi_thread()
+                            .worker_threads(1)
+                            .thread_name("TOKIO: OS->DC")
+                            .build()
+                            .unwrap();
                         let d1 = d1.clone();
                         let (mut ClonedSocketRecv) = (ClonedSocketRecv.try_clone().expect(""));
                         loop {
@@ -358,7 +367,7 @@ async fn configure_send_receive_tcp(
                                 Ok(amt) => {
                                     trace! {"{:?}", &buf[0..amt]};
                                     debug!{"Blocking on DC send..."};
-                                    let written_bytes = block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])));
+                                    let written_bytes = rt.block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])));
                                     match(written_bytes) {
                                         Ok(Bytes) => {debug!{"OS->DC: Written {Bytes} bytes!"};},
                                         Err(E) => {
