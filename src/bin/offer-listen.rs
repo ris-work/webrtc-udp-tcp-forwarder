@@ -679,6 +679,10 @@ fn main() {
                 .expect("UDS stream error");
             (data_channel, OtherSocket) =
                 rt.block_on(configure_send_receive_uds(data_channel, OtherSocket));
+        } else {
+            println! {"Unsupported type: {}", config.Type};
         }
+    } else {
+        println! {"Unsupported WebRTC Mode: {}. Probably the WRONG TOOL.", config.WebRTCMode};
     }
 }
