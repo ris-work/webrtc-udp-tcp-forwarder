@@ -22,6 +22,7 @@ use std::fs::read_to_string;
 use std::io;
 use std::io::Read;
 use std::io::Write;
+use std::io::Result as IOResult;
 
 use std::net::TcpStream;
 use std::net::UdpSocket;
@@ -52,6 +53,11 @@ use webrtc::peer_connection::configuration::RTCConfiguration;
 use webrtc::peer_connection::peer_connection_state::RTCPeerConnectionState;
 use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
 use webrtc::peer_connection::RTCPeerConnection;
+
+use std::future::Future;
+use std::path::Path;
+use std::pin::Pin;
+use std::task::{Context, Poll};
 
 static STREAM_LAST_ACTIVE_TIME: AtomicU64 = AtomicU64::new(0);
 static OtherSocketReady: AtomicBool = AtomicBool::new(false);
@@ -206,51 +212,31 @@ async fn accept_WebRTC_offer(
     }
     Ok((Arc::clone(&data_channel), peer_connection, Arc::new(answer)))
 }
-pub trait Socket: Send + Sync + Unpin + 'static {
-    fn try_read(&mut self, buf: &mut dyn ReadBuf) -> io::Result<usize>;
-
-    fn try_write(&mut self, buf: &[u8]) -> io::Result<usize>;
-
-    fn poll_read_ready(&mut self, cx: &mut Context<'_>) -> Poll<io::Result<()>>;
-
-    fn poll_write_ready(&mut self, cx: &mut Context<'_>) -> Poll<io::Result<()>>;
-
-    fn poll_flush(&mut self, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
-        // `flush()` is a no-op for TCP/UDS
-        Poll::Ready(Ok(()))
-    }
-
-    fn poll_shutdown(&mut self, cx: &mut Context<'_>) -> Poll<io::Result<()>>;
-
-    fn read<'a, B: ReadBuf>(&'a mut self, buf: &'a mut B) -> Read<'a, Self, B>
+pub trait Socket: Send + Sync + Unpin + Read + Write {
+    fn read<B: Read>(&mut self, buf: &mut [u8]) -> IOResult<usize>
     where
         Self: Sized,
     {
-        Read { socket: self, buf }
+        std::io::Read::read(self, buf)
+        //Read { socket: self, buf }
     }
 
-    fn write<'a>(&'a mut self, buf: &'a [u8]) -> Write<'a, Self>
+    fn write<B: Write>(&mut self, buf: &[u8]) -> IOResult<usize>
     where
         Self: Sized,
     {
-        Write { socket: self, buf }
+        std::io::Write::write(self, buf)
+        //Write { socket: self, buf }
     }
 
-    fn flush(&mut self) -> Flush<'_, Self>
+    fn flush(&mut self) -> IOResult<()>
     where
         Self: Sized,
     {
-        Flush { socket: self }
-    }
-
-    fn shutdown(&mut self) -> Shutdown<'_, Self>
-    where
-        Self: Sized,
-    {
-        Shutdown { socket: self }
+        std::io::Write::flush(self)
+        //Flush { socket: self }
     }
 }
-pub trait Socket {}
 async fn configure_send_receive_udp(
     RTCDC: Arc<RTCDataChannel>,
     RTCPC: Arc<RTCPeerConnection>,
