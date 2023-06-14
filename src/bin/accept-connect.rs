@@ -778,7 +778,9 @@ fn main() {
             info! {"UDP socket requested"};
             let ConnectPort = config.Port.clone().expect("Connecting port not specified");
             info! {"Connecting to UDP to address {} port {}", ConnectAddress, ConnectPort};
-            let mut OtherSocket = UdpSocket::bind(format! {"{}:{}", ConnectAddress, ConnectPort})
+            let mut OtherSocket = UdpSocket::bind("0.0.0.0:0")
+                .expect("UDP Socket: unable to bind: 0.0.0.0:0.")
+                .connect(format! {"{}:{}", ConnectAddress, ConnectPort})
                 .expect(&format! {
                     "Could not connect to UDP port: {}:{}", &ConnectAddress, &ConnectPort
                 });
@@ -834,5 +836,11 @@ fn main() {
                 OtherSocket,
             ));
         }
+        else {
+            println!{"Unsupported type: {}", config.Type};
+        }
+    }
+    else {
+        println!{"Unsupported WebRTC Mode: {}. Probably the WRONG TOOL.", config.WebRTCMode};
     }
 }
