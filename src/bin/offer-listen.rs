@@ -199,6 +199,7 @@ async fn configure_send_receive_udp(
     OtherSocket: UdpSocket,
 ) -> (Arc<RTCDataChannel>, UdpSocket) /*, Box<dyn error::Error>>*/ {
     // Register channel opening handling
+    info! {"Configuring UDP<=>RTCDC..."};
     let d1 = Arc::clone(&RTCDC);
     let mut ClonedSocketRecv = OtherSocket
         .try_clone()
@@ -209,29 +210,60 @@ async fn configure_send_receive_udp(
     RTCDC.on_open(Box::new(move || {
         info!("Data channel '{}'-'{}' open.", d1.label(), d1.id());
         let d2 = Arc::clone(&d1);
-
-        Box::pin(async move {
-            thread::spawn(move || {
-                let mut result = Result::<usize>::Ok(0);
-                while result.is_ok() {
+        thread::Builder::new()
+            .stack_size(THREAD_STACK_SIZE)
+            .name("OS->DC".to_string())
+            .spawn(move || {
+                info!{"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
+                let rt=Builder::new_multi_thread().worker_threads(1).thread_name("TOKIO: OS->DC").build().unwrap();
+                //let signal : Arc<Semaphore>= Arc::new(Semaphore::new(1000000000));
+                loop {
                     let mut buf = [0; 65507];
-                    {
-                        if (CAN_RECV.load(Ordering::Relaxed) == false) {
-                            let mut temp: String = String::new();
-                            println! {"Please press RETURN when you are ready to connect."};
-                            let _ = io::stdin().read_line(&mut temp);
-                            CAN_RECV.store(true, Ordering::Relaxed);
+                    /*{
+                    //let mut ready = CAN_RECV.lock(); //.unwrap();
+                    if (CAN_RECV.load(Ordering::Relaxed) == false) {
+                    let mut temp: String = String::new();
+                    println! {"Please press RETURN when you are ready to connect."};
+                    let _ = io::stdin().read_line(&mut temp);
+                    CAN_RECV.store(true, Ordering::Relaxed);
+                    }
+                    //drop(ready);
+                    };*/
+                    match (ClonedSocketRecv.recv(&mut buf)) {
+                        Ok(amt) => {
+                            trace! {"{:?}", &buf[0..amt]};
+                            debug!{"Blocking on DC send"};
+                            //debug!{"Available permits: {}.", signal.available_permits()};
+                            //let permit = block_on(Arc::clone(&signal).acquire_owned());
+                            rt.block_on({let d1=d1.clone();
+                                let d2=d2.clone();
+                                async move {
+                                    //let _permit = permit;
+                                    let written_bytes =
+                                        (d2.send(&Bytes::copy_from_slice(&buf[0..amt]))).await;
+                                    match (written_bytes) {
+                                        Ok(Bytes) => {
+                                            debug! {"OS->DC: Written {Bytes} bytes!"};
+                                        }
+                                        Err(E) => {
+                                            warn! {"DataConnection {}: unable to send: {:?}.", d1.label(), E};
+                                            DataChannelReady.store(false, Ordering::Relaxed);
+                                            info!{"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
+                                            //break;
+                                        }
+                                    }}});
                         }
-                    };
-                    let amt = ClonedSocketRecv
-                        .recv(&mut buf)
-                        .expect("Unable to read or save to the buffer");
-                    debug! {"{:?}", &buf[0..amt]};
-                    block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])))
-                        .expect(&format! {"DataConnection {}: unable to send.", d1.label()});
-                    debug! {"Written!"};
+                        Err(E) => {
+                            warn!("Unable to read or save to the buffer: {:?}", E);
+                            OtherSocketReady.store(false, Ordering::Relaxed);
+                            info!{"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
+                            break;
+                        }
+                    }
                 }
             });
+
+        Box::pin(async move {
         })
     }));
 
@@ -239,9 +271,30 @@ async fn configure_send_receive_udp(
     let d_label = RTCDC.label().to_owned();
     RTCDC.on_message(Box::new(move |msg: DataChannelMessage| {
         let msg = msg.data.to_vec();
-        debug!("Message from DataChannel '{d_label}': '{msg:?}'");
-        ClonedSocketSend.send(&msg).expect("Unable to write data.");
-        //ClonedSocketSend.flush();
+        trace!("Message from DataChannel '{d_label}': '{msg:?}'");
+        if (CAN_RECV.load(Ordering::Relaxed)) {
+            match (ClonedSocketSend.send(&msg)) {
+                Ok(amt) => {
+                    debug! {"DC->OS: Written {} bytes.", amt};
+                    //ClonedSocketSend
+                    //    .flush()
+                    //    .expect("Unable to flush the stream.");
+                }
+                Err(E) => {
+                    warn!("Unable to write data.");
+                }
+            }
+        } else {
+            if (OtherSocketSendBuf.lock().len() + msg.len() > MaxOtherSocketSendBufSize) {
+                warn! {"Buffer FULL: {} + {} > {}",
+                OtherSocketSendBuf.lock().len(),
+                msg.len(),
+                MaxOtherSocketSendBufSize
+                };
+            } else {
+                OtherSocketSendBuf.lock().extend_from_slice(&msg);
+            }
+        }
         Box::pin(async {})
     }));
     let (done_tx, mut done_rx) = tokio::sync::mpsc::channel::<()>(1);
@@ -368,6 +421,7 @@ async fn configure_send_receive_uds(
     OtherSocket: UnixStream,
 ) -> (Arc<RTCDataChannel>, UnixStream) /*, Box<dyn error::Error>>*/ {
     // Register channel opening handling
+    info! {"Configuring UDS<=>RTCDC..."};
     let d1 = Arc::clone(&RTCDC);
     let mut ClonedSocketRecv = OtherSocket
         .try_clone()
@@ -378,29 +432,60 @@ async fn configure_send_receive_uds(
     RTCDC.on_open(Box::new(move || {
         info!("Data channel '{}'-'{}' open.", d1.label(), d1.id());
         let d2 = Arc::clone(&d1);
-
-        Box::pin(async move {
-            thread::spawn(move || {
-                let mut result = Result::<usize>::Ok(0);
-                while result.is_ok() {
+        thread::Builder::new()
+            .stack_size(THREAD_STACK_SIZE)
+            .name("OS->DC".to_string())
+            .spawn(move || {
+                info!{"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
+                let rt=Builder::new_multi_thread().worker_threads(1).thread_name("TOKIO: OS->DC").build().unwrap();
+                //let signal : Arc<Semaphore>= Arc::new(Semaphore::new(1000000000));
+                loop {
                     let mut buf = [0; 65507];
-                    {
-                        if (CAN_RECV.load(Ordering::Relaxed) == false) {
-                            let mut temp: String = String::new();
-                            println! {"Please press RETURN when you are ready to connect."};
-                            let _ = io::stdin().read_line(&mut temp);
-                            CAN_RECV.store(true, Ordering::Relaxed);
+                    /*{
+                    //let mut ready = CAN_RECV.lock(); //.unwrap();
+                    if (CAN_RECV.load(Ordering::Relaxed) == false) {
+                    let mut temp: String = String::new();
+                    println! {"Please press RETURN when you are ready to connect."};
+                    let _ = io::stdin().read_line(&mut temp);
+                    CAN_RECV.store(true, Ordering::Relaxed);
+                    }
+                    //drop(ready);
+                    };*/
+                    match (ClonedSocketRecv.read(&mut buf)) {
+                        Ok(amt) => {
+                            trace! {"{:?}", &buf[0..amt]};
+                            debug!{"Blocking on DC send"};
+                            //debug!{"Available permits: {}.", signal.available_permits()};
+                            //let permit = block_on(Arc::clone(&signal).acquire_owned());
+                            rt.block_on({let d1=d1.clone();
+                                let d2=d2.clone();
+                                async move {
+                                    //let _permit = permit;
+                                    let written_bytes =
+                                        (d2.send(&Bytes::copy_from_slice(&buf[0..amt]))).await;
+                                    match (written_bytes) {
+                                        Ok(Bytes) => {
+                                            debug! {"OS->DC: Written {Bytes} bytes!"};
+                                        }
+                                        Err(E) => {
+                                            warn! {"DataConnection {}: unable to send: {:?}.", d1.label(), E};
+                                            DataChannelReady.store(false, Ordering::Relaxed);
+                                            info!{"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
+                                            //break;
+                                        }
+                                    }}});
                         }
-                    };
-                    let amt = ClonedSocketRecv
-                        .read(&mut buf)
-                        .expect("Unable to read or save to the buffer");
-                    debug! {"{:?}", &buf[0..amt]};
-                    block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])))
-                        .expect(&format! {"DataConnection {}: unable to send.", d1.label()});
-                    debug! {"Written!"};
+                        Err(E) => {
+                            warn!("Unable to read or save to the buffer: {:?}", E);
+                            OtherSocketReady.store(false, Ordering::Relaxed);
+                            info!{"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
+                            break;
+                        }
+                    }
                 }
             });
+
+        Box::pin(async move {
         })
     }));
 
@@ -408,11 +493,30 @@ async fn configure_send_receive_uds(
     let d_label = RTCDC.label().to_owned();
     RTCDC.on_message(Box::new(move |msg: DataChannelMessage| {
         let msg = msg.data.to_vec();
-        debug!("Message from DataChannel '{d_label}': '{msg:?}'");
-        ClonedSocketSend.write(&msg).expect("Unable to write data.");
-        ClonedSocketSend
-            .flush()
-            .expect("Unable to flush the stream.");
+        trace!("Message from DataChannel '{d_label}': '{msg:?}'");
+        if (CAN_RECV.load(Ordering::Relaxed)) {
+            match (ClonedSocketSend.write(&msg)) {
+                Ok(amt) => {
+                    debug! {"DC->OS: Written {} bytes.", amt};
+                    ClonedSocketSend
+                        .flush()
+                        .expect("Unable to flush the stream.");
+                }
+                Err(E) => {
+                    warn!("Unable to write data.");
+                }
+            }
+        } else {
+            if (OtherSocketSendBuf.lock().len() + msg.len() > MaxOtherSocketSendBufSize) {
+                warn! {"Buffer FULL: {} + {} > {}",
+                OtherSocketSendBuf.lock().len(),
+                msg.len(),
+                MaxOtherSocketSendBufSize
+                };
+            } else {
+                OtherSocketSendBuf.lock().extend_from_slice(&msg);
+            }
+        }
         Box::pin(async {})
     }));
     let (done_tx, mut done_rx) = tokio::sync::mpsc::channel::<()>(1);
