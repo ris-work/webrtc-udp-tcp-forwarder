@@ -206,6 +206,51 @@ async fn accept_WebRTC_offer(
     }
     Ok((Arc::clone(&data_channel), peer_connection, Arc::new(answer)))
 }
+pub trait Socket: Send + Sync + Unpin + 'static {
+    fn try_read(&mut self, buf: &mut dyn ReadBuf) -> io::Result<usize>;
+
+    fn try_write(&mut self, buf: &[u8]) -> io::Result<usize>;
+
+    fn poll_read_ready(&mut self, cx: &mut Context<'_>) -> Poll<io::Result<()>>;
+
+    fn poll_write_ready(&mut self, cx: &mut Context<'_>) -> Poll<io::Result<()>>;
+
+    fn poll_flush(&mut self, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+        // `flush()` is a no-op for TCP/UDS
+        Poll::Ready(Ok(()))
+    }
+
+    fn poll_shutdown(&mut self, cx: &mut Context<'_>) -> Poll<io::Result<()>>;
+
+    fn read<'a, B: ReadBuf>(&'a mut self, buf: &'a mut B) -> Read<'a, Self, B>
+    where
+        Self: Sized,
+    {
+        Read { socket: self, buf }
+    }
+
+    fn write<'a>(&'a mut self, buf: &'a [u8]) -> Write<'a, Self>
+    where
+        Self: Sized,
+    {
+        Write { socket: self, buf }
+    }
+
+    fn flush(&mut self) -> Flush<'_, Self>
+    where
+        Self: Sized,
+    {
+        Flush { socket: self }
+    }
+
+    fn shutdown(&mut self) -> Shutdown<'_, Self>
+    where
+        Self: Sized,
+    {
+        Shutdown { socket: self }
+    }
+}
+pub trait Socket {}
 async fn configure_send_receive_udp(
     RTCDC: Arc<RTCDataChannel>,
     RTCPC: Arc<RTCPeerConnection>,
