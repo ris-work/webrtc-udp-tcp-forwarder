@@ -311,7 +311,7 @@ async fn configure_send_receive_udp(
                                     let written_bytes = rt.block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])));
                                     match(written_bytes) {
                                         Ok(Bytes) => {debug!{"OS->DC: Written {Bytes} bytes!"};},
-                                        Err(E) => {
+                                        #[cold] Err(E) => {
                                             info!{"DataConnection {}: unable to send: {:?}.",
                                             d1.label(),
                                             E};
@@ -320,7 +320,7 @@ async fn configure_send_receive_udp(
                                         }
                                     }
                                 },
-                                Err(E) => {
+                                #[cold] Err(E) => {
                                     info!{"OtherSocket: Connection closed."};
                                     info!{"{:?}", E};
                                     info!{"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
@@ -353,13 +353,14 @@ async fn configure_send_receive_udp(
                                     debug!{"DC->OS: Written {} bytes.", amt};
                                     //ClonedSocketSend.flush().expect("Unable to flush the stream.");
                                 },
-                                Err(E) => {
+                                #[cold] Err(E) => {
                                     warn!("OtherSocket: Unable to write data.");
                                     OtherSocketReady.store(false, Ordering::Relaxed);
                                     block_on(d.close());
                                 }
                             }
                         }
+                        //#[cold] 
                         else {
                             if (OtherSocketSendBuf.lock().len() + msg.len() > MaxOtherSocketSendBufSize) {
                                 warn! {"Buffer FULL: {} + {} > {}",
@@ -461,7 +462,7 @@ async fn configure_send_receive_tcp(
                                     let written_bytes = rt.block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])));
                                     match(written_bytes) {
                                         Ok(Bytes) => {debug!{"OS->DC: Written {Bytes} bytes!"};},
-                                        Err(E) => {
+                                        #[cold] Err(E) => {
                                             info!{"DataConnection {}: unable to send: {:?}.",
                                             d1.label(),
                                             E};
@@ -470,7 +471,7 @@ async fn configure_send_receive_tcp(
                                         }
                                     }
                                 },
-                                Err(E) => {
+                                #[cold] Err(E) => {
                                     info!{"OtherSocket: Connection closed."};
                                     info!{"{:?}", E};
                                     info!{"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
@@ -503,13 +504,14 @@ async fn configure_send_receive_tcp(
                                     debug!{"DC->OS: Written {} bytes.", amt};
                                     ClonedSocketSend.flush().expect("Unable to flush the stream.");
                                 },
-                                Err(E) => {
+                                #[cold] Err(E) => {
                                     warn!("OtherSocket: Unable to write data.");
                                     OtherSocketReady.store(false, Ordering::Relaxed);
                                     block_on(d.close());
                                 }
                             }
                         }
+                        // #[cold] 
                         else {
                             if (OtherSocketSendBuf.lock().len() + msg.len() > MaxOtherSocketSendBufSize) {
                                 warn! {"Buffer FULL: {} + {} > {}",
@@ -611,7 +613,7 @@ async fn configure_send_receive_uds(
                                     let written_bytes = rt.block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])));
                                     match(written_bytes) {
                                         Ok(Bytes) => {debug!{"OS->DC: Written {Bytes} bytes!"};},
-                                        Err(E) => {
+                                        #[cold] Err(E) => {
                                             info!{"DataConnection {}: unable to send: {:?}.",
                                             d1.label(),
                                             E};
@@ -620,7 +622,7 @@ async fn configure_send_receive_uds(
                                         }
                                     }
                                 },
-                                Err(E) => {
+                                #[cold] Err(E) => {
                                     info!{"OtherSocket: Connection closed."};
                                     info!{"{:?}", E};
                                     info!{"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
@@ -653,13 +655,14 @@ async fn configure_send_receive_uds(
                                     debug!{"DC->OS: Written {} bytes.", amt};
                                     ClonedSocketSend.flush().expect("Unable to flush the stream.");
                                 },
-                                Err(E) => {
+                                #[cold] Err(E) => {
                                     warn!("OtherSocket: Unable to write data.");
                                     OtherSocketReady.store(false, Ordering::Relaxed);
                                     block_on(d.close());
                                 }
                             }
                         }
+                        // #[cold] 
                         else {
                             if (OtherSocketSendBuf.lock().len() + msg.len() > MaxOtherSocketSendBufSize) {
                                 warn! {"Buffer FULL: {} + {} > {}",
