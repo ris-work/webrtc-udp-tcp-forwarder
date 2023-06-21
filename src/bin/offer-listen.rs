@@ -606,9 +606,6 @@ fn main() {
                     .expect("Cannot read the offer!");
             }
         }
-        let _ = io::stdin()
-            .read_line(&mut offerBase64Text)
-            .expect("Cannot read the offer!");
         let offerBase64TextTrimmed = offerBase64Text.trim();
         info! {"Read offer: {}", offerBase64TextTrimmed};
         let offer = decode(&offerBase64TextTrimmed).expect("base64 conversion error");
