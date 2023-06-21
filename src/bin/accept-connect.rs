@@ -66,6 +66,7 @@ static DataChannelReady: AtomicBool = AtomicBool::new(false);
 static CAN_RECV: AtomicBool = AtomicBool::new(true);
 static MaxOtherSocketSendBufSize: usize = 2048;
 static THREAD_STACK_SIZE: usize = 204800;
+const PKT_SIZE: usize = 65536;
 
 lazy_static! {
     static ref OtherSocketSendBuf: Mutex<Vec<u8>> = Mutex::new(Vec::new());
@@ -302,7 +303,7 @@ async fn configure_send_receive_udp(
                                 //drop(ready);
                             };*/
                             let d1=d1.clone();
-                            let mut buf = [0; 65507];
+                            let mut buf = [0; PKT_SIZE];
                             let amt = ClonedSocketRecv
                                 .recv(&mut buf);
                             match (amt){
@@ -453,7 +454,7 @@ async fn configure_send_receive_tcp(
                                 //drop(ready);
                             };*/
                             let d1=d1.clone();
-                            let mut buf = [0; 65507];
+                            let mut buf = [0; PKT_SIZE];
                             let amt = ClonedSocketRecv
                                 .read(&mut buf);
                             match (amt){
@@ -604,7 +605,7 @@ async fn configure_send_receive_uds(
                                 //drop(ready);
                             };*/
                             let d1=d1.clone();
-                            let mut buf = [0; 65507];
+                            let mut buf = [0; PKT_SIZE];
                             let amt = ClonedSocketRecv
                                 .read(&mut buf);
                             match (amt){
@@ -797,7 +798,7 @@ fn main() {
                     debug! {"Watchdog: Resuming..."};
                 }
             });
-        let mut buf = [0; 65507];
+        let mut buf = [0; PKT_SIZE];
         if (config.Type == "UDP") {
             info! {"UDP socket requested"};
             let ConnectPort = config.Port.clone().expect("Connecting port not specified");
