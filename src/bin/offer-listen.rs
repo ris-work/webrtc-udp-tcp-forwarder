@@ -22,6 +22,7 @@ use std::fs::read_to_string;
 use std::io;
 use std::io::Read;
 use std::io::Write;
+use std::io::{BufRead, BufReader};
 use std::net::TcpListener;
 use std::net::TcpStream;
 use std::net::UdpSocket;
@@ -72,6 +73,7 @@ struct Config {
     Port: Option<String>,
     ICEServers: Vec<String>,
     Ordered: Option<bool>,
+    ConHost: Option<bool>,
 }
 #[derive(Deserialize)]
 struct ICEServer {
@@ -582,6 +584,28 @@ fn main() {
             .block_on(create_WebRTC_offer(&config))
             .expect("Failed creating a WebRTC Data Channel.");
         let mut offerBase64Text: String = String::new();
+        match (config.ConHost) {
+            Some(val) => {
+                if (val == true) {
+                    let line: String;
+                    let mut buf: Vec<u8> = vec![];
+                    BufReader::new(io::stdin()).read_until(b'/', &mut buf);
+                    let lines: String =
+                        String::from(std::str::from_utf8(&buf).expect("Input not UTF-8"));
+                    line = String::from(lines.replace("\n", "").replace("\r", "").replace(" ", ""));
+                    offerBase64Text = line;
+                } else {
+                    let _ = io::stdin()
+                        .read_line(&mut offerBase64Text)
+                        .expect("Cannot read the offer!");
+                }
+            }
+            None => {
+                let _ = io::stdin()
+                    .read_line(&mut offerBase64Text)
+                    .expect("Cannot read the offer!");
+            }
+        }
         let _ = io::stdin()
             .read_line(&mut offerBase64Text)
             .expect("Cannot read the offer!");
