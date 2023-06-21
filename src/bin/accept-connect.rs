@@ -79,6 +79,7 @@ struct Config {
     Port: Option<String>,
     ICEServers: Vec<String>,
     Ordered: Option<bool>,
+    ConHost: Option<bool>,
 }
 #[derive(Deserialize)]
 struct ICEServer {
