@@ -60,6 +60,7 @@ static DataChannelReady: AtomicBool = AtomicBool::new(false);
 static CAN_RECV: AtomicBool = AtomicBool::new(true);
 static MaxOtherSocketSendBufSize: usize = 2048;
 static THREAD_STACK_SIZE: usize = 10240000;
+const PKT_SIZE: usize = 65536;
 
 lazy_static! {
     static ref OtherSocketSendBuf: Mutex<Vec<u8>> = Mutex::new(Vec::new());
@@ -220,7 +221,7 @@ async fn configure_send_receive_udp(
                 let rt=Builder::new_multi_thread().worker_threads(1).thread_name("TOKIO: OS->DC").build().unwrap();
                 //let signal : Arc<Semaphore>= Arc::new(Semaphore::new(1000000000));
                 loop {
-                    let mut buf = [0; 65507];
+                    let mut buf = [0; PKT_SIZE];
                     /*{
                     //let mut ready = CAN_RECV.lock(); //.unwrap();
                     if (CAN_RECV.load(Ordering::Relaxed) == false) {
@@ -331,7 +332,7 @@ async fn configure_send_receive_tcp(
                 let rt=Builder::new_multi_thread().worker_threads(1).thread_name("TOKIO: OS->DC").build().unwrap();
                 //let signal : Arc<Semaphore>= Arc::new(Semaphore::new(1000000000));
                 loop {
-                    let mut buf = [0; 65507];
+                    let mut buf = [0; PKT_SIZE];
                     /*{
                     //let mut ready = CAN_RECV.lock(); //.unwrap();
                     if (CAN_RECV.load(Ordering::Relaxed) == false) {
@@ -442,7 +443,7 @@ async fn configure_send_receive_uds(
                 let rt=Builder::new_multi_thread().worker_threads(1).thread_name("TOKIO: OS->DC").build().unwrap();
                 //let signal : Arc<Semaphore>= Arc::new(Semaphore::new(1000000000));
                 loop {
-                    let mut buf = [0; 65507];
+                    let mut buf = [0; PKT_SIZE];
                     /*{
                     //let mut ready = CAN_RECV.lock(); //.unwrap();
                     if (CAN_RECV.load(Ordering::Relaxed) == false) {
@@ -638,7 +639,7 @@ fn main() {
                     debug! {"Watchdog: Resuming..."};
                 }
             });
-        let mut buf = [0; 65507];
+        let mut buf = [0; PKT_SIZE];
         if (config.Type == "UDP") {
             info! {"UDP socket requested"};
             let BindPort = config.Port.clone().expect("Binding port not specified");
