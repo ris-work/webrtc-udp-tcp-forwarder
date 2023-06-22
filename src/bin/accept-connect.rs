@@ -579,6 +579,7 @@ fn main() {
             thread::Builder::new()
                 .name("TOKIO_CONSOLE".to_string())
                 .spawn(move || console_subscriber::init());
+            true
         }
     }
     if (config.WebRTCMode == "Accept") {
