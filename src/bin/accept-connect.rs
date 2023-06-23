@@ -727,7 +727,12 @@ fn main() {
     let config: Config = toml::from_str(&TOML_file_contents).unwrap();
     info!("Configuration: type: {}", config.Type);
     if (config.WebRTCMode == "Accept") {
-        let rt = Runtime::new().unwrap();
+        //let rt = Runtime::new().unwrap();
+        let rt = Builder::new_multi_thread()
+            .worker_threads(1)
+            .thread_name("TOKIO: main")
+            .build()
+            .unwrap();
         let mut offerBase64Text: String = String::new();
         match (config.ConHost) {
             Some(val) => {
