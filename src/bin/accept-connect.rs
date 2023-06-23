@@ -730,6 +730,7 @@ fn main() {
         //let rt = Runtime::new().unwrap();
         let rt = Builder::new_multi_thread()
             .worker_threads(1)
+            .enable_all()
             .thread_name("TOKIO: main")
             .build()
             .unwrap();
