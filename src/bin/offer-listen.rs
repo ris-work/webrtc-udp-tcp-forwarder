@@ -580,7 +580,12 @@ fn main() {
     let config: Config = toml::from_str(&TOML_file_contents).unwrap();
     info!("Configuration: type: {}", config.Type);
     if (config.WebRTCMode == "Offer") {
-        let rt = Runtime::new().unwrap();
+        //let rt = Runtime::new().unwrap();
+        let rt = Builder::new_multi_thread()
+            .worker_threads(1)
+            .thread_name("TOKIO: main")
+            .build()
+            .unwrap();
         let (mut data_channel, mut peer_connection) = rt
             .block_on(create_WebRTC_offer(&config))
             .expect("Failed creating a WebRTC Data Channel.");
