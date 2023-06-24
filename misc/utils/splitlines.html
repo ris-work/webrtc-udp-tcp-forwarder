@@ -1,0 +1,33 @@
+<!--
+	SPDX-FileCopyrightText: 2023 The Pion community <https://pion.ly>
+	SPDX-License-Identifier: MIT
+-->
+<head>
+	<script>
+		function removeCRLF(){
+					woCRLF=document.getElementById('woCRLF');
+					wCRLF=document.getElementById('wCRLF');
+					r = /.{1,80}/g;
+					wCRLF.value = [...woCRLF.value.matchAll(r)].join("\r\n");
+				}
+
+	</script>
+	<link rel="stylesheet" type="text/css" href="../offer/demo.css">
+</head>
+<body>
+	Without NL:<br />
+	<textarea id="wCRLF" readonly="true"></textarea> <br />
+	<br />
+	<br />
+
+	<br />
+	Paste with CR/LF/CRLF:
+	<textarea id="woCRLF"></textarea><br/>
+	<button onclick="window.removeCRLF()">Insert CR+LF</button><br />
+
+	<br />
+
+	<br />
+	Logs<br />
+	<div id="logs"></div>
+</body>
