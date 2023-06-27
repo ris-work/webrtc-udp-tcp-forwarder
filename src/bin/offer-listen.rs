@@ -54,6 +54,11 @@ use webrtc::peer_connection::peer_connection_state::RTCPeerConnectionState;
 use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
 use webrtc::peer_connection::RTCPeerConnection;
 
+use mimalloc::MiMalloc;
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
+
 static STREAM_LAST_ACTIVE_TIME: AtomicU64 = AtomicU64::new(0);
 static OtherSocketReady: AtomicBool = AtomicBool::new(false);
 static DataChannelReady: AtomicBool = AtomicBool::new(false);
