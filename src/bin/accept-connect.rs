@@ -60,6 +60,11 @@ use std::path::Path;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
+use mimalloc::MiMalloc;
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
+
 static STREAM_LAST_ACTIVE_TIME: AtomicU64 = AtomicU64::new(0);
 static OtherSocketReady: AtomicBool = AtomicBool::new(false);
 static DataChannelReady: AtomicBool = AtomicBool::new(false);
