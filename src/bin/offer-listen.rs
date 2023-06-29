@@ -589,12 +589,13 @@ fn main() {
     info!("Configuration: type: {}", config.Type);
     if (config.WebRTCMode == "Offer") {
         //let rt = Runtime::new().unwrap();
-        let rt = Builder::new_multi_thread()
+        /* let rt = Builder::new_multi_thread()
             .worker_threads(1)
             .enable_all()
             .thread_name("TOKIO: main")
             .build()
-            .unwrap();
+            .unwrap(); */
+        let rt=Builder::new_current_thread().enable_all().build().unwrap();
         let (mut data_channel, mut peer_connection) = rt
             .block_on(create_WebRTC_offer(&config))
             .expect("Failed creating a WebRTC Data Channel.");
