@@ -289,11 +289,12 @@ async fn configure_send_receive_udp(
                         .stack_size(THREAD_STACK_SIZE)
                         .spawn(move || {
                         info!{"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
-                        let rt=Builder::new_multi_thread()
+                        /* let rt=Builder::new_multi_thread()
                             .worker_threads(1)
                             .thread_name("TOKIO: OS->DC")
                             .build()
-                            .unwrap();
+                            .unwrap(); */
+                        let rt=Builder::new_current_thread().build().unwrap();
                         let d1 = d1.clone();
                         let (mut ClonedSocketRecv) = (ClonedSocketRecv.try_clone().expect(""));
                         loop {
@@ -440,11 +441,12 @@ async fn configure_send_receive_tcp(
                         .stack_size(THREAD_STACK_SIZE)
                         .spawn(move || {
                         info!{"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
-                        let rt=Builder::new_multi_thread()
+                        /* let rt=Builder::new_multi_thread()
                             .worker_threads(1)
                             .thread_name("TOKIO: OS->DC")
                             .build()
-                            .unwrap();
+                            .unwrap(); */
+                        let rt=Builder::new_current_thread().build().unwrap();
                         let d1 = d1.clone();
                         let (mut ClonedSocketRecv) = (ClonedSocketRecv.try_clone().expect(""));
                         loop {
@@ -591,11 +593,12 @@ async fn configure_send_receive_uds(
                         .stack_size(THREAD_STACK_SIZE)
                         .spawn(move || {
                         info!{"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
-                        let rt=Builder::new_multi_thread()
+                        /* let rt=Builder::new_multi_thread()
                             .worker_threads(1)
                             .thread_name("TOKIO: OS->DC")
                             .build()
-                            .unwrap();
+                            .unwrap(); */
+                        let rt=Builder::new_current_thread().build().unwrap();
                         let d1 = d1.clone();
                         let (mut ClonedSocketRecv) = (ClonedSocketRecv.try_clone().expect(""));
                         loop {
