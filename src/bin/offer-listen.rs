@@ -223,7 +223,8 @@ async fn configure_send_receive_udp(
             .name("OS->DC".to_string())
             .spawn(move || {
                 info!{"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
-                let rt=Builder::new_multi_thread().worker_threads(1).thread_name("TOKIO: OS->DC").build().unwrap();
+                //let rt=Builder::new_multi_thread().worker_threads(1).thread_name("TOKIO: OS->DC").build().unwrap();
+                let rt=Builder::new_current_thread().build().unwrap();
                 //let signal : Arc<Semaphore>= Arc::new(Semaphore::new(1000000000));
                 loop {
                     let mut buf = [0; PKT_SIZE];
@@ -334,7 +335,8 @@ async fn configure_send_receive_tcp(
             .name("OS->DC".to_string())
             .spawn(move || {
                 info!{"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
-                let rt=Builder::new_multi_thread().worker_threads(1).thread_name("TOKIO: OS->DC").build().unwrap();
+                //let rt=Builder::new_multi_thread().worker_threads(1).thread_name("TOKIO: OS->DC").build().unwrap();
+                let rt=Builder::new_current_thread().build().unwrap();
                 //let signal : Arc<Semaphore>= Arc::new(Semaphore::new(1000000000));
                 loop {
                     let mut buf = [0; PKT_SIZE];
@@ -445,7 +447,8 @@ async fn configure_send_receive_uds(
             .name("OS->DC".to_string())
             .spawn(move || {
                 info!{"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
-                let rt=Builder::new_multi_thread().worker_threads(1).thread_name("TOKIO: OS->DC").build().unwrap();
+                //let rt=Builder::new_multi_thread().worker_threads(1).thread_name("TOKIO: OS->DC").build().unwrap();
+                let rt=Builder::new_current_thread().build().unwrap();
                 //let signal : Arc<Semaphore>= Arc::new(Semaphore::new(1000000000));
                 loop {
                     let mut buf = [0; PKT_SIZE];
