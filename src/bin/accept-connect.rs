@@ -736,12 +736,13 @@ fn main() {
     info!("Configuration: type: {}", config.Type);
     if (config.WebRTCMode == "Accept") {
         //let rt = Runtime::new().unwrap();
-        let rt = Builder::new_multi_thread()
+        /* let rt = Builder::new_multi_thread()
             .worker_threads(1)
             .enable_all()
             .thread_name("TOKIO: main")
             .build()
-            .unwrap();
+            .unwrap(); */
+        let rt=Builder::new_current_thread().enable_all().build().unwrap();
         let mut offerBase64Text: String = String::new();
         match (config.ConHost) {
             Some(val) => {
