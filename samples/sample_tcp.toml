@@ -2,4 +2,4 @@ Type = "TCP"
 WebRTCMode = "Offer"
 Address = "127.0.0.1"
 Port = "10500"
-ICEServers = ['stun:vz.al', 'stun:stun.l.google.com']
+ICEServers = [{URLs= ['stun:vz.al', 'stun:stun.l.google.com']}]

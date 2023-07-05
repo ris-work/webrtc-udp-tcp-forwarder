@@ -90,7 +90,7 @@ struct Config {
 }
 #[derive(Deserialize, Clone)]
 struct ICEServer {
-    URL: String,
+    URLs: Vec<String>,
     Username: Option<String>,
     Credential: Option<String>,
 }
@@ -146,11 +146,26 @@ async fn accept_WebRTC_offer(
         .build();
 
     // Prepare the configuration
+    let mut ice_servers: Vec<RTCIceServer> = vec![];
+    for ICEServer in config.ICEServers.iter() {
+        match (&ICEServer.Username) {
+            Some(Username) => ice_servers.push(RTCIceServer {
+                urls: ICEServer.URLs.clone(),
+                username: Username.clone(),
+                credential: ICEServer
+                    .Credential
+                    .clone()
+                    .expect("Empty credentials are not allowed."),
+                ..Default::default()
+            }),
+            None => ice_servers.push(RTCIceServer {
+                urls: ICEServer.URLs.clone(),
+                ..Default::default()
+            }),
+        }
+    }
     let config = RTCConfiguration {
-        ice_servers: vec![RTCIceServer {
-            urls: config.ICEServers.clone(),
-            ..Default::default()
-        }],
+        ice_servers: ice_servers,
         ..Default::default()
     };
 
