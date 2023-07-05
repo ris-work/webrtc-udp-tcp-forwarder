@@ -84,11 +84,11 @@ struct Config {
     WebRTCMode: String,
     Address: Option<String>,
     Port: Option<String>,
-    ICEServers: Vec<String>,
+    ICEServers: Vec<ICEServer>,
     Ordered: Option<bool>,
     ConHost: Option<bool>,
 }
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 struct ICEServer {
     URL: String,
     Username: Option<String>,
