@@ -313,12 +313,7 @@ async fn configure_send_receive_udp(
 
                     info!("Data channel '{d_label2}'-'{d_id2}' open.");
                     let d1=d1.clone();
-                    let spawned = thread::Builder::new()
-                        .name("OS->DC".to_string())
-                        .stack_size(THREAD_STACK_SIZE)
-                        .spawn(move || {
                         info!{"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
-                        
                         let d1 = d1.clone();
                         let (mut ClonedSocketRecv) = (ClonedSocketRecv.clone());
                         rt.spawn(
@@ -366,11 +361,7 @@ async fn configure_send_receive_udp(
                                     break;
                                 }
                             }
-                    }})});
-                    match(spawned){
-                        Ok(JH)=>{},//Threads.lock().push(JH)},
-                        Err(E) =>{error!{"Unable to spawn: {:?}", E}} 
-                    }
+                    }});
 
                     Box::pin(async move {
                     })
@@ -385,7 +376,6 @@ async fn configure_send_receive_udp(
                         let d_label = d_label.clone();
                         let ClonedSocketSend = ClonedSocketSend.clone();
                         art.spawn(
-                            
                         async move {
                         let ticket = Sem_DC_OS.acquire().await.unwrap();
                         let msg = msg.data.to_vec();
