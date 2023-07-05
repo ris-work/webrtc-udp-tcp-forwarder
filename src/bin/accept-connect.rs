@@ -322,7 +322,10 @@ async fn configure_send_receive_udp(
                         let d1 = d1.clone();
                         let (mut ClonedSocketRecv) = (ClonedSocketRecv.clone());
                         rt.spawn(
-                        async move {loop {
+                        async move {
+                            let Sem_OS_DC = Semaphore::new(100);
+                            debug!{"Semaphore created!"};
+                            loop {
                             /*{
                                 //let mut ready = CAN_RECV.lock(); //.unwrap();
                                 if (CAN_RECV.load(Ordering::Relaxed) == false) {
@@ -333,6 +336,8 @@ async fn configure_send_receive_udp(
                                 }
                                 //drop(ready);
                             };*/
+                            let ticket = Sem_OS_DC.acquire().await.unwrap();
+                            debug!{"OS->DC: Available permits: {}", Sem_OS_DC.available_permits()};
                             let d1=d1.clone();
                             let mut buf = [0; PKT_SIZE];
                             let amt = ClonedSocketRecv
@@ -344,7 +349,7 @@ async fn configure_send_receive_udp(
                                     debug!{"Blocking on DC send..."};
                                     let written_bytes = d2.send(&Bytes::copy_from_slice(&buf[0..amt])).await;
                                     match(written_bytes) {
-                                        Ok(Bytes) => {debug!{"OS->DC: Written {Bytes} bytes!"};},
+                                        Ok(Bytes) => {debug!{"OS->DC: Written {Bytes} bytes!"}; drop(ticket)},
                                         #[cold] Err(E) => {
                                             info!{"DataConnection {}: unable to send: {:?}.",
                                             d1.label(),
@@ -371,18 +376,21 @@ async fn configure_send_receive_udp(
                     })
                 }}));
 
-                
+                let Sem_DC_OS = Arc::new(Semaphore::new(100));
                 // Register text message handling
-                d.on_message(Box::new({let d=d.clone(); let art=art.clone();
+                d.on_message(Box::new({let d=d.clone(); let art=art.clone(); let Sem_DC_OS = Sem_DC_OS.clone();
                     move |msg: DataChannelMessage| {
+                        let Sem_DC_OS = Sem_DC_OS.clone();
                         let d = d.clone();
                         let d_label = d_label.clone();
                         let ClonedSocketSend = ClonedSocketSend.clone();
                         art.spawn(
                             
                         async move {
+                        let ticket = Sem_DC_OS.acquire().await.unwrap();
                         let msg = msg.data.to_vec();
                         trace!("Message from DataChannel '{d_label}': '{msg:?}'");
+                        debug!{"DC->OS: Available tickets: {}", Sem_DC_OS.available_permits()};
                         if (CAN_RECV.load(Ordering::Relaxed)){
                             let (mut ClonedSocketSend) = (ClonedSocketSend.clone());
                             match(
@@ -392,6 +400,7 @@ async fn configure_send_receive_udp(
                                 Ok(amt) => {
                                     debug!{"DC->OS: Written {} bytes.", amt};
                                     //ClonedSocketSend.flush().expect("Unable to flush the stream.");
+                                    drop(ticket);
                                 },
                                 #[cold] Err(E) => {
                                     warn!("OtherSocket: Unable to write data.");
