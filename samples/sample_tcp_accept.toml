@@ -2,4 +2,4 @@ Type = "TCP"
 WebRTCMode = "Accept"
 Address = "127.0.0.1"
 Port = "11500"
-ICEServers = ['stun:vz.al']
+ICEServers = [{URLs: ['stun:vz.al']}]

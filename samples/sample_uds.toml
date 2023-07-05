@@ -1,4 +1,4 @@
 Type = "UDS"
 WebRTCMode = "Offer"
 Address = "socket.sock"
-ICEServers = ['turns:vz.al', 'stun:vz.al']
+ICEServers = [{URLs: ['turns:vz.al', 'stun:vz.al']}]
