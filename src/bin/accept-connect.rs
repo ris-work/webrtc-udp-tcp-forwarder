@@ -61,6 +61,10 @@ use std::path::Path;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
+use tokio::net::UdpSocket as TokioUdpSocket;
+use tokio::runtime::Handle;
+use tokio::sync::Semaphore;
+
 use mimalloc::MiMalloc;
 
 #[global_allocator]
@@ -266,38 +270,46 @@ async fn configure_send_receive_udp(
     RTCDC: Arc<RTCDataChannel>,
     RTCPC: Arc<RTCPeerConnection>,
     OtherSocket: UdpSocket,
-) -> (Arc<RTCDataChannel>, UdpSocket) /*, Box<dyn error::Error>>*/ {
+) -> (Arc<RTCDataChannel>, Arc<TokioUdpSocket>) /*, Box<dyn error::Error>>*/ {
     // Register channel opening handling
+    OtherSocket
+        .set_nonblocking(true)
+        .expect("Cannot enter non-blocking UDP mode.");
+    let OtherSocket =
+        TokioUdpSocket::from_std(OtherSocket).expect("Unable to form a Tokio UDP Socket.");
+
     let d1 = Arc::clone(&RTCDC);
-    let mut ClonedSocketRecv = OtherSocket
-        .try_clone()
-        .expect("Unable to clone the TCP socket. :(");
-    let mut ClonedSocketSend = OtherSocket
-        .try_clone()
-        .expect("Unable to clone the TCP socket. :(");
+    let TOS = Arc::new(OtherSocket);
+    let mut ClonedSocketRecv = TOS.clone();
+    //.expect("Unable to clone the TCP socket. :(");
+    let mut ClonedSocketSend = TOS.clone();
+    //.expect("Unable to clone the TCP socket. :(");
     RTCPC.on_data_channel(Box::new(move |d: Arc<RTCDataChannel>| {
         let d_label = d.label().to_owned();
         let d_id = d.id();
         info!("New DataChannel {d_label} {d_id}");
+        let rt=Handle::current();
+                        let art = Arc::new(rt);
 
         // Register channel opening handling
         Box::pin({
             let d1 = d1.clone();
 
             let (mut ClonedSocketRecv, mut ClonedSocketSend) = (
-                ClonedSocketRecv.try_clone().expect(""),
-                ClonedSocketSend.try_clone().expect(""),
+                ClonedSocketRecv.clone(),
+                ClonedSocketSend.clone(),
                 );
             async move {
                 let d1 = Arc::clone(&d1);
                 let d2 = Arc::clone(&d);
+                let art=art.clone();
                 let d_label2 = d_label.clone();
                 let d_id2 = d_id;
                 let (mut ClonedSocketRecv, mut ClonedSocketSend) = (
-                    ClonedSocketRecv.try_clone().expect(""),
-                    ClonedSocketSend.try_clone().expect(""),
+                    ClonedSocketRecv.clone(),
+                    ClonedSocketSend.clone(),
                     );
-                d.on_open(Box::new({let d1 = d1.clone(); move || {
+                d.on_open(Box::new({let d1 = d1.clone(); let rt=art.clone(); move || {
 
                     info!("Data channel '{d_label2}'-'{d_id2}' open.");
                     let d1=d1.clone();
@@ -306,14 +318,11 @@ async fn configure_send_receive_udp(
                         .stack_size(THREAD_STACK_SIZE)
                         .spawn(move || {
                         info!{"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
-                        let rt=Builder::new_multi_thread()
-                            .worker_threads(1)
-                            .thread_name("TOKIO: OS->DC")
-                            .build()
-                            .unwrap();
+                        
                         let d1 = d1.clone();
-                        let (mut ClonedSocketRecv) = (ClonedSocketRecv.try_clone().expect(""));
-                        loop {
+                        let (mut ClonedSocketRecv) = (ClonedSocketRecv.clone());
+                        rt.spawn(
+                        async move {loop {
                             /*{
                                 //let mut ready = CAN_RECV.lock(); //.unwrap();
                                 if (CAN_RECV.load(Ordering::Relaxed) == false) {
@@ -327,13 +336,13 @@ async fn configure_send_receive_udp(
                             let d1=d1.clone();
                             let mut buf = [0; PKT_SIZE];
                             let amt = ClonedSocketRecv
-                                .recv(&mut buf);
+                                .recv(&mut buf).await;
                             match (amt){
 
                                 Ok(amt) => {
                                     trace! {"{:?}", &buf[0..amt]};
                                     debug!{"Blocking on DC send..."};
-                                    let written_bytes = rt.block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])));
+                                    let written_bytes = d2.send(&Bytes::copy_from_slice(&buf[0..amt])).await;
                                     match(written_bytes) {
                                         Ok(Bytes) => {debug!{"OS->DC: Written {Bytes} bytes!"};},
                                         #[cold] Err(E) => {
@@ -352,9 +361,9 @@ async fn configure_send_receive_udp(
                                     break;
                                 }
                             }
-                        }});
+                    }})});
                     match(spawned){
-                        Ok(JH)=>{Threads.lock().push(JH)},
+                        Ok(JH)=>{},//Threads.lock().push(JH)},
                         Err(E) =>{error!{"Unable to spawn: {:?}", E}} 
                     }
 
@@ -362,16 +371,22 @@ async fn configure_send_receive_udp(
                     })
                 }}));
 
-
+                
                 // Register text message handling
-                d.on_message(Box::new({let d=d.clone();
+                d.on_message(Box::new({let d=d.clone(); let art=art.clone();
                     move |msg: DataChannelMessage| {
+                        let d = d.clone();
+                        let d_label = d_label.clone();
+                        let ClonedSocketSend = ClonedSocketSend.clone();
+                        art.spawn(
+                            
+                        async move {
                         let msg = msg.data.to_vec();
                         trace!("Message from DataChannel '{d_label}': '{msg:?}'");
                         if (CAN_RECV.load(Ordering::Relaxed)){
-                            let (mut ClonedSocketSend) = (ClonedSocketSend.try_clone().expect(""));
+                            let (mut ClonedSocketSend) = (ClonedSocketSend.clone());
                             match(
-                                ClonedSocketSend.send(&msg)
+                                ClonedSocketSend.send(&msg).await
                                 )
                             {
                                 Ok(amt) => {
@@ -398,6 +413,7 @@ async fn configure_send_receive_udp(
                                 OtherSocketSendBuf.lock().extend_from_slice(&msg);
                             }
                         }
+                    });
                         Box::pin(async {})
                     }}));
             }
@@ -411,7 +427,7 @@ async fn configure_send_receive_udp(
     RTCDC.close().await.expect("Error closing the connection");
 
     /* Ok(*/
-    (Arc::clone(&RTCDC), OtherSocket) /*)*/
+    (Arc::clone(&RTCDC), TOS) /*)*/
 }
 async fn configure_send_receive_tcp(
     RTCDC: Arc<RTCDataChannel>,
@@ -750,7 +766,7 @@ fn main() {
     info!("Configuration: type: {}", config.Type);
     if (config.WebRTCMode == "Accept") {
         //let rt = Runtime::new().unwrap();
-        let rt = Builder::new_multi_thread()
+        let rt = Builder::new_current_thread()
             .worker_threads(1)
             .enable_all()
             .thread_name("TOKIO: main")
@@ -851,7 +867,8 @@ fn main() {
                     .expect("This software is not supposed to be used before UNIX was invented."),
                 Ordering::Relaxed,
             );
-            (data_channel, OtherSocket) = rt.block_on(configure_send_receive_udp(
+            let TOS: Arc<TokioUdpSocket>;
+            (data_channel, TOS) = rt.block_on(configure_send_receive_udp(
                 data_channel,
                 peer_connection,
                 OtherSocket,
