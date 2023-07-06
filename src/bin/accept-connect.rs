@@ -286,9 +286,7 @@ async fn configure_send_receive_udp(
     let d1 = Arc::clone(&RTCDC);
     let TOS = Arc::new(OtherSocket);
     let mut ClonedSocketRecv = TOS.clone();
-    //.expect("Unable to clone the TCP socket. :(");
     let mut ClonedSocketSend = TOS.clone();
-    //.expect("Unable to clone the TCP socket. :(");
     RTCPC.on_data_channel(Box::new(move |d: Arc<RTCDataChannel>| {
         let d_label = d.label().to_owned();
         let d_id = d.id();
@@ -323,21 +321,7 @@ async fn configure_send_receive_udp(
                         let (mut ClonedSocketRecv) = (ClonedSocketRecv.clone());
                         rt.spawn(
                         async move {
-                            let Sem_OS_DC = Semaphore::new(10000);
-                            debug!{"Semaphore created!"};
                             loop {
-                            /*{
-                                //let mut ready = CAN_RECV.lock(); //.unwrap();
-                                if (CAN_RECV.load(Ordering::Relaxed) == false) {
-                                    let mut temp: String = String::new();
-                                    println! {"Please press RETURN when you are ready to connect."};
-                                    let _ = io::stdin().read_line(&mut temp);
-                                    CAN_RECV.store(true, Ordering::Relaxed);
-                                }
-                                //drop(ready);
-                            };*/
-                            let ticket = Sem_OS_DC.acquire().await.unwrap();
-                            debug!{"OS->DC: Available permits: {}", Sem_OS_DC.available_permits()};
                             let d1=d1.clone();
                             let mut buf = [0; PKT_SIZE];
                             let amt = ClonedSocketRecv
@@ -349,7 +333,7 @@ async fn configure_send_receive_udp(
                                     debug!{"Blocking on DC send..."};
                                     let written_bytes = d2.send(&Bytes::copy_from_slice(&buf[0..amt])).await;
                                     match(written_bytes) {
-                                        Ok(Bytes) => {debug!{"OS->DC: Written {Bytes} bytes!"}; drop(ticket)},
+                                        Ok(Bytes) => {debug!{"OS->DC: Written {Bytes} bytes!"};},
                                         #[cold] Err(E) => {
                                             info!{"DataConnection {}: unable to send: {:?}.",
                                             d1.label(),
@@ -372,20 +356,16 @@ async fn configure_send_receive_udp(
                     })
                 }}));
 
-                let Sem_DC_OS = Arc::new(Semaphore::new(10000));
                 // Register text message handling
-                d.on_message(Box::new({let d=d.clone(); let art=art.clone(); let Sem_DC_OS = Sem_DC_OS.clone();
+                d.on_message(Box::new({let d=d.clone(); let art=art.clone();
                     move |msg: DataChannelMessage| {
-                        let Sem_DC_OS = Sem_DC_OS.clone();
                         let d = d.clone();
                         let d_label = d_label.clone();
                         let ClonedSocketSend = ClonedSocketSend.clone();
                         art.spawn(
                         async move {
-                        let ticket = Sem_DC_OS.acquire().await.unwrap();
                         let msg = msg.data.to_vec();
                         trace!("Message from DataChannel '{d_label}': '{msg:?}'");
-                        debug!{"DC->OS: Available tickets: {}", Sem_DC_OS.available_permits()};
                         if (CAN_RECV.load(Ordering::Relaxed)){
                             let (mut ClonedSocketSend) = (ClonedSocketSend.clone());
                             match(
@@ -395,7 +375,6 @@ async fn configure_send_receive_udp(
                                 Ok(amt) => {
                                     debug!{"DC->OS: Written {} bytes.", amt};
                                     //ClonedSocketSend.flush().expect("Unable to flush the stream.");
-                                    drop(ticket);
                                 },
                                 #[cold] Err(E) => {
                                     warn!("OtherSocket: Unable to write data.");
@@ -447,9 +426,7 @@ async fn configure_send_receive_tcp(
     let d1 = Arc::clone(&RTCDC);
     let TOS = (OtherSocket).clone();
     let mut ClonedSocketRecv = TOS.clone();
-    //.expect("Unable to clone the TCP socket. :(");
     let mut ClonedSocketSend = TOS.clone();
-    //.expect("Unable to clone the TCP socket. :(");
     RTCPC.on_data_channel(Box::new(move |d: Arc<RTCDataChannel>| {
         let d_label = d.label().to_owned();
         let d_id = d.id();
@@ -483,21 +460,7 @@ async fn configure_send_receive_tcp(
                         let (mut ClonedSocketRecv) = (ClonedSocketRecv.clone());
                         rt.spawn(
                             async move {
-                                let Sem_OS_DC = Semaphore::new(10000);
-                                debug!{"Semaphore created!"};
                         loop {
-                            /*{
-                                //let mut ready = CAN_RECV.lock(); //.unwrap();
-                                if (CAN_RECV.load(Ordering::Relaxed) == false) {
-                                    let mut temp: String = String::new();
-                                    println! {"Please press RETURN when you are ready to connect."};
-                                    let _ = io::stdin().read_line(&mut temp);
-                                    CAN_RECV.store(true, Ordering::Relaxed);
-                                }
-                                //drop(ready);
-                            };*/
-                            let ticket = Sem_OS_DC.acquire().await.unwrap();
-                            debug!{"OS->DC: Available permits: {}", Sem_OS_DC.available_permits()};
                             let d1=d1.clone();
                             let mut buf = [0; PKT_SIZE];
                             let amt = ClonedSocketRecv
@@ -535,19 +498,15 @@ async fn configure_send_receive_tcp(
 
 
                 // Register text message handling
-                let Sem_DC_OS = Arc::new(Semaphore::new(10000));
-                d.on_message(Box::new({let d=d.clone(); let art=art.clone(); let Sem_DC_OS = Sem_DC_OS.clone();
+                d.on_message(Box::new({let d=d.clone(); let art=art.clone();
                     move |msg: DataChannelMessage| {
-                        let Sem_DC_OS = Sem_DC_OS.clone();
                         let d = d.clone();
                         let d_label = d_label.clone();
                         let ClonedSocketSend = ClonedSocketSend.clone();
                         art.spawn(
                         async move {
-                        let ticket = Sem_DC_OS.acquire().await.unwrap();
                         let msg = msg.data.to_vec();
                         trace!("Message from DataChannel '{d_label}': '{msg:?}'");
-                        debug!{"DC->OS: Available tickets: {}", Sem_DC_OS.available_permits()};
                         if (CAN_RECV.load(Ordering::Relaxed)){
                             let (mut ClonedSocketSend) = (ClonedSocketSend.clone());
                             match(
