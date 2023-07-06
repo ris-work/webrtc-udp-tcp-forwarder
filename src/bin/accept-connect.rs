@@ -61,14 +61,14 @@ use std::path::Path;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
-use async_std::net::TcpStream as AsyncTcpStream;
 use async_std::io::ReadExt;
 use async_std::io::WriteExt;
+use async_std::net::TcpStream as AsyncTcpStream;
+use tokio::io::AsyncReadExt;
+use tokio::io::AsyncWriteExt;
 use tokio::net::UdpSocket as TokioUdpSocket;
 use tokio::runtime::Handle;
 use tokio::sync::Semaphore;
-use tokio::io::AsyncReadExt;
-use tokio::io::AsyncWriteExt;
 
 use mimalloc::MiMalloc;
 
@@ -442,8 +442,7 @@ async fn configure_send_receive_tcp(
     OtherSocket
         .set_nonblocking(true)
         .expect("Cannot enter non-blocking UDP mode.");
-    let OtherSocket =
-        AsyncTcpStream::from(OtherSocket);
+    let OtherSocket = AsyncTcpStream::from(OtherSocket);
 
     let d1 = Arc::clone(&RTCDC);
     let TOS = (OtherSocket).clone();
@@ -579,7 +578,6 @@ async fn configure_send_receive_tcp(
                                 OtherSocketSendBuf.lock().extend_from_slice(&msg);
                             }
                         }
-                        
                     });
                     Box::pin(async {})
                 }}));
