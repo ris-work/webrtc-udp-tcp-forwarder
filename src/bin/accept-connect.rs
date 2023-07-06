@@ -441,7 +441,7 @@ async fn configure_send_receive_tcp(
     // Register channel opening handling
     OtherSocket
         .set_nonblocking(true)
-        .expect("Cannot enter non-blocking UDP mode.");
+        .expect("Cannot enter non-blocking TCP mode.");
     let OtherSocket = AsyncTcpStream::from(OtherSocket);
 
     let d1 = Arc::clone(&RTCDC);
