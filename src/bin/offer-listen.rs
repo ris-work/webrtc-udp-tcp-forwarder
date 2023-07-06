@@ -360,32 +360,14 @@ async fn configure_send_receive_tcp(
         let rt = art.clone();
         rt.spawn( async move {
                 info!{"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
-                let Sem_OS_DC = Semaphore::new(10000);
-                debug!{"Semaphore created!"};
-                //let signal : Arc<Semaphore>= Arc::new(Semaphore::new(1000000000));
                 loop {
                     let mut buf = [0; PKT_SIZE];
-                    /*{
-                    //let mut ready = CAN_RECV.lock(); //.unwrap();
-                    if (CAN_RECV.load(Ordering::Relaxed) == false) {
-                    let mut temp: String = String::new();
-                    println! {"Please press RETURN when you are ready to connect."};
-                    let _ = io::stdin().read_line(&mut temp);
-                    CAN_RECV.store(true, Ordering::Relaxed);
-                    }
-                    //drop(ready);
-                    };*/
-                    let ticket = Sem_OS_DC.acquire().await.unwrap();
-                    debug!{"OS->DC: Available permits: {}", Sem_OS_DC.available_permits()};
                     match (ClonedSocketRecv.read(&mut buf).await) {
                         Ok(amt) => {
                             trace! {"{:?}", &buf[0..amt]};
                             debug!{"Blocking on DC send"};
-                            //debug!{"Available permits: {}.", signal.available_permits()};
-                            //let permit = block_on(Arc::clone(&signal).acquire_owned());
                             let d1=d1.clone();
                                 let d2=d2.clone();
-                                    //let _permit = permit;
                                     let written_bytes =
                                         (d2.send(&Bytes::copy_from_slice(&buf[0..amt]))).await;
                                     match (written_bytes) {
@@ -413,15 +395,12 @@ async fn configure_send_receive_tcp(
         })
     }));
 
-    let Sem_DC_OS = Arc::new(Semaphore::new(10000));
     // Register text message handling
     let d_label = RTCDC.label().to_owned();
     RTCDC.on_message(Box::new(move |msg: DataChannelMessage| {
-        let Sem_DC_OS = Sem_DC_OS.clone();
         let d_label = d_label.clone();
         let mut ClonedSocketSend = ClonedSocketSend.clone();
         rt.spawn(async move {
-            let ticket = Sem_DC_OS.acquire().await.unwrap();
             let msg = msg.data.to_vec();
             trace!("Message from DataChannel '{d_label}': '{msg:?}'");
             if (CAN_RECV.load(Ordering::Relaxed)) {
