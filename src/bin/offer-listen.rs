@@ -55,6 +55,15 @@ use webrtc::peer_connection::peer_connection_state::RTCPeerConnectionState;
 use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
 use webrtc::peer_connection::RTCPeerConnection;
 
+use async_std::io::ReadExt;
+use async_std::io::WriteExt;
+use async_std::net::TcpStream as AsyncTcpStream;
+use tokio::io::AsyncReadExt;
+use tokio::io::AsyncWriteExt;
+use tokio::net::UdpSocket as TokioUdpSocket;
+use tokio::runtime::Handle;
+use tokio::sync::Semaphore;
+
 use mimalloc::MiMalloc;
 
 #[global_allocator]
@@ -333,25 +342,25 @@ async fn configure_send_receive_udp(
 async fn configure_send_receive_tcp(
     RTCDC: Arc<RTCDataChannel>,
     OtherSocket: TcpStream,
-) -> (Arc<RTCDataChannel>, TcpStream) /*, Box<dyn error::Error>>*/ {
+) -> (Arc<RTCDataChannel>, AsyncTcpStream) /*, Box<dyn error::Error>>*/ {
     // Register channel opening handling
+    OtherSocket
+        .set_nonblocking(true)
+        .expect("Cannot enter non-blocking TCP mode.");
     info! {"Configuring TCP<=>RTCDC..."};
+    let OtherSocket = AsyncTcpStream::from(OtherSocket);
     let d1 = Arc::clone(&RTCDC);
-    let mut ClonedSocketRecv = OtherSocket
-        .try_clone()
-        .expect("Unable to clone the UDP socket. :(");
-    let mut ClonedSocketSend = OtherSocket
-        .try_clone()
-        .expect("Unable to clone the UDP socket. :(");
+    let mut ClonedSocketRecv = OtherSocket.clone();
+    let mut ClonedSocketSend = OtherSocket.clone();
+    let rt = Handle::current();
+    let art = Arc::new(rt);
     RTCDC.on_open(Box::new(move || {
         info!("Data channel '{}'-'{}' open.", d1.label(), d1.id());
         let d2 = Arc::clone(&d1);
-        thread::Builder::new()
-            .stack_size(THREAD_STACK_SIZE)
-            .name("OS->DC".to_string())
-            .spawn(move || {
+        rt.spawn( async move {
                 info!{"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
-                let rt=Builder::new_multi_thread().worker_threads(1).thread_name("TOKIO: OS->DC").build().unwrap();
+                let Sem_OS_DC = Semaphore::new(10000);
+                debug!{"Semaphore created!"};
                 //let signal : Arc<Semaphore>= Arc::new(Semaphore::new(1000000000));
                 loop {
                     let mut buf = [0; PKT_SIZE];
@@ -365,7 +374,9 @@ async fn configure_send_receive_tcp(
                     }
                     //drop(ready);
                     };*/
-                    match (ClonedSocketRecv.read(&mut buf)) {
+                    let ticket = Sem_OS_DC.acquire().await.unwrap();
+                    debug!{"OS->DC: Available permits: {}", Sem_OS_DC.available_permits()};
+                    match (ClonedSocketRecv.read(&mut buf).await) {
                         Ok(amt) => {
                             trace! {"{:?}", &buf[0..amt]};
                             debug!{"Blocking on DC send"};
@@ -398,7 +409,6 @@ async fn configure_send_receive_tcp(
                     }
                 }
             });
-
         Box::pin(async move {
         })
     }));
@@ -406,31 +416,39 @@ async fn configure_send_receive_tcp(
     // Register text message handling
     let d_label = RTCDC.label().to_owned();
     RTCDC.on_message(Box::new(move |msg: DataChannelMessage| {
-        let msg = msg.data.to_vec();
-        trace!("Message from DataChannel '{d_label}': '{msg:?}'");
-        if (CAN_RECV.load(Ordering::Relaxed)) {
-            match (ClonedSocketSend.write(&msg)) {
-                Ok(amt) => {
-                    debug! {"DC->OS: Written {} bytes.", amt};
-                    ClonedSocketSend
-                        .flush()
-                        .expect("Unable to flush the stream.");
+        let Sem_DC_OS = Sem_DC_OS.clone();
+        let d = d.clone();
+        let d_label = d_label.clone();
+        let ClonedSocketSend = ClonedSocketSend.clone();
+        art.spawn(async move {
+            let ticket = Sem_DC_OS.acquire().await.unwrap();
+            let msg = msg.data.to_vec();
+            trace!("Message from DataChannel '{d_label}': '{msg:?}'");
+            if (CAN_RECV.load(Ordering::Relaxed)) {
+                match (ClonedSocketSend.write(&msg).await) {
+                    Ok(amt) => {
+                        debug! {"DC->OS: Written {} bytes.", amt};
+                        ClonedSocketSend
+                            .flush()
+                            .await
+                            .expect("Unable to flush the stream.");
+                    }
+                    Err(E) => {
+                        warn!("Unable to write data.");
+                    }
                 }
-                Err(E) => {
-                    warn!("Unable to write data.");
-                }
-            }
-        } else {
-            if (OtherSocketSendBuf.lock().len() + msg.len() > MaxOtherSocketSendBufSize) {
-                warn! {"Buffer FULL: {} + {} > {}",
-                OtherSocketSendBuf.lock().len(),
-                msg.len(),
-                MaxOtherSocketSendBufSize
-                };
             } else {
-                OtherSocketSendBuf.lock().extend_from_slice(&msg);
+                if (OtherSocketSendBuf.lock().len() + msg.len() > MaxOtherSocketSendBufSize) {
+                    warn! {"Buffer FULL: {} + {} > {}",
+                    OtherSocketSendBuf.lock().len(),
+                    msg.len(),
+                    MaxOtherSocketSendBufSize
+                    };
+                } else {
+                    OtherSocketSendBuf.lock().extend_from_slice(&msg);
+                }
             }
-        }
+        });
         Box::pin(async {})
     }));
     let (done_tx, mut done_rx) = tokio::sync::mpsc::channel::<()>(1);
@@ -603,12 +621,7 @@ fn main() {
     info!("Configuration: type: {}", config.Type);
     if (config.WebRTCMode == "Offer") {
         //let rt = Runtime::new().unwrap();
-        let rt = Builder::new_multi_thread()
-            .worker_threads(1)
-            .enable_all()
-            .thread_name("TOKIO: main")
-            .build()
-            .unwrap();
+        let rt = Builder::new_current_thread().enable_all().build().unwrap();
         let (mut data_channel, mut peer_connection) = rt
             .block_on(create_WebRTC_offer(&config))
             .expect("Failed creating a WebRTC Data Channel.");
