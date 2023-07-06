@@ -36,7 +36,6 @@ use std::thread;
 use std::time;
 use tokio::runtime::Builder;
 use tokio::runtime::Runtime;
-use tokio::sync::Semaphore;
 
 #[cfg(windows)]
 use uds_windows::{UnixListener, UnixStream};
@@ -354,9 +353,11 @@ async fn configure_send_receive_tcp(
     let mut ClonedSocketSend = OtherSocket.clone();
     let rt = Handle::current();
     let art = Arc::new(rt);
+    let rt=art.clone();
     RTCDC.on_open(Box::new(move || {
         info!("Data channel '{}'-'{}' open.", d1.label(), d1.id());
         let d2 = Arc::clone(&d1);
+        let rt = art.clone();
         rt.spawn( async move {
                 info!{"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
                 let Sem_OS_DC = Semaphore::new(10000);
@@ -382,7 +383,7 @@ async fn configure_send_receive_tcp(
                             debug!{"Blocking on DC send"};
                             //debug!{"Available permits: {}.", signal.available_permits()};
                             //let permit = block_on(Arc::clone(&signal).acquire_owned());
-                            rt.block_on({let d1=d1.clone();
+                            let d1=d1.clone();
                                 let d2=d2.clone();
                                 async move {
                                     //let _permit = permit;
@@ -398,7 +399,7 @@ async fn configure_send_receive_tcp(
                                             info!{"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
                                             //break;
                                         }
-                                    }}});
+                                    }};
                         }
                         Err(E) => {
                             warn!("Unable to read or save to the buffer: {:?}", E);
@@ -413,14 +414,14 @@ async fn configure_send_receive_tcp(
         })
     }));
 
+    let Sem_DC_OS = Arc::new(Semaphore::new(10000));
     // Register text message handling
     let d_label = RTCDC.label().to_owned();
     RTCDC.on_message(Box::new(move |msg: DataChannelMessage| {
         let Sem_DC_OS = Sem_DC_OS.clone();
-        let d = d.clone();
         let d_label = d_label.clone();
-        let ClonedSocketSend = ClonedSocketSend.clone();
-        art.spawn(async move {
+        let mut ClonedSocketSend = ClonedSocketSend.clone();
+        rt.spawn(async move {
             let ticket = Sem_DC_OS.acquire().await.unwrap();
             let msg = msg.data.to_vec();
             trace!("Message from DataChannel '{d_label}': '{msg:?}'");
@@ -730,7 +731,8 @@ fn main() {
             );
             debug! {"Attempting to write the send buffer: {:?}", &OtherSocketSendBuf.lock()};
             OtherSocket.write(&OtherSocketSendBuf.lock());
-            (data_channel, OtherSocket) =
+            let AOS: AsyncTcpStream;
+            (data_channel, AOS) =
                 rt.block_on(configure_send_receive_tcp(data_channel, OtherSocket));
         } else if (config.Type == "UDS") {
             info! {"Unix Domain Socket requested."};
