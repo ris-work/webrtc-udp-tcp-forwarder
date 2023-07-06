@@ -353,7 +353,7 @@ async fn configure_send_receive_tcp(
     let mut ClonedSocketSend = OtherSocket.clone();
     let rt = Handle::current();
     let art = Arc::new(rt);
-    let rt=art.clone();
+    let rt = art.clone();
     RTCDC.on_open(Box::new(move || {
         info!("Data channel '{}'-'{}' open.", d1.label(), d1.id());
         let d2 = Arc::clone(&d1);
@@ -385,7 +385,6 @@ async fn configure_send_receive_tcp(
                             //let permit = block_on(Arc::clone(&signal).acquire_owned());
                             let d1=d1.clone();
                                 let d2=d2.clone();
-                                async move {
                                     //let _permit = permit;
                                     let written_bytes =
                                         (d2.send(&Bytes::copy_from_slice(&buf[0..amt]))).await;
@@ -399,7 +398,7 @@ async fn configure_send_receive_tcp(
                                             info!{"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
                                             //break;
                                         }
-                                    }};
+                                    };
                         }
                         Err(E) => {
                             warn!("Unable to read or save to the buffer: {:?}", E);
