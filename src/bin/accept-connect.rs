@@ -323,7 +323,7 @@ async fn configure_send_receive_udp(
                         let (mut ClonedSocketRecv) = (ClonedSocketRecv.clone());
                         rt.spawn(
                         async move {
-                            let Sem_OS_DC = Semaphore::new(100);
+                            let Sem_OS_DC = Semaphore::new(10000);
                             debug!{"Semaphore created!"};
                             loop {
                             /*{
@@ -372,7 +372,7 @@ async fn configure_send_receive_udp(
                     })
                 }}));
 
-                let Sem_DC_OS = Arc::new(Semaphore::new(100));
+                let Sem_DC_OS = Arc::new(Semaphore::new(10000));
                 // Register text message handling
                 d.on_message(Box::new({let d=d.clone(); let art=art.clone(); let Sem_DC_OS = Sem_DC_OS.clone();
                     move |msg: DataChannelMessage| {
@@ -483,7 +483,7 @@ async fn configure_send_receive_tcp(
                         let (mut ClonedSocketRecv) = (ClonedSocketRecv.clone());
                         rt.spawn(
                             async move {
-                                let Sem_OS_DC = Semaphore::new(100);
+                                let Sem_OS_DC = Semaphore::new(10000);
                                 debug!{"Semaphore created!"};
                         loop {
                             /*{
@@ -535,7 +535,7 @@ async fn configure_send_receive_tcp(
 
 
                 // Register text message handling
-                let Sem_DC_OS = Arc::new(Semaphore::new(100));
+                let Sem_DC_OS = Arc::new(Semaphore::new(10000));
                 d.on_message(Box::new({let d=d.clone(); let art=art.clone(); let Sem_DC_OS = Sem_DC_OS.clone();
                     move |msg: DataChannelMessage| {
                         let Sem_DC_OS = Sem_DC_OS.clone();
