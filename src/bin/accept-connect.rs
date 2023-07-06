@@ -61,7 +61,9 @@ use std::path::Path;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
-use tokio::net::TcpStream as TokioTcpStream;
+use async_std::net::TcpStream as AsyncTcpStream;
+use async_std::io::ReadExt;
+use async_std::io::WriteExt;
 use tokio::net::UdpSocket as TokioUdpSocket;
 use tokio::runtime::Handle;
 use tokio::sync::Semaphore;
@@ -435,13 +437,13 @@ async fn configure_send_receive_tcp(
     RTCDC: Arc<RTCDataChannel>,
     RTCPC: Arc<RTCPeerConnection>,
     OtherSocket: TcpStream,
-) -> (Arc<RTCDataChannel>, Arc<TokioTcpStream>) /*, Box<dyn error::Error>>*/ {
+) -> (Arc<RTCDataChannel>, Arc<AsyncTcpStream>) /*, Box<dyn error::Error>>*/ {
     // Register channel opening handling
     OtherSocket
         .set_nonblocking(true)
         .expect("Cannot enter non-blocking UDP mode.");
     let OtherSocket =
-        TokioTcpStream::from_std(OtherSocket).expect("Unable to form a Tokio UDP Socket.");
+        AsyncTcpStream::from(OtherSocket);
 
     let d1 = Arc::clone(&RTCDC);
     let TOS = Arc::new(OtherSocket);
@@ -906,7 +908,7 @@ fn main() {
                     .expect("This software is not supposed to be used before UNIX was invented."),
                 Ordering::Relaxed,
             );
-            let TOS: Arc<TokioTcpStream>;
+            let TOS: AsyncTcpStream;
             (data_channel, TOS) = rt.block_on(configure_send_receive_tcp(
                 data_channel,
                 peer_connection,
