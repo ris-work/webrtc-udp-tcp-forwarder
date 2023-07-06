@@ -437,7 +437,7 @@ async fn configure_send_receive_tcp(
     RTCDC: Arc<RTCDataChannel>,
     RTCPC: Arc<RTCPeerConnection>,
     OtherSocket: TcpStream,
-) -> (Arc<RTCDataChannel>, Arc<AsyncTcpStream>) /*, Box<dyn error::Error>>*/ {
+) -> (Arc<RTCDataChannel>, AsyncTcpStream) /*, Box<dyn error::Error>>*/ {
     // Register channel opening handling
     OtherSocket
         .set_nonblocking(true)
@@ -446,7 +446,7 @@ async fn configure_send_receive_tcp(
         AsyncTcpStream::from(OtherSocket);
 
     let d1 = Arc::clone(&RTCDC);
-    let TOS = Arc::new(OtherSocket);
+    let TOS = (OtherSocket).clone();
     let mut ClonedSocketRecv = TOS.clone();
     //.expect("Unable to clone the TCP socket. :(");
     let mut ClonedSocketSend = TOS.clone();
