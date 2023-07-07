@@ -322,7 +322,6 @@ async fn configure_send_receive_udp(
                         rt.spawn(
                         async move {
                             loop {
-                            let d1=d1.clone();
                             let mut buf = [0; PKT_SIZE];
                             let amt = ClonedSocketRecv
                                 .recv(&mut buf).await;
@@ -336,7 +335,7 @@ async fn configure_send_receive_udp(
                                         Ok(Bytes) => {debug!{"OS->DC: Written {Bytes} bytes!"};},
                                         #[cold] Err(E) => {
                                             info!{"DataConnection {}: unable to send: {:?}.",
-                                            d1.label(),
+                                            d2.label(),
                                             E};
                                             info!{"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
                                             break;
@@ -424,9 +423,9 @@ async fn configure_send_receive_tcp(
     let OtherSocket = AsyncTcpStream::from(OtherSocket);
 
     let d1 = Arc::clone(&RTCDC);
-    let TOS = (OtherSocket).clone();
-    let mut ClonedSocketRecv = TOS.clone();
-    let mut ClonedSocketSend = TOS.clone();
+    let AOS = (OtherSocket).clone();
+    let mut ClonedSocketRecv = AOS.clone();
+    let mut ClonedSocketSend = AOS.clone();
     RTCPC.on_data_channel(Box::new(move |d: Arc<RTCDataChannel>| {
         let d_label = d.label().to_owned();
         let d_id = d.id();
@@ -461,7 +460,6 @@ async fn configure_send_receive_tcp(
                         rt.spawn(
                             async move {
                         loop {
-                            let d1=d1.clone();
                             let mut buf = [0; PKT_SIZE];
                             let amt = ClonedSocketRecv
                                 .read(&mut buf).await;
@@ -475,7 +473,7 @@ async fn configure_send_receive_tcp(
                                         Ok(Bytes) => {debug!{"OS->DC: Written {Bytes} bytes!"};},
                                         #[cold] Err(E) => {
                                             info!{"DataConnection {}: unable to send: {:?}.",
-                                            d1.label(),
+                                            d2.label(),
                                             E};
                                             info!{"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
                                             break;
@@ -551,7 +549,7 @@ async fn configure_send_receive_tcp(
     RTCDC.close().await.expect("Error closing the connection");
 
     /* Ok(*/
-    (Arc::clone(&RTCDC), TOS.clone()) /*)*/
+    (Arc::clone(&RTCDC), AOS.clone()) /*)*/
 }
 async fn configure_send_receive_uds(
     RTCDC: Arc<RTCDataChannel>,

@@ -366,7 +366,6 @@ async fn configure_send_receive_tcp(
                         Ok(amt) => {
                             trace! {"{:?}", &buf[0..amt]};
                             debug!{"Blocking on DC send"};
-                            let d1=d1.clone();
                                 let d2=d2.clone();
                                     let written_bytes =
                                         (d2.send(&Bytes::copy_from_slice(&buf[0..amt]))).await;
@@ -375,7 +374,7 @@ async fn configure_send_receive_tcp(
                                             debug! {"OS->DC: Written {Bytes} bytes!"};
                                         }
                                         Err(E) => {
-                                            warn! {"DataConnection {}: unable to send: {:?}.", d1.label(), E};
+                                            warn! {"DataConnection {}: unable to send: {:?}.", d2.label(), E};
                                             DataChannelReady.store(false, Ordering::Relaxed);
                                             info!{"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
                                             //break;
