@@ -249,29 +249,15 @@ async fn configure_send_receive_udp(
             .spawn(move || {
                 info!{"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
                 let rt=Builder::new_multi_thread().worker_threads(1).thread_name("TOKIO: OS->DC").build().unwrap();
-                //let signal : Arc<Semaphore>= Arc::new(Semaphore::new(1000000000));
                 loop {
                     let mut buf = [0; PKT_SIZE];
-                    /*{
-                    //let mut ready = CAN_RECV.lock(); //.unwrap();
-                    if (CAN_RECV.load(Ordering::Relaxed) == false) {
-                    let mut temp: String = String::new();
-                    println! {"Please press RETURN when you are ready to connect."};
-                    let _ = io::stdin().read_line(&mut temp);
-                    CAN_RECV.store(true, Ordering::Relaxed);
-                    }
-                    //drop(ready);
-                    };*/
                     match (ClonedSocketRecv.recv(&mut buf)) {
                         Ok(amt) => {
                             trace! {"{:?}", &buf[0..amt]};
                             debug!{"Blocking on DC send"};
-                            //debug!{"Available permits: {}.", signal.available_permits()};
-                            //let permit = block_on(Arc::clone(&signal).acquire_owned());
                             rt.block_on({let d1=d1.clone();
                                 let d2=d2.clone();
                                 async move {
-                                    //let _permit = permit;
                                     let written_bytes =
                                         (d2.send(&Bytes::copy_from_slice(&buf[0..amt]))).await;
                                     match (written_bytes) {
@@ -309,9 +295,6 @@ async fn configure_send_receive_udp(
             match (ClonedSocketSend.send(&msg)) {
                 Ok(amt) => {
                     debug! {"DC->OS: Written {} bytes.", amt};
-                    //ClonedSocketSend
-                    //    .flush()
-                    //    .expect("Unable to flush the stream.");
                 }
                 Err(E) => {
                     warn!("Unable to write data.");
