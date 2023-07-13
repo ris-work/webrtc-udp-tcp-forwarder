@@ -190,7 +190,7 @@ async fn accept_WebRTC_offer(
             Some(RTCDataChannelInit {
                 ordered: Some(false),
                 max_packet_life_time: None,
-                max_retransmits: Some(10),
+                max_retransmits: Some(1),
                 protocol: Some("raw".to_string()),
                 negotiated: None,
             }),
