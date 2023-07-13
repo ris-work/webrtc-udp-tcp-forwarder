@@ -230,34 +230,34 @@ async fn create_WebRTC_offer(
 async fn configure_send_receive_udp(
     RTCDC: Arc<RTCDataChannel>,
     OtherSocket: UdpSocket,
-) -> (Arc<RTCDataChannel>, UdpSocket) /*, Box<dyn error::Error>>*/ {
+) -> (Arc<RTCDataChannel>, Arc<TokioUdpSocket>) /*, Box<dyn error::Error>>*/ {
     // Register channel opening handling
-    info! {"Configuring UDP<=>RTCDC..."};
+    OtherSocket
+        .set_nonblocking(true)
+        .expect("Cannot enter non-blocking TCP mode.");
+    info! {"Configuring TCP<=>RTCDC..."};
+    let OtherSocket =
+        TokioUdpSocket::from_std(OtherSocket).expect("Unable to form a Tokio socket (UDP)");
     let d1 = Arc::clone(&RTCDC);
-    let mut ClonedSocketRecv = OtherSocket
-        .try_clone()
-        .expect("Unable to clone the UDP socket. :(");
-    let mut ClonedSocketSend = OtherSocket
-        .try_clone()
-        .expect("Unable to clone the UDP socket. :(");
+    let OtherSocket = Arc::new(OtherSocket);
+    let mut ClonedSocketRecv = OtherSocket.clone();
+    let mut ClonedSocketSend = OtherSocket.clone();
+    let rt = Handle::current();
+    let art = Arc::new(rt);
+    let rt = art.clone();
     RTCDC.on_open(Box::new(move || {
         info!("Data channel '{}'-'{}' open.", d1.label(), d1.id());
         let d2 = Arc::clone(&d1);
-        thread::Builder::new()
-            .stack_size(THREAD_STACK_SIZE)
-            .name("OS->DC".to_string())
-            .spawn(move || {
+        let rt = art.clone();
+        rt.spawn( async move {
                 info!{"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
-                let rt=Builder::new_multi_thread().worker_threads(1).thread_name("TOKIO: OS->DC").build().unwrap();
                 loop {
                     let mut buf = [0; PKT_SIZE];
-                    match (ClonedSocketRecv.recv(&mut buf)) {
+                    match (ClonedSocketRecv.recv(&mut buf).await) {
                         Ok(amt) => {
                             trace! {"{:?}", &buf[0..amt]};
                             debug!{"Blocking on DC send"};
-                            rt.block_on({let d1=d1.clone();
                                 let d2=d2.clone();
-                                async move {
                                     let written_bytes =
                                         (d2.send(&Bytes::copy_from_slice(&buf[0..amt]))).await;
                                     match (written_bytes) {
@@ -265,12 +265,12 @@ async fn configure_send_receive_udp(
                                             debug! {"OS->DC: Written {Bytes} bytes!"};
                                         }
                                         Err(E) => {
-                                            warn! {"DataConnection {}: unable to send: {:?}.", d1.label(), E};
+                                            warn! {"DataConnection {}: unable to send: {:?}.", d2.label(), E};
                                             DataChannelReady.store(false, Ordering::Relaxed);
                                             info!{"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
                                             //break;
                                         }
-                                    }}});
+                                    };
                         }
                         Err(E) => {
                             warn!("Unable to read or save to the buffer: {:?}", E);
@@ -281,7 +281,6 @@ async fn configure_send_receive_udp(
                     }
                 }
             });
-
         Box::pin(async move {
         })
     }));
@@ -289,28 +288,36 @@ async fn configure_send_receive_udp(
     // Register text message handling
     let d_label = RTCDC.label().to_owned();
     RTCDC.on_message(Box::new(move |msg: DataChannelMessage| {
-        let msg = msg.data.to_vec();
-        trace!("Message from DataChannel '{d_label}': '{msg:?}'");
-        if (CAN_RECV.load(Ordering::Relaxed)) {
-            match (ClonedSocketSend.send(&msg)) {
-                Ok(amt) => {
-                    debug! {"DC->OS: Written {} bytes.", amt};
+        let d_label = d_label.clone();
+        let mut ClonedSocketSend = ClonedSocketSend.clone();
+        rt.spawn(async move {
+            let msg = msg.data.to_vec();
+            trace!("Message from DataChannel '{d_label}': '{msg:?}'");
+            if (CAN_RECV.load(Ordering::Relaxed)) {
+                match (ClonedSocketSend.send(&msg).await) {
+                    Ok(amt) => {
+                        debug! {"DC->OS: Written {} bytes.", amt};
+                        /*ClonedSocketSend
+                        .flush()
+                        .await
+                        .expect("Unable to flush the stream.");*/
+                    }
+                    Err(E) => {
+                        warn!("Unable to write data.");
+                    }
                 }
-                Err(E) => {
-                    warn!("Unable to write data.");
-                }
-            }
-        } else {
-            if (OtherSocketSendBuf.lock().len() + msg.len() > MaxOtherSocketSendBufSize) {
-                warn! {"Buffer FULL: {} + {} > {}",
-                OtherSocketSendBuf.lock().len(),
-                msg.len(),
-                MaxOtherSocketSendBufSize
-                };
             } else {
-                OtherSocketSendBuf.lock().extend_from_slice(&msg);
+                if (OtherSocketSendBuf.lock().len() + msg.len() > MaxOtherSocketSendBufSize) {
+                    warn! {"Buffer FULL: {} + {} > {}",
+                    OtherSocketSendBuf.lock().len(),
+                    msg.len(),
+                    MaxOtherSocketSendBufSize
+                    };
+                } else {
+                    OtherSocketSendBuf.lock().extend_from_slice(&msg);
+                }
             }
-        }
+        });
         Box::pin(async {})
     }));
     let (done_tx, mut done_rx) = tokio::sync::mpsc::channel::<()>(1);
@@ -664,7 +671,8 @@ fn main() {
                     .expect("This software is not supposed to be used before UNIX was invented."),
                 Ordering::Relaxed,
             );
-            (data_channel, OtherSocket) =
+            let TOS: Arc<TokioUdpSocket>;
+            (data_channel, TOS) =
                 rt.block_on(configure_send_receive_udp(data_channel, OtherSocket));
         } else if (config.Type == "TCP") {
             info! {"TCP socket requested"};
