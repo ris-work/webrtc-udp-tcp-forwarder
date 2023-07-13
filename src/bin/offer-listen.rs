@@ -249,7 +249,7 @@ async fn configure_send_receive_udp(
         info!("Data channel '{}'-'{}' open.", d1.label(), d1.id());
         let d2 = Arc::clone(&d1);
         let rt = art.clone();
-        rt.spawn( async move {
+        Box::pin(async move {
                 info!{"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
                 loop {
                     let mut buf = [0; PKT_SIZE];
@@ -279,10 +279,8 @@ async fn configure_send_receive_udp(
                             break;
                         }
                     }
-                }
-            });
-        Box::pin(async move {
-        })
+                };
+            })
     }));
 
     // Register text message handling
