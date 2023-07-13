@@ -288,7 +288,7 @@ async fn configure_send_receive_udp(
     RTCDC.on_message(Box::new(move |msg: DataChannelMessage| {
         let d_label = d_label.clone();
         let mut ClonedSocketSend = ClonedSocketSend.clone();
-        rt.spawn(async move {
+        Box::pin(async move {
             let msg = msg.data.to_vec();
             trace!("Message from DataChannel '{d_label}': '{msg:?}'");
             if (CAN_RECV.load(Ordering::Relaxed)) {
@@ -315,8 +315,7 @@ async fn configure_send_receive_udp(
                     OtherSocketSendBuf.lock().extend_from_slice(&msg);
                 }
             }
-        });
-        Box::pin(async {})
+        })
     }));
     let (done_tx, mut done_rx) = tokio::sync::mpsc::channel::<()>(1);
     done_rx.recv().await;
