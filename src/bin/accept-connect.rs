@@ -319,7 +319,7 @@ async fn configure_send_receive_udp(
                         info!{"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
                         let d1 = d1.clone();
                         let (mut ClonedSocketRecv) = (ClonedSocketRecv.clone());
-                        rt.spawn(
+                        Box::pin(
                         async move {
                             loop {
                             let mut buf = [0; PKT_SIZE];
@@ -349,10 +349,7 @@ async fn configure_send_receive_udp(
                                     break;
                                 }
                             }
-                    }});
-
-                    Box::pin(async move {
-                    })
+                    }})
                 }}));
 
                 // Register text message handling
@@ -361,7 +358,7 @@ async fn configure_send_receive_udp(
                         let d = d.clone();
                         let d_label = d_label.clone();
                         let ClonedSocketSend = ClonedSocketSend.clone();
-                        art.spawn(
+                        Box::pin(
                         async move {
                         let msg = msg.data.to_vec();
                         trace!("Message from DataChannel '{d_label}': '{msg:?}'");
@@ -395,8 +392,7 @@ async fn configure_send_receive_udp(
                                 OtherSocketSendBuf.lock().extend_from_slice(&msg);
                             }
                         }
-                    });
-                        Box::pin(async {})
+                    })
                     }}));
             }
         })
