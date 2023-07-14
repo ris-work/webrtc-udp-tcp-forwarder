@@ -74,7 +74,7 @@ static DataChannelReady: AtomicBool = AtomicBool::new(false);
 static CAN_RECV: AtomicBool = AtomicBool::new(true);
 static MaxOtherSocketSendBufSize: usize = 2048;
 static THREAD_STACK_SIZE: usize = 10240000;
-const PKT_SIZE: usize = 32768;
+const PKT_SIZE: usize = 1320;
 
 lazy_static! {
     static ref OtherSocketSendBuf: Mutex<Vec<u8>> = Mutex::new(Vec::new());
