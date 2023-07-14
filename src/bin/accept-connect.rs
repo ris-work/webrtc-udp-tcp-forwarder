@@ -733,7 +733,7 @@ fn main() {
     info!("Configuration: type: {}", config.Type);
     if (config.WebRTCMode == "Accept") {
         //let rt = Runtime::new().unwrap();
-        let rt = Builder::new_current_thread()
+        let rt = Builder::new_multi_thread()
             .enable_all()
             .thread_name("TOKIO: main")
             .build()
