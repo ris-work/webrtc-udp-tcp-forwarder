@@ -392,7 +392,8 @@ async fn configure_send_receive_udp(
                                 OtherSocketSendBuf.lock().extend_from_slice(&msg);
                             }
                         }
-                    })
+                    });
+                        Box::pin(async {})
                     }}));
             }
         })
