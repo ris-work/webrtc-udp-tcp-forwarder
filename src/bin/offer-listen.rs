@@ -315,8 +315,10 @@ async fn configure_send_receive_udp(
                     OtherSocketSendBuf.lock().extend_from_slice(&msg);
                 }
             }
-        })
-    }));
+        });
+    Box::pin(async{})
+    })
+    );
     let (done_tx, mut done_rx) = tokio::sync::mpsc::channel::<()>(1);
     done_rx.recv().await;
     debug! {"Closing!"};
