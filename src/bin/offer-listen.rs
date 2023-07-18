@@ -608,7 +608,7 @@ fn main() {
     if (config.WebRTCMode == "Offer") {
         //let rt = Runtime::new().unwrap();
         let rt = Builder::new_multi_thread()
-            .worker_threads(1)
+            .worker_threads(2)
             .enable_all()
             .thread_name("TOKIO: main")
             .build()
