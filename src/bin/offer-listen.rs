@@ -66,7 +66,7 @@ static OtherSocketReady: AtomicBool = AtomicBool::new(false);
 static DataChannelReady: AtomicBool = AtomicBool::new(false);
 static CAN_RECV: AtomicBool = AtomicBool::new(true);
 static MaxOtherSocketSendBufSize: usize = 2048;
-static THREAD_STACK_SIZE: usize = 10240000;
+static THREAD_STACK_SIZE: usize = 204800;
 const PKT_SIZE: usize = 2048;
 
 lazy_static! {
