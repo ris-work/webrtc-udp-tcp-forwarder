@@ -10,6 +10,7 @@ use anyhow::Result;
 use base64::engine::general_purpose;
 use base64::Engine;
 use bytes::Bytes;
+use compile_time_run::run_command_str;
 use futures::executor::block_on;
 use lazy_static::lazy_static;
 use log::{debug, error, info, trace, warn};
@@ -585,6 +586,9 @@ fn main() {
     info!("Arguments received: {arg_counter}");
     if (arg_counter != 2) {
         println! {"Expecting exactly one argument, the TOML file with connection parameters."}
+        println! {"Built on: {}", run_command_str!("uname", "-a")};
+        println! {"Version info: {}", run_command_str!("fossil", "timeline", "-n", "+1")};
+        println! {"MTU: {}", PKT_SIZE};
         exit(2);
     }
     let TOML_file_name = env::args().nth(1).unwrap();

@@ -380,6 +380,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "compile-time-run"
+version = "0.2.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "43b5affba7c91c039a483065125dd8c6d4a0985e1e9ac5ab6dffdea4fe4e637f"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
 name = "const-oid"
 version = "0.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2367,6 +2378,7 @@ dependencies = [
  "base64 0.21.2",
  "bytes",
  "chrono",
+ "compile-time-run",
  "env_logger",
  "futures",
  "lazy_static",
