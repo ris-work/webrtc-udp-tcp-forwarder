@@ -18,7 +18,7 @@ use crate::mux::mux_func::MatchFunc;
 /// mux multiplexes packets on a single socket (RFC7983)
 
 /// The maximum amount of data that can be buffered before returning errors.
-const MAX_BUFFER_SIZE: usize = 10240 * 1024; // 10MiB
+const MAX_BUFFER_SIZE: usize = 2048 * 1024; // 2MiB
 
 /// Config collects the arguments to mux.Mux construction into
 /// a single structure
