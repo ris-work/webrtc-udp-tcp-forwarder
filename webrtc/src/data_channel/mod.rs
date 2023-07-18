@@ -545,8 +545,8 @@ impl RTCDataChannel {
     }
 
     pub(crate) async fn collect_stats(&self, collector: &StatsCollector) {
-        let stats = DataChannelStats::from(self).await;
-        collector.insert(self.stats_id.clone(), StatsReportType::DataChannel(stats));
+        /*let stats = DataChannelStats::from(self).await;
+        collector.insert(self.stats_id.clone(), StatsReportType::DataChannel(stats));*/
     }
 
     pub(crate) fn set_ready_state(&self, r: RTCDataChannelState) {
