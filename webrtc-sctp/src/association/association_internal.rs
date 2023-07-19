@@ -738,6 +738,7 @@ impl AssociationInternal {
         }
 
         self.rwnd = i.advertised_receiver_window_credit;
+        self.rwnd = 10 * 1024 * 1024;
         log::debug!("[{}] initial rwnd={}", self.name, self.rwnd);
 
         // RFC 4690 Sec 7.2.1
@@ -1428,9 +1429,9 @@ impl AssociationInternal {
         // bytes acked were already subtracted by markAsAcked() method
         let bytes_outstanding = self.inflight_queue.get_num_bytes() as u32;
         if bytes_outstanding >= d.advertised_receiver_window_credit {
-            self.rwnd = 0;
+            //self.rwnd = 0;
         } else {
-            self.rwnd = d.advertised_receiver_window_credit - bytes_outstanding;
+            //self.rwnd = d.advertised_receiver_window_credit - bytes_outstanding;
         }
 
         self.process_fast_retransmission(d.cumulative_tsn_ack, htna, cum_tsn_ack_point_advanced)?;
@@ -2285,7 +2286,7 @@ impl RtxTimerObserver for AssociationInternal {
                 //      cwnd = 1*MTU
 
                 self.ssthresh = std::cmp::max(self.cwnd / 2, 4 * self.mtu);
-                self.cwnd = self.mtu;
+                self.cwnd = 100 * self.mtu;
                 log::trace!(
                     "[{}] updated cwnd={} ssthresh={} inflight={} (RTO)",
                     self.name,
