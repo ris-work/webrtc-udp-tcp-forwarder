@@ -34,3 +34,4 @@ webrtc =  "0.8.0"
 
 [patch.crates-io]
 webrtc = {path = "webrtc/"}
+webrtc-sctp = {path = "webrtc-sctp/"}
