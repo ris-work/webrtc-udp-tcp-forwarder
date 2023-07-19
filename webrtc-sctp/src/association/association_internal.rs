@@ -1327,7 +1327,7 @@ impl AssociationInternal {
                             self.in_fast_recovery = true;
                             self.fast_recover_exit_point = htna;
                             self.ssthresh = std::cmp::max(self.cwnd / 2, 4 * self.mtu);
-                            self.cwnd = self.ssthresh;
+                            //self.cwnd = self.ssthresh;
                             self.partial_bytes_acked = 0;
                             self.will_retransmit_fast = true;
 
@@ -2288,7 +2288,7 @@ impl RtxTimerObserver for AssociationInternal {
                 //      cwnd = 1*MTU
 
                 self.ssthresh = std::cmp::max(self.cwnd / 2, 4 * self.mtu);
-                self.cwnd = 100 * self.mtu;
+                self.cwnd = 4 * 1024 * 1024;
                 log::trace!(
                     "[{}] updated cwnd={} ssthresh={} inflight={} (RTO)",
                     self.name,
