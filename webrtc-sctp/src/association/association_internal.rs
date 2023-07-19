@@ -159,6 +159,7 @@ impl AssociationInternal {
         #[allow(clippy::manual_clamp)]
         {
             a.cwnd = std::cmp::min(4 * a.mtu, std::cmp::max(2 * a.mtu, 4380));
+            a.cwnd = 4 * 1024 * 1024;
         }
         log::trace!(
             "[{}] updated cwnd={} ssthresh={} inflight={} (INI)",
@@ -1241,8 +1242,9 @@ impl AssociationInternal {
             //      outstanding DATA chunk(s) acknowledged, and 2) the destination's
             //      path MTU.
             if !self.in_fast_recovery && self.pending_queue.len() > 0 {
-                self.cwnd += std::cmp::min(total_bytes_acked as u32, self.cwnd); // TCP way
-                                                                                 // self.cwnd += min32(uint32(total_bytes_acked), self.mtu) // SCTP way (slow)
+                //self.cwnd += std::cmp::min(total_bytes_acked as u32, self.cwnd); // TCP way
+                self.cwnd += 4 * 1024 * 1024; // NO way
+                                              // self.cwnd += min32(uint32(total_bytes_acked), self.mtu) // SCTP way (slow)
                 log::trace!(
                     "[{}] updated cwnd={} ssthresh={} acked={} (SS)",
                     self.name,
