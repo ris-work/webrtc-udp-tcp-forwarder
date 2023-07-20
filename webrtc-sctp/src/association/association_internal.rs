@@ -160,7 +160,7 @@ impl AssociationInternal {
         {
             a.cwnd = std::cmp::min(4 * a.mtu, std::cmp::max(2 * a.mtu, 4380));
         }
-        log::trace!(
+        log::warn!(
             "[{}] updated cwnd={} ssthresh={} inflight={} (INI)",
             a.name,
             a.cwnd,
@@ -745,7 +745,7 @@ impl AssociationInternal {
         //     example, implementations MAY use the size of the receiver
         //     advertised window).
         self.ssthresh = self.rwnd;
-        log::trace!(
+        log::warn!(
             "[{}] updated cwnd={} ssthresh={} inflight={} (INI)",
             self.name,
             self.cwnd,
@@ -1242,7 +1242,7 @@ impl AssociationInternal {
             if !self.in_fast_recovery && self.pending_queue.len() > 0 {
                 self.cwnd += std::cmp::min(total_bytes_acked as u32, self.cwnd); // TCP way
                                                                                  // self.cwnd += min32(uint32(total_bytes_acked), self.mtu) // SCTP way (slow)
-                log::trace!(
+                log::warn!(
                     "[{}] updated cwnd={} ssthresh={} acked={} (SS)",
                     self.name,
                     self.cwnd,
@@ -1250,7 +1250,7 @@ impl AssociationInternal {
                     total_bytes_acked
                 );
             } else {
-                log::trace!(
+                log::warn!(
                     "[{}] cwnd did not grow: cwnd={} ssthresh={} acked={} FR={} pending={}",
                     self.name,
                     self.cwnd,
@@ -1277,7 +1277,7 @@ impl AssociationInternal {
             if self.partial_bytes_acked >= self.cwnd && self.pending_queue.len() > 0 {
                 self.partial_bytes_acked -= self.cwnd;
                 self.cwnd += self.mtu;
-                log::trace!(
+                log::warn!(
                     "[{}] updated cwnd={} ssthresh={} acked={} (CA)",
                     self.name,
                     self.cwnd,
@@ -1328,7 +1328,7 @@ impl AssociationInternal {
                             self.partial_bytes_acked = 0;
                             self.will_retransmit_fast = true;
 
-                            log::trace!(
+                            log::warn!(
                                 "[{}] updated cwnd={} ssthresh={} inflight={} (FR)",
                                 self.name,
                                 self.cwnd,
@@ -2286,7 +2286,7 @@ impl RtxTimerObserver for AssociationInternal {
 
                 self.ssthresh = std::cmp::max(self.cwnd / 2, 4 * self.mtu);
                 self.cwnd = self.mtu;
-                log::trace!(
+                log::warn!(
                     "[{}] updated cwnd={} ssthresh={} inflight={} (RTO)",
                     self.name,
                     self.cwnd,
