@@ -159,7 +159,6 @@ impl AssociationInternal {
         #[allow(clippy::manual_clamp)]
         {
             a.cwnd = std::cmp::min(4 * a.mtu, std::cmp::max(2 * a.mtu, 4380));
-            a.cwnd = 4 * 1024 * 1024;
         }
         log::trace!(
             "[{}] updated cwnd={} ssthresh={} inflight={} (INI)",
@@ -739,7 +738,6 @@ impl AssociationInternal {
         }
 
         self.rwnd = i.advertised_receiver_window_credit;
-        self.rwnd = 10 * 1024 * 1024;
         log::debug!("[{}] initial rwnd={}", self.name, self.rwnd);
 
         // RFC 4690 Sec 7.2.1
@@ -1242,9 +1240,8 @@ impl AssociationInternal {
             //      outstanding DATA chunk(s) acknowledged, and 2) the destination's
             //      path MTU.
             if !self.in_fast_recovery && self.pending_queue.len() > 0 {
-                //self.cwnd += std::cmp::min(total_bytes_acked as u32, self.cwnd); // TCP way
-                self.cwnd += 4 * 1024 * 1024; // NO way
-                                              // self.cwnd += min32(uint32(total_bytes_acked), self.mtu) // SCTP way (slow)
+                self.cwnd += std::cmp::min(total_bytes_acked as u32, self.cwnd); // TCP way
+                                                                                 // self.cwnd += min32(uint32(total_bytes_acked), self.mtu) // SCTP way (slow)
                 log::trace!(
                     "[{}] updated cwnd={} ssthresh={} acked={} (SS)",
                     self.name,
@@ -1327,7 +1324,7 @@ impl AssociationInternal {
                             self.in_fast_recovery = true;
                             self.fast_recover_exit_point = htna;
                             self.ssthresh = std::cmp::max(self.cwnd / 2, 4 * self.mtu);
-                            //self.cwnd = self.ssthresh;
+                            self.cwnd = self.ssthresh;
                             self.partial_bytes_acked = 0;
                             self.will_retransmit_fast = true;
 
@@ -1431,9 +1428,9 @@ impl AssociationInternal {
         // bytes acked were already subtracted by markAsAcked() method
         let bytes_outstanding = self.inflight_queue.get_num_bytes() as u32;
         if bytes_outstanding >= d.advertised_receiver_window_credit {
-            //self.rwnd = 0;
+            self.rwnd = 0;
         } else {
-            //self.rwnd = d.advertised_receiver_window_credit - bytes_outstanding;
+            self.rwnd = d.advertised_receiver_window_credit - bytes_outstanding;
         }
 
         self.process_fast_retransmission(d.cumulative_tsn_ack, htna, cum_tsn_ack_point_advanced)?;
@@ -2288,7 +2285,7 @@ impl RtxTimerObserver for AssociationInternal {
                 //      cwnd = 1*MTU
 
                 self.ssthresh = std::cmp::max(self.cwnd / 2, 4 * self.mtu);
-                self.cwnd = 4 * 1024 * 1024;
+                self.cwnd = self.mtu;
                 log::trace!(
                     "[{}] updated cwnd={} ssthresh={} inflight={} (RTO)",
                     self.name,
