@@ -1430,10 +1430,10 @@ impl AssociationInternal {
         if bytes_outstanding >= d.advertised_receiver_window_credit {
             //self.rwnd = 0;
         } else {
-            self.rwnd = d.advertised_receiver_window_credit - bytes_outstanding;
+            //self.rwnd = d.advertised_receiver_window_credit - bytes_outstanding;
         }
 
-        self.process_fast_retransmission(d.cumulative_tsn_ack, htna, cum_tsn_ack_point_advanced)?;
+        //self.process_fast_retransmission(d.cumulative_tsn_ack, htna, cum_tsn_ack_point_advanced)?;
 
         if self.use_forward_tsn {
             // RFC 3758 Sec 3.5 C1
