@@ -112,7 +112,8 @@ impl Mux {
             };
 
             if let Err(err) = Mux::dispatch(&buf[..n], &endpoints).await {
-                log::error!("mux: [NOOP] ending readLoop dispatch error {:?}", err);
+                //Silently ignore buffer errors...
+                //log::error!("mux: [NOOP] ending readLoop dispatch error {:?}", err);
                 //break;
             }
         }
