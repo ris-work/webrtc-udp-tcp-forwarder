@@ -1242,7 +1242,7 @@ impl AssociationInternal {
             if !self.in_fast_recovery && self.pending_queue.len() > 0 {
                 self.cwnd += 400 * std::cmp::min(total_bytes_acked as u32, self.cwnd); // TCP way
                                                                                        // self.cwnd += min32(uint32(total_bytes_acked), self.mtu) // SCTP way (slow)
-                log::warn!(
+                log::trace!(
                     "[{}] updated cwnd={} ssthresh={} acked={} (SS)",
                     self.name,
                     self.cwnd,
@@ -1250,7 +1250,7 @@ impl AssociationInternal {
                     total_bytes_acked
                 );
             } else {
-                log::warn!(
+                log::trace!(
                     "[{}] cwnd did not grow: cwnd={} ssthresh={} acked={} FR={} pending={}",
                     self.name,
                     self.cwnd,
@@ -1277,7 +1277,7 @@ impl AssociationInternal {
             if self.partial_bytes_acked >= self.cwnd && self.pending_queue.len() > 0 {
                 self.partial_bytes_acked -= self.cwnd;
                 self.cwnd += self.mtu * 400;
-                log::warn!(
+                log::trace!(
                     "[{}] updated cwnd={} ssthresh={} acked={} (CA)",
                     self.name,
                     self.cwnd,
@@ -2286,7 +2286,7 @@ impl RtxTimerObserver for AssociationInternal {
 
                 self.ssthresh = std::cmp::max(self.cwnd / 2, 4 * self.mtu);
                 self.cwnd = 10 * self.mtu;
-                log::warn!(
+                log::trace!(
                     "[{}] updated cwnd={} ssthresh={} inflight={} (RTO)",
                     self.name,
                     self.cwnd,
