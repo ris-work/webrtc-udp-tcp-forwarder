@@ -160,7 +160,7 @@ impl AssociationInternal {
         {
             a.cwnd = std::cmp::min(4 * a.mtu, std::cmp::max(2 * a.mtu, 4380));
         }
-        log::warn!(
+        log::trace!(
             "[{}] updated cwnd={} ssthresh={} inflight={} (INI)",
             a.name,
             a.cwnd,
@@ -745,7 +745,7 @@ impl AssociationInternal {
         //     example, implementations MAY use the size of the receiver
         //     advertised window).
         self.ssthresh = self.rwnd;
-        log::warn!(
+        log::trace!(
             "[{}] updated cwnd={} ssthresh={} inflight={} (INI)",
             self.name,
             self.cwnd,
@@ -1328,7 +1328,7 @@ impl AssociationInternal {
                             self.partial_bytes_acked = 0;
                             self.will_retransmit_fast = true;
 
-                            log::warn!(
+                            log::trace!(
                                 "[{}] updated cwnd={} ssthresh={} inflight={} (FR)",
                                 self.name,
                                 self.cwnd,
