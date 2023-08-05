@@ -33,5 +33,5 @@ uds_windows = "1.0.2"
 webrtc =  "0.8.0"
 
 [patch.crates-io]
-webrtc = {path = "webrtc/"}
+webrtc = {path = "webrtc/webrtc/"}
 webrtc-sctp = {path = "webrtc-sctp/"}
