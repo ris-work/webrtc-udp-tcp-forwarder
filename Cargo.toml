@@ -25,9 +25,9 @@ lazy_static = "1.4.0"
 log = {version="0.4", features=["release_max_level_info"]}
 mimalloc = {version="0.1.37", default-features=false}
 parking_lot = "0.12.1"
-serde = "1.0.181"
+serde = "1.0.183"
 serde_json = "1.0.104"
-tokio = "1.29.1"
+tokio = "1.30.0"
 toml = "0.7.6"
 uds_windows = "1.0.2"
 webrtc =  "0.8.0"
