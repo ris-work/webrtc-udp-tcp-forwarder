@@ -3,11 +3,35 @@ name = "webrtc-udp-forwarder"
 version = "0.1.0"
 edition = "2021"
 
+[profile.release]
+opt-level=3
+debug=0
+strip="symbols"
+lto=true
+panic="abort"
+codegen-units=1
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = "1.0.72"
+base64 = "0.21.2"
+bytes = "1.4.0"
+chrono = "0.4.26"
+compile-time-run = "0.2.12"
 env_logger = "0.10.0"
-log = "0.4.17"
-serde = "1.0.163"
-toml = "0.4.2"
-webrtc =  "0.7.2"
+futures = "0.3.28"
+lazy_static = "1.4.0"
+log = {version="0.4", features=["release_max_level_info"]}
+mimalloc = {version="0.1.37", default-features=false}
+parking_lot = "0.12.1"
+serde = "1.0.183"
+serde_json = "1.0.104"
+tokio = "1.31.0"
+toml = "0.7.6"
+uds_windows = "1.0.2"
+webrtc =  "0.8.0"
+
+[patch.crates-io]
+webrtc = {path = "webrtc/webrtc/"}
+webrtc-sctp = {path = "webrtc/sctp/"}

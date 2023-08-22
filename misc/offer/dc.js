@@ -1,0 +1,1 @@
+dc.onmessage = async function(e){let x = await e.data.text(); log(`Message: '${dc.label}' receives '${x}'`)}

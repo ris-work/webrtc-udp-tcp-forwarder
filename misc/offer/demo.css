@@ -1,0 +1,56 @@
+/*
+SPDX-FileCopyrightText: 2023 The Pion community <https://pion.ly>
+SPDX-License-Identifier: MIT
+ */
+textarea {
+	width: 78em;
+	min-height: 15em;
+	border-radius: 0px;
+	border: solid blueviolet;
+	color: cyan;
+	background: #111;
+	margin-left: auto;
+	margin-right: auto;
+	width: 100%;
+}
+body {
+	background: black;
+	padding: 0.5em;
+}
+#logs {
+	color: #fb7;
+	font-family: monospace;
+}
+#decoded {
+	color: #7fa;
+	font-family: monospace;
+	white-space: break-spaces;
+	font-weight: 700;
+}
+#messages_cons {
+	color: #f5f;
+	font-family: monospace;
+	white-space: break-spaces;
+	font-weight: 700;
+	font-size: 1.5em;
+}
+#message {
+	font-size: 1.5em;
+}
+.time{
+	color: #7fa;
+}
+input, button {
+	margin-top: 0.5em;
+	margin-bottom: 0.5em;
+	width: 100%;
+	background: repeating-linear-gradient(-30deg, black 0px 4px, #333 4px 8px);
+	font-family: 'Courier';
+	font-weight: 700;
+	padding: 1em;
+	padding-top: 0.5em;
+	padding-bottom: 0.5em;
+	border: 2px solid blueviolet;
+	color: cyan;
+	font-size: 1.5em;
+}
