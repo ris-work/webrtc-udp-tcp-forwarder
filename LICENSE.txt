@@ -1,0 +1,12 @@
+Copyright (c) 2023 RISHIKESHAN (Sulochana/Lavakumar) 🌱 <oss@rishikeshan.com>
+பதிப்புரிமை (c) 2023 ரிஷிகேசன் (சுலோசனா/லவகுமார்) 🌱 <oss@rishikeshan.com>
+This software (webrtc-udp-tcp-forwarder) is licensed under 
+the Open Software License version 3.0 only (i.e. no later versions)
+
+After 2920 days (on the Earth) from the release of any version as 
+determined by the version control system, the corresponding version 
+may also be taken under, at your option, under
+(1) the MIT license or,
+(2) the Apache License version 2.0.
+
+OTHER NOTICES (dependencies/distant past):
