@@ -106,6 +106,7 @@ async fn accept_WebRTC_offer(
         Arc<RTCDataChannel>,
         Arc<RTCPeerConnection>,
         Arc<RTCSessionDescription>,
+        Option<RTCSessionDescription>,
     ),
     Box<dyn error::Error>,
 > {
@@ -210,8 +211,10 @@ async fn accept_WebRTC_offer(
     let _ = gather_complete.recv().await;
     //RTCPC.on_data_channel(Box::new(move |d: Arc<RTCDataChannel>| {}))
 
+    let local_description: Option<RTCSessionDescription>;
     // Output the answer in base64 so we can paste it in browser
     if let Some(local_desc) = peer_connection.local_description().await {
+        local_description = Some(local_desc.clone());
         let json_str = serde_json::to_string(&local_desc)?;
         //let b64 = encode(&json_str);
         info!("{json_str}");
@@ -219,9 +222,15 @@ async fn accept_WebRTC_offer(
         info!("{b64}");
         println!("{b64}");
     } else {
+        local_description = None;
         info!("generate local_description failed!");
     }
-    Ok((Arc::clone(&data_channel), peer_connection, Arc::new(answer)))
+    Ok((
+        Arc::clone(&data_channel),
+        peer_connection,
+        Arc::new(answer),
+        local_description,
+    ))
 }
 pub trait Socket: Send + Sync + Unpin + Read + Write {
     fn read<B: Read>(&mut self, buf: &mut [u8]) -> IOResult<usize>
@@ -777,7 +786,7 @@ fn main() {
         let offer = decode(&offerBase64TextTrimmed).expect("base64 conversion error");
         let offerRTCSD = serde_json::from_str::<RTCSessionDescription>(&offer)
             .expect("Error parsing the offer!");
-        let (mut data_channel, mut peer_connection, mut answer) = rt
+        let (mut data_channel, mut peer_connection, mut answer, local_description) = rt
             .block_on(accept_WebRTC_offer(offerRTCSD, &config))
             .expect("Failed creating a WebRTC Data Channel.");
         (peer_connection, data_channel) = rt

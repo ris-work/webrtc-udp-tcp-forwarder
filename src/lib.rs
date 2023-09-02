@@ -15,7 +15,7 @@ pub struct Config {
     pub PublishAuthUser: Option<String>,
     pub PublishAuthPass: Option<String>,
     pub PeerAuthType: Option<String>,
-    pub PeerPSK: Option<String>
+    pub PeerPSK: Option<String>,
 }
 #[derive(Deserialize, Clone)]
 pub struct ICEServer {

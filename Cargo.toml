@@ -31,6 +31,7 @@ tokio = "1.32.0"
 toml = "0.7.6"
 uds_windows = "1.0.2"
 webrtc =  "0.8.0"
+websocket = "0.26.5"
 
 [patch.crates-io]
 webrtc = {path = "webrtc/webrtc/"}

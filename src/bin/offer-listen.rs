@@ -94,7 +94,14 @@ pub fn decode(s: &str) -> Result<String> {
 fn handle_TCP_client(stream: TcpStream) {}
 async fn create_WebRTC_offer(
     config: &Config,
-) -> Result<(Arc<RTCDataChannel>, Arc<RTCPeerConnection>), Box<dyn error::Error>> {
+) -> Result<
+    (
+        Arc<RTCDataChannel>,
+        Arc<RTCPeerConnection>,
+        Option<RTCSessionDescription>,
+    ),
+    Box<dyn error::Error>,
+> {
     // Create a MediaEngine object to configure the supported codec
     let mut m = MediaEngine::default();
 
@@ -193,8 +200,10 @@ async fn create_WebRTC_offer(
     // in a production application you should exchange ICE Candidates via OnICECandidate
     let _ = gather_complete.recv().await;
 
+    let local_description: Option<RTCSessionDescription>;
     // Output the answer in base64 so we can paste it in browser
     if let Some(local_desc) = peer_connection.local_description().await {
+        local_description = Some(local_desc.clone());
         let json_str = serde_json::to_string(&local_desc)?;
         //let b64 = encode(&json_str);
         info!("{json_str}");
@@ -203,8 +212,13 @@ async fn create_WebRTC_offer(
         println!("{b64}");
     } else {
         info!("generate local_description failed!");
+        local_description = None;
     }
-    Ok((Arc::clone(&data_channel), peer_connection))
+    Ok((
+        Arc::clone(&data_channel),
+        peer_connection,
+        local_description,
+    ))
 }
 async fn configure_send_receive_udp(
     RTCDC: Arc<RTCDataChannel>,
@@ -563,6 +577,7 @@ async fn handle_offer(
 
     Ok((peer_connection, data_channel))
 }
+fn read_offer_ws(config: Config) {}
 fn main() {
     env_logger::init();
     let mut arg_counter: usize = 0;
@@ -602,7 +617,7 @@ fn main() {
             .thread_name("TOKIO: main")
             .build()
             .unwrap();
-        let (mut data_channel, mut peer_connection) = rt
+        let (mut data_channel, mut peer_connection, local_description) = rt
             .block_on(create_WebRTC_offer(&config))
             .expect("Failed creating a WebRTC Data Channel.");
         let mut offerBase64Text: String = String::new();
