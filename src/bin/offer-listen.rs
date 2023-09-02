@@ -180,6 +180,7 @@ async fn create_WebRTC_offer(
             // Use webrtc.PeerConnectionStateDisconnected if you are interested in detecting faster timeout.
             // Note that the PeerConnection may come back from PeerConnectionStateDisconnected.
             info!("Peer Connection has gone to failed exiting");
+            std::process::exit(0);
             let _ = done_tx.try_send(());
         }
 
