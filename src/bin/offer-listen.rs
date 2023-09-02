@@ -210,7 +210,6 @@ async fn create_WebRTC_offer(
         info!("{json_str}");
         let b64 = encode(&json_str);
         info!("{b64}");
-        println!("{b64}");
     } else {
         info!("generate local_description failed!");
         local_description = None;
@@ -578,7 +577,61 @@ async fn handle_offer(
 
     Ok((peer_connection, data_channel))
 }
-fn read_offer_ws(config: Config) {}
+fn write_offer_and_read_answer(local: Option<RTCSessionDescription>, config: Config) -> String {
+    if let Some(true) = config.Publish {
+        if let Some(ref ptype) = config.PublishType {
+            match (ptype.as_str()) {
+                "ws" => return write_offer_and_read_answer_ws(local, config),
+                _ => {
+                    log::error!("Unsupported PublishType: {}", ptype);
+                    return "".to_string();
+                }
+            }
+        } else {
+            return write_offer_and_read_answer_stdio(local, config);
+        }
+    } else {
+        return "".to_string();
+    }
+}
+fn write_offer_and_read_answer_ws(local: Option<RTCSessionDescription>, config: Config) -> String {
+    "".to_string()
+}
+fn write_offer_and_read_answer_stdio(
+    local: Option<RTCSessionDescription>,
+    config: Config,
+) -> String {
+    let json_str = serde_json::to_string(&(local.expect("Empty local SD.")))
+        .expect("Could not serialize the localDescription to JSON");
+    println! {"{}", encode(&json_str)};
+    let mut offerBase64Text: String = String::new();
+    match (config.ConHost) {
+        Some(val) => {
+            if (val == true) {
+                let mut line: String;
+                let mut buf: Vec<u8> = vec![];
+                BufReader::new(io::stdin()).read_until(b'/', &mut buf);
+                let lines: String =
+                    String::from(std::str::from_utf8(&buf).expect("Input not UTF-8"));
+                line = String::from(lines.replace("\n", "").replace("\r", "").replace(" ", ""));
+                let _ = line.pop();
+                offerBase64Text = line;
+            } else {
+                let _ = io::stdin()
+                    .read_line(&mut offerBase64Text)
+                    .expect("Cannot read the offer!");
+            }
+        }
+        None => {
+            let _ = io::stdin()
+                .read_line(&mut offerBase64Text)
+                .expect("Cannot read the offer!");
+        }
+    }
+    let offerBase64TextTrimmed = offerBase64Text.trim();
+    info! {"Read offer: {}", offerBase64TextTrimmed};
+    String::from(offerBase64Text.trim())
+}
 fn main() {
     env_logger::init();
     let mut arg_counter: usize = 0;
@@ -621,32 +674,7 @@ fn main() {
         let (mut data_channel, mut peer_connection, local_description) = rt
             .block_on(create_WebRTC_offer(&config))
             .expect("Failed creating a WebRTC Data Channel.");
-        let mut offerBase64Text: String = String::new();
-        match (config.ConHost) {
-            Some(val) => {
-                if (val == true) {
-                    let mut line: String;
-                    let mut buf: Vec<u8> = vec![];
-                    BufReader::new(io::stdin()).read_until(b'/', &mut buf);
-                    let lines: String =
-                        String::from(std::str::from_utf8(&buf).expect("Input not UTF-8"));
-                    line = String::from(lines.replace("\n", "").replace("\r", "").replace(" ", ""));
-                    let _ = line.pop();
-                    offerBase64Text = line;
-                } else {
-                    let _ = io::stdin()
-                        .read_line(&mut offerBase64Text)
-                        .expect("Cannot read the offer!");
-                }
-            }
-            None => {
-                let _ = io::stdin()
-                    .read_line(&mut offerBase64Text)
-                    .expect("Cannot read the offer!");
-            }
-        }
-        let offerBase64TextTrimmed = offerBase64Text.trim();
-        info! {"Read offer: {}", offerBase64TextTrimmed};
+        let offerBase64TextTrimmed = write_offer_and_read_answer(local_description, config.clone());
         let offer = decode(&offerBase64TextTrimmed).expect("base64 conversion error");
         let answer = serde_json::from_str::<RTCSessionDescription>(&offer)
             .expect("Error parsing the offer!");
