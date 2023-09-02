@@ -58,6 +58,9 @@ use webrtc::peer_connection::RTCPeerConnection;
 
 use webrtc_udp_forwarder::Config;
 
+use websocket::{ClientBuilder, Message};
+use websocket::header::{Headers, Authorization, Basic};
+
 use mimalloc::MiMalloc;
 
 #[global_allocator]
@@ -595,6 +598,13 @@ fn write_offer_and_read_answer(local: Option<RTCSessionDescription>, config: Con
     }
 }
 fn write_offer_and_read_answer_ws(local: Option<RTCSessionDescription>, config: Config) -> String {
+    let json_str = serde_json::to_string(&(local.expect("Empty local SD.")))
+        .expect("Could not serialize the localDescription to JSON");
+    println! {"{}", encode(&json_str)};
+    let mut offerBase64Text: String = String::new();
+    let mut headers = Headers::new();
+    headers.set(Authorization(Basic{username: config.PublishAuthUser.expect("No user specified for WS(S) basic auth."), password: config.PublishAuthPass}));
+    let mut client = ClientBuilder::new(&config.PublishEndpoint.expect("No WS(S) endpoint specified.")).unwrap().custom_headers(&headers).connect(None).unwrap();
     "".to_string()
 }
 fn write_offer_and_read_answer_stdio(

@@ -21,6 +21,7 @@ chrono = "0.4.26"
 compile-time-run = "0.2.12"
 env_logger = "0.10.0"
 futures = "0.3.28"
+hyper = "0.14.27"
 lazy_static = "1.4.0"
 log = {version="0.4", features=["release_max_level_info"]}
 mimalloc = {version="0.1.38", default-features=false}
