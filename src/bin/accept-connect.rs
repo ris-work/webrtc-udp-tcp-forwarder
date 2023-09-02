@@ -57,6 +57,8 @@ use webrtc::peer_connection::peer_connection_state::RTCPeerConnectionState;
 use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
 use webrtc::peer_connection::RTCPeerConnection;
 
+use webrtc_udp_forwarder::Config;
+
 use std::future::Future;
 use std::path::Path;
 use std::pin::Pin;
@@ -78,23 +80,6 @@ const PKT_SIZE: usize = 2048;
 lazy_static! {
     static ref OtherSocketSendBuf: Mutex<Vec<u8>> = Mutex::new(Vec::new());
     static ref Threads: Mutex<Vec<JoinHandle<()>>> = Mutex::new(Vec::new());
-}
-
-#[derive(Deserialize)]
-struct Config {
-    Type: String,
-    WebRTCMode: String,
-    Address: Option<String>,
-    Port: Option<String>,
-    ICEServers: Vec<ICEServer>,
-    Ordered: Option<bool>,
-    ConHost: Option<bool>,
-}
-#[derive(Deserialize, Clone)]
-struct ICEServer {
-    URLs: Vec<String>,
-    Username: Option<String>,
-    Credential: Option<String>,
 }
 #[derive(Deserialize)]
 struct WebRTC_Status {
