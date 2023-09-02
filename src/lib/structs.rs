@@ -16,4 +16,10 @@ mod structs{
         PublishAuthPass: Option<String>,
         PublishPSK: Option<String>
     }
+#[derive(Deserialize, Clone)]
+    struct ICEServer {
+        URLs: Vec<String>,
+        Username: Option<String>,
+        Credential: Option<String>,
+    }
 }
