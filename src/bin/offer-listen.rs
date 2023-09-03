@@ -606,8 +606,7 @@ fn write_offer_and_read_answer_ws(local: Option<RTCSessionDescription>, config: 
     let AuthType: String;
     if let Some(_AuthType) = config.PublishAuthType {
         AuthType = _AuthType;
-    }
-    else {
+    } else {
         AuthType = String::from("Basic");
     }
     if (AuthType == "Basic") {
