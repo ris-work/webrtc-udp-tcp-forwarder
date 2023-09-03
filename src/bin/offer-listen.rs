@@ -58,8 +58,8 @@ use webrtc::peer_connection::RTCPeerConnection;
 
 use webrtc_udp_forwarder::Config;
 
+use websocket::header::{Authorization, Basic, Bearer, Headers};
 use websocket::{ClientBuilder, Message};
-use websocket::header::{Headers, Authorization, Basic};
 
 use mimalloc::MiMalloc;
 
@@ -603,8 +603,36 @@ fn write_offer_and_read_answer_ws(local: Option<RTCSessionDescription>, config: 
     println! {"{}", encode(&json_str)};
     let mut offerBase64Text: String = String::new();
     let mut headers = Headers::new();
-    headers.set(Authorization(Basic{username: config.PublishAuthUser.expect("No user specified for WS(S) basic auth."), password: config.PublishAuthPass}));
-    let mut client = ClientBuilder::new(&config.PublishEndpoint.expect("No WS(S) endpoint specified.")).unwrap().custom_headers(&headers).connect(None).unwrap();
+    let AuthType: String;
+    if let Some(_AuthType) = config.PublishAuthType {
+        AuthType = _AuthType;
+    }
+    else {
+        AuthType = String::from("Basic");
+    }
+    if (AuthType == "Basic") {
+        headers.set(Authorization(Basic {
+            username: config
+                .PublishAuthUser
+                .expect("No user specified for WS(S) basic auth."),
+            password: config.PublishAuthPass,
+        }));
+    } else if (AuthType == "Bearer") {
+        headers.set(Authorization(Bearer {
+            token: config
+                .PublishAuthUser
+                .expect("No user specified for WS(S) basic auth."),
+        }));
+    }
+    let mut client = ClientBuilder::new(
+        &config
+            .PublishEndpoint
+            .expect("No WS(S) endpoint specified."),
+    )
+    .unwrap()
+    .custom_headers(&headers)
+    .connect(None)
+    .unwrap();
     "".to_string()
 }
 fn write_offer_and_read_answer_stdio(
