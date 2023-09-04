@@ -70,14 +70,15 @@ pub mod hmac {
     pub fn VerifyAndReturn(
         Msg: HashAuthenticatedMessage,
         config: Config,
-    ) -> stdResult<String, Box<dyn Error>> {
+    ) -> stdResult<TimedMessage, Box<dyn Error>> {
         let MAC = hex::decode(Msg.MAC)?;
         let mut MacGen = Hmac::<Sha256>::new_from_slice(
             config.PeerPSK.expect("No peer PSK provided.").as_bytes(),
         )?;
         MacGen.update(Msg.MessageWithTime.as_bytes());
         MacGen.verify_slice(&MAC[..])?;
-        Ok(Msg.MessageWithTime)
+        let Timed: TimedMessage = serde_json::from_str(&Msg.MessageWithTime)?;
+        Ok(Timed)
     }
 }
 pub mod message {

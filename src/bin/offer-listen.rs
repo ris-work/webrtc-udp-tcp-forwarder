@@ -56,11 +56,14 @@ use webrtc::peer_connection::peer_connection_state::RTCPeerConnectionState;
 use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
 use webrtc::peer_connection::RTCPeerConnection;
 
-use webrtc_udp_forwarder::hmac::{ConstructAuthenticatedMessage, HashAuthenticatedMessage};
-use webrtc_udp_forwarder::message::{ConstructMessage, TimedMessage};
+use webrtc_udp_forwarder::hmac::{
+    ConstructAuthenticatedMessage, HashAuthenticatedMessage, VerifyAndReturn,
+};
+use webrtc_udp_forwarder::message::{CheckAndReturn, ConstructMessage, TimedMessage};
 use webrtc_udp_forwarder::Config;
 
 use websocket::header::{Authorization, Basic, Bearer, Headers};
+use websocket::OwnedMessage::Text;
 use websocket::{ClientBuilder, Message};
 
 use mimalloc::MiMalloc;
@@ -586,7 +589,7 @@ fn write_offer_and_read_answer(local: Option<RTCSessionDescription>, config: Con
     if let Some(true) = config.Publish {
         if let Some(ref ptype) = config.PublishType {
             match (ptype.as_str()) {
-                "ws" => return write_offer_and_read_answer_ws(local, config),
+                "ws" => return write_offer_and_read_answer_ws(local, config).unwrap(),
                 _ => {
                     log::error!("Unsupported PublishType: {}", ptype);
                     return "".to_string();
@@ -599,7 +602,10 @@ fn write_offer_and_read_answer(local: Option<RTCSessionDescription>, config: Con
         return "".to_string();
     }
 }
-fn write_offer_and_read_answer_ws(local: Option<RTCSessionDescription>, config: Config) -> String {
+fn write_offer_and_read_answer_ws(
+    local: Option<RTCSessionDescription>,
+    config: Config,
+) -> Option<String> {
     let json_str = serde_json::to_string(&(local.expect("Empty local SD.")))
         .expect("Could not serialize the localDescription to JSON");
     println! {"{}", encode(&json_str)};
@@ -614,20 +620,23 @@ fn write_offer_and_read_answer_ws(local: Option<RTCSessionDescription>, config: 
     if (AuthType == "Basic") {
         headers.set(Authorization(Basic {
             username: config
-                .PublishAuthUser.clone()
+                .PublishAuthUser
+                .clone()
                 .expect("No user specified for WS(S) basic auth."),
             password: config.PublishAuthPass.clone(),
         }));
     } else if (AuthType == "Bearer") {
         headers.set(Authorization(Bearer {
             token: config
-                .PublishAuthUser.clone()
+                .PublishAuthUser
+                .clone()
                 .expect("No user specified for WS(S) basic auth."),
         }));
     }
     let mut client = ClientBuilder::new(
         &config
-            .PublishEndpoint.clone()
+            .PublishEndpoint
+            .clone()
             .expect("No WS(S) endpoint specified."),
     )
     .unwrap()
@@ -636,20 +645,33 @@ fn write_offer_and_read_answer_ws(local: Option<RTCSessionDescription>, config: 
     .unwrap();
     if let Some(ref PeerAuthType) = config.PeerAuthType {
         if PeerAuthType == "PSK" {
-            let tmessage: TimedMessage =
-                ConstructMessage(encode(&json_str));
+            let tmessage: TimedMessage = ConstructMessage(encode(&json_str));
             let amessage: HashAuthenticatedMessage =
-                ConstructAuthenticatedMessage(tmessage, config);
+                ConstructAuthenticatedMessage(tmessage, config.clone());
             let message = websocket::Message::text(
                 serde_json::to_string(&amessage).expect("Serialization error"),
             );
-            client.send_message(&message);
+            client.send_message(&message).expect("WS: Unable to send.");
+            let aanswer = client.recv_message().expect("WS: Unable to receive.");
+            if let Text(aanswer) = aanswer {
+                let AuthenticatedMessage: HashAuthenticatedMessage = serde_json::from_str(&aanswer).expect("Deserialization error.");
+                let answer = CheckAndReturn(
+                    VerifyAndReturn(AuthenticatedMessage, config).expect("An error occured while deserializing."),
+                )
+                .expect("Authentication error.");
+                Some(answer)
+            } else {
+                log::error!("Malformed response received from the WS endpoint");
+                None
+            }
         } else {
-            log::error! {"Unsupported peer authentication type: {}", PeerAuthType}
+            log::error! {"Unsupported peer authentication type: {}", PeerAuthType};
+            None
         }
     } else {
+        None
     }
-    "".to_string()
+    //"".to_string()
 }
 fn write_offer_and_read_answer_stdio(
     local: Option<RTCSessionDescription>,
