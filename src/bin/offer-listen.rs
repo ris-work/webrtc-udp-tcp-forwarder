@@ -56,6 +56,8 @@ use webrtc::peer_connection::peer_connection_state::RTCPeerConnectionState;
 use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
 use webrtc::peer_connection::RTCPeerConnection;
 
+use webrtc_udp_forwarder::hmac::{ConstructAuthenticatedMessage, HashAuthenticatedMessage};
+use webrtc_udp_forwarder::message::{ConstructMessage, TimedMessage};
 use webrtc_udp_forwarder::Config;
 
 use websocket::header::{Authorization, Basic, Bearer, Headers};
@@ -604,34 +606,49 @@ fn write_offer_and_read_answer_ws(local: Option<RTCSessionDescription>, config: 
     let mut offerBase64Text: String = String::new();
     let mut headers = Headers::new();
     let AuthType: String;
-    if let Some(_AuthType) = config.PublishAuthType {
-        AuthType = _AuthType;
+    if let Some(ref _AuthType) = config.PublishAuthType {
+        AuthType = _AuthType.to_string();
     } else {
         AuthType = String::from("Basic");
     }
     if (AuthType == "Basic") {
         headers.set(Authorization(Basic {
             username: config
-                .PublishAuthUser
+                .PublishAuthUser.clone()
                 .expect("No user specified for WS(S) basic auth."),
-            password: config.PublishAuthPass,
+            password: config.PublishAuthPass.clone(),
         }));
     } else if (AuthType == "Bearer") {
         headers.set(Authorization(Bearer {
             token: config
-                .PublishAuthUser
+                .PublishAuthUser.clone()
                 .expect("No user specified for WS(S) basic auth."),
         }));
     }
     let mut client = ClientBuilder::new(
         &config
-            .PublishEndpoint
+            .PublishEndpoint.clone()
             .expect("No WS(S) endpoint specified."),
     )
     .unwrap()
     .custom_headers(&headers)
     .connect(None)
     .unwrap();
+    if let Some(ref PeerAuthType) = config.PeerAuthType {
+        if PeerAuthType == "PSK" {
+            let tmessage: TimedMessage =
+                ConstructMessage(encode(&json_str));
+            let amessage: HashAuthenticatedMessage =
+                ConstructAuthenticatedMessage(tmessage, config);
+            let message = websocket::Message::text(
+                serde_json::to_string(&amessage).expect("Serialization error"),
+            );
+            client.send_message(&message);
+        } else {
+            log::error! {"Unsupported peer authentication type: {}", PeerAuthType}
+        }
+    } else {
+    }
     "".to_string()
 }
 fn write_offer_and_read_answer_stdio(

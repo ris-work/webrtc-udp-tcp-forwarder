@@ -25,7 +25,7 @@ pub struct ICEServer {
     pub Username: Option<String>,
     pub Credential: Option<String>,
 }
-mod hmac {
+pub mod hmac {
     use crate::message::TimedMessage;
     use crate::Config;
     use hex::{decode, encode};
@@ -33,6 +33,18 @@ mod hmac {
     use serde::{Deserialize, Serialize};
     use serde_json::Result;
     use sha2::Sha256;
+    use std::error::Error;
+    use std::fmt;
+    use std::fmt::Result as fResult;
+    use std::result::Result as stdResult;
+    #[derive(Debug, Clone)]
+    pub struct HMACVerificationFailed;
+    impl fmt::Display for HMACVerificationFailed {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fResult {
+            write! {f, "Message too old or new"}
+        }
+    }
+    impl Error for HMACVerificationFailed {}
     #[derive(Deserialize, Clone, Serialize)]
     pub struct HashAuthenticatedMessage {
         pub MessageWithTime: String,
@@ -55,9 +67,20 @@ mod hmac {
             MAC: String::from(hex::encode(Mac.into_bytes())),
         }
     }
-    pub fn VerifyAndReturn() {}
+    pub fn VerifyAndReturn(
+        Msg: HashAuthenticatedMessage,
+        config: Config,
+    ) -> stdResult<String, Box<dyn Error>> {
+        let MAC = hex::decode(Msg.MAC)?;
+        let mut MacGen = Hmac::<Sha256>::new_from_slice(
+            config.PeerPSK.expect("No peer PSK provided.").as_bytes(),
+        )?;
+        MacGen.update(Msg.MessageWithTime.as_bytes());
+        MacGen.verify_slice(&MAC[..])?;
+        Ok(Msg.MessageWithTime)
+    }
 }
-mod message {
+pub mod message {
     use chrono::naive::NaiveDateTime;
     use chrono::Utc;
     use serde::{Deserialize, Serialize};
