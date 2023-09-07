@@ -654,9 +654,11 @@ fn write_offer_and_read_answer_ws(
             client.send_message(&message).expect("WS: Unable to send.");
             let aanswer = client.recv_message().expect("WS: Unable to receive.");
             if let Text(aanswer) = aanswer {
-                let AuthenticatedMessage: HashAuthenticatedMessage = serde_json::from_str(&aanswer).expect("Deserialization error.");
+                let AuthenticatedMessage: HashAuthenticatedMessage =
+                    serde_json::from_str(&aanswer).expect("Deserialization error.");
                 let answer = CheckAndReturn(
-                    VerifyAndReturn(AuthenticatedMessage, config).expect("An error occured while deserializing."),
+                    VerifyAndReturn(AuthenticatedMessage, config)
+                        .expect("An error occured while deserializing."),
                 )
                 .expect("Authentication error.");
                 Some(answer)
@@ -669,9 +671,28 @@ fn write_offer_and_read_answer_ws(
             None
         }
     } else {
-        None
+        let tmessage: TimedMessage = ConstructMessage(encode(&json_str));
+        let amessage: HashAuthenticatedMessage =
+            ConstructAuthenticatedMessage(tmessage, config.clone());
+        let message = websocket::Message::text(
+            serde_json::to_string(&amessage).expect("Serialization error"),
+        );
+        client.send_message(&message).expect("WS: Unable to send.");
+        let aanswer = client.recv_message().expect("WS: Unable to receive.");
+        if let Text(aanswer) = aanswer {
+            let AuthenticatedMessage: HashAuthenticatedMessage =
+                serde_json::from_str(&aanswer).expect("Deserialization error.");
+            let answer = CheckAndReturn(
+                VerifyAndReturn(AuthenticatedMessage, config)
+                    .expect("An error occured while deserializing."),
+            )
+            .expect("Authentication error.");
+            Some(answer)
+        } else {
+            log::error!("Malformed response received from the WS endpoint");
+            None
+        }
     }
-    //"".to_string()
 }
 fn write_offer_and_read_answer_stdio(
     local: Option<RTCSessionDescription>,

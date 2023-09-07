@@ -729,7 +729,7 @@ async fn handle_offer(
     let conn = Arc::clone(&peer_connection);
     Ok((peer_connection, data_channel))
 }
-fn read_offer(config: Config) -> String{
+fn read_offer(config: Config) -> String {
     if let Some(true) = config.Publish {
         if let Some(ref ptype) = config.PublishType {
             match (ptype.as_str()) {
@@ -812,9 +812,11 @@ fn read_offer_ws(config: Config) -> Option<String> {
         if PeerAuthType == "PSK" {
             let aanswer = client.recv_message().expect("WS: Unable to receive.");
             if let Text(aanswer) = aanswer {
-                let AuthenticatedMessage: HashAuthenticatedMessage = serde_json::from_str(&aanswer).expect("Deserialization error.");
+                let AuthenticatedMessage: HashAuthenticatedMessage =
+                    serde_json::from_str(&aanswer).expect("Deserialization error.");
                 let answer = CheckAndReturn(
-                    VerifyAndReturn(AuthenticatedMessage, config).expect("An error occured while deserializing."),
+                    VerifyAndReturn(AuthenticatedMessage, config)
+                        .expect("An error occured while deserializing."),
                 )
                 .expect("Authentication error.");
                 Some(answer)
@@ -830,31 +832,35 @@ fn read_offer_ws(config: Config) -> Option<String> {
         None
     }
 }
-fn write_answer(local: Option<RTCSessionDescription>, config: Config) -> Result<(), Box<dyn error::Error>>{
+fn write_answer(
+    local: Option<RTCSessionDescription>,
+    config: Config,
+) -> Result<(), Box<dyn error::Error>> {
     if let Some(true) = config.Publish {
         if let Some(ref ptype) = config.PublishType {
             match (ptype.as_str()) {
-                "ws" => return write_answer_ws(local, config).unwrap(),
+                "ws" => return write_answer_ws(local, config),
                 _ => {
                     log::error!("Unsupported PublishType: {}", ptype);
-                    return "".to_string();
+                    return Ok();
                 }
             }
         } else {
-            return write_answer_stdio(local, config);
+            return Ok(write_answer_stdio(local, config));
         }
     } else {
-        return "".to_string();
+        return Err(());
     }
 }
 fn write_answer_stdio(local: Option<RTCSessionDescription>, config: Config) -> () {
     let json_str = serde_json::to_string(&(local.expect("Empty local SD.")))
         .expect("Could not serialize the localDescription to JSON");
     println! {"{}", encode(&json_str)};
-
-    "".to_string()
 }
-fn write_answer_ws(local: Option<RTCSessionDescription>, config: Config) -> Option<String> {
+fn write_answer_ws(
+    local: Option<RTCSessionDescription>,
+    config: Config,
+) -> Result<(), Box<dyn Error>> {
     let json_str = serde_json::to_string(&(local.expect("Empty local SD.")))
         .expect("Could not serialize the localDescription to JSON");
     let mut offerBase64Text: String = String::new();
@@ -900,16 +906,20 @@ fn write_answer_ws(local: Option<RTCSessionDescription>, config: Config) -> Opti
                 serde_json::to_string(&amessage).expect("Serialization error"),
             );
             client.send_message(&message).expect("WS: Unable to send.");
-
         } else {
             log::error! {"Unsupported peer authentication type: {}", PeerAuthType};
-            None
+            Error(())
         }
     } else {
-        None
+        let tmessage: TimedMessage = ConstructMessage(encode(&json_str));
+        let amessage: HashAuthenticatedMessage =
+            ConstructAuthenticatedMessage(tmessage, config.clone());
+        let message = websocket::Message::text(
+            serde_json::to_string(&amessage).expect("Serialization error"),
+        );
+        client.send_message(&message).expect("WS: Unable to send.");
+        Ok(())
     }
-    //"".to_string()
-    Some("".to_string())
 }
 fn main() {
     env_logger::init();
@@ -950,8 +960,7 @@ fn main() {
             .thread_name("TOKIO: main")
             .build()
             .unwrap();
-        
-        
+
         let offerBase64TextTrimmed = read_offer(config);
         info! {"Read offer: {}", offerBase64TextTrimmed};
         let offer = decode(&offerBase64TextTrimmed).expect("base64 conversion error");
