@@ -320,16 +320,6 @@ async fn configure_send_receive_udp(
                         let d1 = d1.clone();
                         let (mut ClonedSocketRecv) = (ClonedSocketRecv.try_clone().expect(""));
                         loop {
-                            /*{
-                                //let mut ready = CAN_RECV.lock(); //.unwrap();
-                                if (CAN_RECV.load(Ordering::Relaxed) == false) {
-                                    let mut temp: String = String::new();
-                                    println! {"Please press RETURN when you are ready to connect."};
-                                    let _ = io::stdin().read_line(&mut temp);
-                                    CAN_RECV.store(true, Ordering::Relaxed);
-                                }
-                                //drop(ready);
-                            };*/
                             let d1=d1.clone();
                             let mut buf = [0; PKT_SIZE];
                             let amt = ClonedSocketRecv
@@ -471,16 +461,6 @@ async fn configure_send_receive_tcp(
                         let d1 = d1.clone();
                         let (mut ClonedSocketRecv) = (ClonedSocketRecv.try_clone().expect(""));
                         loop {
-                            /*{
-                                //let mut ready = CAN_RECV.lock(); //.unwrap();
-                                if (CAN_RECV.load(Ordering::Relaxed) == false) {
-                                    let mut temp: String = String::new();
-                                    println! {"Please press RETURN when you are ready to connect."};
-                                    let _ = io::stdin().read_line(&mut temp);
-                                    CAN_RECV.store(true, Ordering::Relaxed);
-                                }
-                                //drop(ready);
-                            };*/
                             let d1=d1.clone();
                             let mut buf = [0; PKT_SIZE];
                             let amt = ClonedSocketRecv
@@ -622,16 +602,6 @@ async fn configure_send_receive_uds(
                         let d1 = d1.clone();
                         let (mut ClonedSocketRecv) = (ClonedSocketRecv.try_clone().expect(""));
                         loop {
-                            /*{
-                                //let mut ready = CAN_RECV.lock(); //.unwrap();
-                                if (CAN_RECV.load(Ordering::Relaxed) == false) {
-                                    let mut temp: String = String::new();
-                                    println! {"Please press RETURN when you are ready to connect."};
-                                    let _ = io::stdin().read_line(&mut temp);
-                                    CAN_RECV.store(true, Ordering::Relaxed);
-                                }
-                                //drop(ready);
-                            };*/
                             let d1=d1.clone();
                             let mut buf = [0; PKT_SIZE];
                             let amt = ClonedSocketRecv
