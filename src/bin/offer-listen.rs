@@ -19,6 +19,7 @@ use serde::Deserialize;
 use std::env;
 use std::error;
 
+use std::error::Error;
 use std::fs::read_to_string;
 use std::io;
 use std::io::Read;

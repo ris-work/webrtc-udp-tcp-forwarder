@@ -18,6 +18,7 @@ use parking_lot::Mutex;
 use serde::Deserialize;
 use std::env;
 use std::error;
+use std::error::Error;
 
 use std::fs::read_to_string;
 use std::io;
@@ -25,6 +26,7 @@ use std::io::Read;
 use std::io::Result as IOResult;
 use std::io::Write;
 use std::io::{BufRead, BufReader};
+use std::io::{Error as ioError, ErrorKind};
 
 use std::net::TcpStream;
 use std::net::UdpSocket;
@@ -66,8 +68,6 @@ use webrtc_udp_forwarder::Config;
 use websocket::header::{Authorization, Basic, Bearer, Headers};
 use websocket::OwnedMessage::Text;
 use websocket::{ClientBuilder, Message};
-
-use webrtc_udp_forwarder::Config;
 
 use std::future::Future;
 use std::path::Path;
@@ -163,6 +163,7 @@ async fn accept_WebRTC_offer(
             }),
         }
     }
+    let fwconfig = config;
     let config = RTCConfiguration {
         ice_servers: ice_servers,
         ..Default::default()
@@ -223,15 +224,18 @@ async fn accept_WebRTC_offer(
     //RTCPC.on_data_channel(Box::new(move |d: Arc<RTCDataChannel>| {}))
 
     let local_description: Option<RTCSessionDescription>;
+
     // Output the answer in base64 so we can paste it in browser
     if let Some(local_desc) = peer_connection.local_description().await {
         local_description = Some(local_desc.clone());
-        let json_str = serde_json::to_string(&local_desc)?;
+        write_answer(Some(local_desc.clone()), fwconfig.clone());
+        /*let json_str = serde_json::to_string(&local_desc)?;
         //let b64 = encode(&json_str);
         info!("{json_str}");
         let b64 = encode(&json_str);
-        info!("{b64}");
-        println!("{b64}");
+        info!("{b64}");*/
+
+        //println!("{b64}");
     } else {
         local_description = None;
         info!("generate local_description failed!");
@@ -812,14 +816,17 @@ fn write_answer(
                 "ws" => return write_answer_ws(local, config),
                 _ => {
                     log::error!("Unsupported PublishType: {}", ptype);
-                    return Ok();
+                    return Ok(());
                 }
             }
         } else {
             return Ok(write_answer_stdio(local, config));
         }
     } else {
-        return Err(());
+        return Err(Box::new(ioError::new(
+            ErrorKind::Other,
+            "Websocket write failed.",
+        )));
     }
 }
 fn write_answer_stdio(local: Option<RTCSessionDescription>, config: Config) -> () {
@@ -876,9 +883,13 @@ fn write_answer_ws(
                 serde_json::to_string(&amessage).expect("Serialization error"),
             );
             client.send_message(&message).expect("WS: Unable to send.");
+            Ok(())
         } else {
             log::error! {"Unsupported peer authentication type: {}", PeerAuthType};
-            Error(())
+            Err(Box::new(ioError::new(
+                ErrorKind::InvalidInput,
+                "Invalid PeerAuthType.",
+            )))
         }
     } else {
         let tmessage: TimedMessage = ConstructMessage(encode(&json_str));
@@ -931,7 +942,7 @@ fn main() {
             .build()
             .unwrap();
 
-        let offerBase64TextTrimmed = read_offer(config);
+        let offerBase64TextTrimmed = read_offer(config.clone());
         info! {"Read offer: {}", offerBase64TextTrimmed};
         let offer = decode(&offerBase64TextTrimmed).expect("base64 conversion error");
         let offerRTCSD = serde_json::from_str::<RTCSessionDescription>(&offer)
