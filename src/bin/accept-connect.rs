@@ -57,6 +57,16 @@ use webrtc::peer_connection::peer_connection_state::RTCPeerConnectionState;
 use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
 use webrtc::peer_connection::RTCPeerConnection;
 
+use webrtc_udp_forwarder::hmac::{
+    ConstructAuthenticatedMessage, HashAuthenticatedMessage, VerifyAndReturn,
+};
+use webrtc_udp_forwarder::message::{CheckAndReturn, ConstructMessage, TimedMessage};
+use webrtc_udp_forwarder::Config;
+
+use websocket::header::{Authorization, Basic, Bearer, Headers};
+use websocket::OwnedMessage::Text;
+use websocket::{ClientBuilder, Message};
+
 use webrtc_udp_forwarder::Config;
 
 use std::future::Future;
@@ -719,6 +729,188 @@ async fn handle_offer(
     let conn = Arc::clone(&peer_connection);
     Ok((peer_connection, data_channel))
 }
+fn read_offer(config: Config) -> String{
+    if let Some(true) = config.Publish {
+        if let Some(ref ptype) = config.PublishType {
+            match (ptype.as_str()) {
+                "ws" => return read_offer_ws(config).unwrap(),
+                _ => {
+                    log::error!("Unsupported PublishType: {}", ptype);
+                    return "".to_string();
+                }
+            }
+        } else {
+            return read_offer_stdio(config);
+        }
+    } else {
+        return "".to_string();
+    }
+}
+fn read_offer_stdio(config: Config) -> String {
+    let mut offerBase64Text: String = String::new();
+    match (config.ConHost) {
+        Some(val) => {
+            if (val == true) {
+                let mut line: String;
+                let mut buf: Vec<u8> = vec![];
+                BufReader::new(io::stdin()).read_until(b'/', &mut buf);
+                let lines: String =
+                    String::from(std::str::from_utf8(&buf).expect("Input not UTF-8"));
+                line = String::from(lines.replace("\n", "").replace("\r", "").replace(" ", ""));
+                let _ = line.pop();
+                offerBase64Text = line;
+            } else {
+                let _ = io::stdin()
+                    .read_line(&mut offerBase64Text)
+                    .expect("Cannot read the offer!");
+            }
+        }
+        None => {
+            let _ = io::stdin()
+                .read_line(&mut offerBase64Text)
+                .expect("Cannot read the offer!");
+        }
+    }
+    offerBase64Text
+}
+fn read_offer_ws(config: Config) -> Option<String> {
+    let mut offerBase64Text: String = String::new();
+    let mut headers = Headers::new();
+    let AuthType: String;
+    if let Some(ref _AuthType) = config.PublishAuthType {
+        AuthType = _AuthType.to_string();
+    } else {
+        AuthType = String::from("Basic");
+    }
+    if (AuthType == "Basic") {
+        headers.set(Authorization(Basic {
+            username: config
+                .PublishAuthUser
+                .clone()
+                .expect("No user specified for WS(S) basic auth."),
+            password: config.PublishAuthPass.clone(),
+        }));
+    } else if (AuthType == "Bearer") {
+        headers.set(Authorization(Bearer {
+            token: config
+                .PublishAuthUser
+                .clone()
+                .expect("No user specified for WS(S) basic auth."),
+        }));
+    }
+    let mut client = ClientBuilder::new(
+        &config
+            .PublishEndpoint
+            .clone()
+            .expect("No WS(S) endpoint specified."),
+    )
+    .unwrap()
+    .custom_headers(&headers)
+    .connect(None)
+    .unwrap();
+    if let Some(ref PeerAuthType) = config.PeerAuthType {
+        if PeerAuthType == "PSK" {
+            let aanswer = client.recv_message().expect("WS: Unable to receive.");
+            if let Text(aanswer) = aanswer {
+                let AuthenticatedMessage: HashAuthenticatedMessage = serde_json::from_str(&aanswer).expect("Deserialization error.");
+                let answer = CheckAndReturn(
+                    VerifyAndReturn(AuthenticatedMessage, config).expect("An error occured while deserializing."),
+                )
+                .expect("Authentication error.");
+                Some(answer)
+            } else {
+                log::error!("Malformed response received from the WS endpoint");
+                None
+            }
+        } else {
+            log::error! {"Unsupported peer authentication type: {}", PeerAuthType};
+            None
+        }
+    } else {
+        None
+    }
+}
+fn write_answer(local: Option<RTCSessionDescription>, config: Config) -> Result<(), Box<dyn error::Error>>{
+    if let Some(true) = config.Publish {
+        if let Some(ref ptype) = config.PublishType {
+            match (ptype.as_str()) {
+                "ws" => return write_answer_ws(local, config).unwrap(),
+                _ => {
+                    log::error!("Unsupported PublishType: {}", ptype);
+                    return "".to_string();
+                }
+            }
+        } else {
+            return write_answer_stdio(local, config);
+        }
+    } else {
+        return "".to_string();
+    }
+}
+fn write_answer_stdio(local: Option<RTCSessionDescription>, config: Config) -> () {
+    let json_str = serde_json::to_string(&(local.expect("Empty local SD.")))
+        .expect("Could not serialize the localDescription to JSON");
+    println! {"{}", encode(&json_str)};
+
+    "".to_string()
+}
+fn write_answer_ws(local: Option<RTCSessionDescription>, config: Config) -> Option<String> {
+    let json_str = serde_json::to_string(&(local.expect("Empty local SD.")))
+        .expect("Could not serialize the localDescription to JSON");
+    let mut offerBase64Text: String = String::new();
+    let mut headers = Headers::new();
+    let AuthType: String;
+    if let Some(ref _AuthType) = config.PublishAuthType {
+        AuthType = _AuthType.to_string();
+    } else {
+        AuthType = String::from("Basic");
+    }
+    if (AuthType == "Basic") {
+        headers.set(Authorization(Basic {
+            username: config
+                .PublishAuthUser
+                .clone()
+                .expect("No user specified for WS(S) basic auth."),
+            password: config.PublishAuthPass.clone(),
+        }));
+    } else if (AuthType == "Bearer") {
+        headers.set(Authorization(Bearer {
+            token: config
+                .PublishAuthUser
+                .clone()
+                .expect("No user specified for WS(S) basic auth."),
+        }));
+    }
+    let mut client = ClientBuilder::new(
+        &config
+            .PublishEndpoint
+            .clone()
+            .expect("No WS(S) endpoint specified."),
+    )
+    .unwrap()
+    .custom_headers(&headers)
+    .connect(None)
+    .unwrap();
+    if let Some(ref PeerAuthType) = config.PeerAuthType {
+        if PeerAuthType == "PSK" {
+            let tmessage: TimedMessage = ConstructMessage(encode(&json_str));
+            let amessage: HashAuthenticatedMessage =
+                ConstructAuthenticatedMessage(tmessage, config.clone());
+            let message = websocket::Message::text(
+                serde_json::to_string(&amessage).expect("Serialization error"),
+            );
+            client.send_message(&message).expect("WS: Unable to send.");
+
+        } else {
+            log::error! {"Unsupported peer authentication type: {}", PeerAuthType};
+            None
+        }
+    } else {
+        None
+    }
+    //"".to_string()
+    Some("".to_string())
+}
 fn main() {
     env_logger::init();
     let mut arg_counter: usize = 0;
@@ -758,31 +950,9 @@ fn main() {
             .thread_name("TOKIO: main")
             .build()
             .unwrap();
-        let mut offerBase64Text: String = String::new();
-        match (config.ConHost) {
-            Some(val) => {
-                if (val == true) {
-                    let mut line: String;
-                    let mut buf: Vec<u8> = vec![];
-                    BufReader::new(io::stdin()).read_until(b'/', &mut buf);
-                    let lines: String =
-                        String::from(std::str::from_utf8(&buf).expect("Input not UTF-8"));
-                    line = String::from(lines.replace("\n", "").replace("\r", "").replace(" ", ""));
-                    let _ = line.pop();
-                    offerBase64Text = line;
-                } else {
-                    let _ = io::stdin()
-                        .read_line(&mut offerBase64Text)
-                        .expect("Cannot read the offer!");
-                }
-            }
-            None => {
-                let _ = io::stdin()
-                    .read_line(&mut offerBase64Text)
-                    .expect("Cannot read the offer!");
-            }
-        }
-        let offerBase64TextTrimmed = offerBase64Text.trim();
+        
+        
+        let offerBase64TextTrimmed = read_offer(config);
         info! {"Read offer: {}", offerBase64TextTrimmed};
         let offer = decode(&offerBase64TextTrimmed).expect("base64 conversion error");
         let offerRTCSD = serde_json::from_str::<RTCSessionDescription>(&offer)
