@@ -1,4 +1,4 @@
-Type = "TCP"
+Type = "UDP"
 WebRTCMode = "Accept"
 Address = "127.0.0.1"
 Port = "11500"
