@@ -559,7 +559,7 @@ fn write_offer_and_read_answer(local: Option<RTCSessionDescription>, config: Con
             return write_offer_and_read_answer_stdio(local, config);
         }
     } else {
-        return "".to_string();
+        return write_offer_and_read_answer_stdio(local, config);
     }
 }
 fn write_offer_and_read_answer_ws(

@@ -717,7 +717,7 @@ fn read_offer(config: Config) -> String {
             return read_offer_stdio(config);
         }
     } else {
-        return "".to_string();
+        return read_offer_stdio(config);
     }
 }
 fn read_offer_stdio(config: Config) -> String {
@@ -823,10 +823,11 @@ fn write_answer(
             return Ok(write_answer_stdio(local, config));
         }
     } else {
-        return Err(Box::new(ioError::new(
+        return Ok(write_answer_stdio(local, config));
+        /* return Err(Box::new(ioError::new(
             ErrorKind::Other,
             "Websocket write failed.",
-        )));
+        ))); */
     }
 }
 fn write_answer_stdio(local: Option<RTCSessionDescription>, config: Config) -> () {
