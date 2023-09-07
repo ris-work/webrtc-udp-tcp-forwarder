@@ -704,6 +704,7 @@ fn main() {
         }
         println! {"Version info: {}", run_command_str!("fossil", "timeline", "-n", "+1")};
         println! {"MTU: {}", PKT_SIZE};
+        println! {"LICENSE:\n{}", include_str!{"../../LICENSE.txt"}};
         exit(2);
     }
     let TOML_file_name = env::args().nth(1).unwrap();
