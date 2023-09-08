@@ -191,6 +191,10 @@ async fn create_WebRTC_offer(
             info!("Peer Connection has gone to failed exiting");
             std::process::exit(0);
             let _ = done_tx.try_send(());
+        } else if s == RTCPeerConnectionState::Disconnected {
+            info!("Peer Connection has disconnected");
+            std::process::exit(0);
+            let _ = done_tx.try_send(());
         }
 
         Box::pin(async {})
