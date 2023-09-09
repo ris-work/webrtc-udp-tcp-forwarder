@@ -40,3 +40,7 @@ websocket = "0.26.5"
 [patch.crates-io]
 webrtc = {path = "webrtc/webrtc/"}
 webrtc-sctp = {path = "webrtc/sctp/"}
+
+[features]
+tcp=[]
+uds=[]

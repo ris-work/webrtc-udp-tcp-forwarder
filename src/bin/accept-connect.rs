@@ -417,6 +417,7 @@ async fn configure_send_receive_udp(
     /* Ok(*/
     (Arc::clone(&RTCDC), OtherSocket) /*)*/
 }
+#[cfg(feature = "tcp")]
 async fn configure_send_receive_tcp(
     RTCDC: Arc<RTCDataChannel>,
     RTCPC: Arc<RTCPeerConnection>,
@@ -558,6 +559,7 @@ async fn configure_send_receive_tcp(
     /* Ok(*/
     (Arc::clone(&RTCDC), OtherSocket) /*)*/
 }
+#[cfg(feature = "uds")]
 async fn configure_send_receive_uds(
     RTCDC: Arc<RTCDataChannel>,
     RTCPC: Arc<RTCPeerConnection>,
@@ -1025,38 +1027,53 @@ fn main() {
                 OtherSocket,
             ));
         } else if (config.Type == "TCP") {
-            info! {"TCP socket requested"};
-            let ConnectPort = config.Port.clone().expect("Connecting port not specified");
-            info! {"Connecting TCP on address {} port {}", ConnectAddress, ConnectPort};
-            let mut OtherSocket = TcpStream::connect(format!("{}:{}", ConnectAddress, ConnectPort))
-                .expect("Error getting the TCP stream");
-            debug! {"Attempting to write the send buffer: {:?}", &OtherSocketSendBuf.lock()};
-            OtherSocket.write(&OtherSocketSendBuf.lock());
-            info! {"Connected to TCP: address {} port {}", ConnectAddress, ConnectPort};
-            match (OtherSocket.set_nodelay(true)) {
-                Ok(_) => debug! {"NODELAY set"},
-                Err(_) => warn!("SO_NODELAY failed."),
+            #[cfg(feature = "tcp")]
+            {
+                info! {"TCP socket requested"};
+                let ConnectPort = config.Port.clone().expect("Connecting port not specified");
+                info! {"Connecting TCP on address {} port {}", ConnectAddress, ConnectPort};
+                let mut OtherSocket =
+                    TcpStream::connect(format!("{}:{}", ConnectAddress, ConnectPort))
+                        .expect("Error getting the TCP stream");
+                debug! {"Attempting to write the send buffer: {:?}", &OtherSocketSendBuf.lock()};
+                OtherSocket.write(&OtherSocketSendBuf.lock());
+                info! {"Connected to TCP: address {} port {}", ConnectAddress, ConnectPort};
+                match (OtherSocket.set_nodelay(true)) {
+                    Ok(_) => debug! {"NODELAY set"},
+                    Err(_) => warn!("SO_NODELAY failed."),
+                }
+                STREAM_LAST_ACTIVE_TIME.store(
+                    chrono::Utc::now().timestamp().try_into().expect(
+                        "This software is not supposed to be used before UNIX was invented.",
+                    ),
+                    Ordering::Relaxed,
+                );
+                (data_channel, OtherSocket) = rt.block_on(configure_send_receive_tcp(
+                    data_channel,
+                    peer_connection,
+                    OtherSocket,
+                ));
             }
-            STREAM_LAST_ACTIVE_TIME.store(
-                chrono::Utc::now()
-                    .timestamp()
-                    .try_into()
-                    .expect("This software is not supposed to be used before UNIX was invented."),
-                Ordering::Relaxed,
-            );
-            (data_channel, OtherSocket) = rt.block_on(configure_send_receive_tcp(
-                data_channel,
-                peer_connection,
-                OtherSocket,
-            ));
+            #[cfg(not(feature = "tcp"))]
+            {
+                println! {"Feature available but not enabled: TCP."};
+            }
         } else if (config.Type == "UDS") {
-            info! {"Unix Domain Socket requested."};
-            let mut OtherSocket = UnixStream::connect(ConnectAddress).expect("UDS connect error");
-            (data_channel, OtherSocket) = rt.block_on(configure_send_receive_uds(
-                data_channel,
-                peer_connection,
-                OtherSocket,
-            ));
+            #[cfg(feature = "uds")]
+            {
+                info! {"Unix Domain Socket requested."};
+                let mut OtherSocket =
+                    UnixStream::connect(ConnectAddress).expect("UDS connect error");
+                (data_channel, OtherSocket) = rt.block_on(configure_send_receive_uds(
+                    data_channel,
+                    peer_connection,
+                    OtherSocket,
+                ));
+            }
+            #[cfg(not(feature = "uds"))]
+            {
+                println! {"Feature available but not enabled: UDS."};
+            }
         } else {
             println! {"Unsupported type: {}", config.Type};
         }

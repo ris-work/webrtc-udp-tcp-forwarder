@@ -330,6 +330,7 @@ async fn configure_send_receive_udp(
     /* Ok(*/
     (Arc::clone(&RTCDC), OtherSocket) /*)*/
 }
+#[cfg(feature = "tcp")]
 async fn configure_send_receive_tcp(
     RTCDC: Arc<RTCDataChannel>,
     OtherSocket: TcpStream,
@@ -427,6 +428,7 @@ async fn configure_send_receive_tcp(
     /* Ok(*/
     (Arc::clone(&RTCDC), OtherSocket) /*)*/
 }
+#[cfg(feature = "uds")]
 async fn configure_send_receive_uds(
     RTCDC: Arc<RTCDataChannel>,
     OtherSocket: UnixStream,
@@ -792,43 +794,57 @@ fn main() {
             (data_channel, OtherSocket) =
                 rt.block_on(configure_send_receive_udp(data_channel, OtherSocket));
         } else if (config.Type == "TCP") {
-            info! {"TCP socket requested"};
-            let BindPort = config.Port.clone().expect("Binding port not specified");
-            info! {"Binding TCP on address {} port {}", BindAddress, BindPort};
-            let Listener = TcpListener::bind(format! {"{}:{}", BindAddress, BindPort})
-                .expect(&format! {"Could not bind to TCP port: {}:{}", &BindAddress, &BindPort});
-            info! {"Bound TCP on address {} port {}", BindAddress, BindPort};
-            let mut OtherSocket = Listener
-                .incoming()
-                .next()
-                .expect("Error getting the TCP stream")
-                .expect("TCP stream error");
-            match (OtherSocket.set_nodelay(true)) {
-                Ok(_) => debug! {"NODELAY set"},
-                Err(_) => warn!("SO_NODELAY failed."),
+            #[cfg(feature = "tcp")]
+            {
+                info! {"TCP socket requested"};
+                let BindPort = config.Port.clone().expect("Binding port not specified");
+                info! {"Binding TCP on address {} port {}", BindAddress, BindPort};
+                let Listener = TcpListener::bind(format! {"{}:{}", BindAddress, BindPort}).expect(
+                    &format! {"Could not bind to TCP port: {}:{}", &BindAddress, &BindPort},
+                );
+                info! {"Bound TCP on address {} port {}", BindAddress, BindPort};
+                let mut OtherSocket = Listener
+                    .incoming()
+                    .next()
+                    .expect("Error getting the TCP stream")
+                    .expect("TCP stream error");
+                match (OtherSocket.set_nodelay(true)) {
+                    Ok(_) => debug! {"NODELAY set"},
+                    Err(_) => warn!("SO_NODELAY failed."),
+                }
+                STREAM_LAST_ACTIVE_TIME.store(
+                    chrono::Utc::now().timestamp().try_into().expect(
+                        "This software is not supposed to be used before UNIX was invented.",
+                    ),
+                    Ordering::Relaxed,
+                );
+                debug! {"Attempting to write the send buffer: {:?}", &OtherSocketSendBuf.lock()};
+                OtherSocket.write(&OtherSocketSendBuf.lock());
+                (data_channel, OtherSocket) =
+                    rt.block_on(configure_send_receive_tcp(data_channel, OtherSocket));
             }
-            STREAM_LAST_ACTIVE_TIME.store(
-                chrono::Utc::now()
-                    .timestamp()
-                    .try_into()
-                    .expect("This software is not supposed to be used before UNIX was invented."),
-                Ordering::Relaxed,
-            );
-            debug! {"Attempting to write the send buffer: {:?}", &OtherSocketSendBuf.lock()};
-            OtherSocket.write(&OtherSocketSendBuf.lock());
-            (data_channel, OtherSocket) =
-                rt.block_on(configure_send_receive_tcp(data_channel, OtherSocket));
+            #[cfg(not(feature = "tcp"))]
+            {
+                println! {"Feature available but not enabled: TCP."};
+            }
         } else if (config.Type == "UDS") {
-            info! {"Unix Domain Socket requested."};
-            let Listener = UnixListener::bind(BindAddress);
-            let mut OtherSocket = Listener
-                .expect("UDS listen error")
-                .incoming()
-                .next()
-                .expect("Error getting the UDS stream")
-                .expect("UDS stream error");
-            (data_channel, OtherSocket) =
-                rt.block_on(configure_send_receive_uds(data_channel, OtherSocket));
+            #[cfg(feature = "uds")]
+            {
+                info! {"Unix Domain Socket requested."};
+                let Listener = UnixListener::bind(BindAddress);
+                let mut OtherSocket = Listener
+                    .expect("UDS listen error")
+                    .incoming()
+                    .next()
+                    .expect("Error getting the UDS stream")
+                    .expect("UDS stream error");
+                (data_channel, OtherSocket) =
+                    rt.block_on(configure_send_receive_uds(data_channel, OtherSocket));
+            }
+            #[cfg(not(feature = "uds"))]
+            {
+                println! {"Feature available but nor enabled: UDS."};
+            }
         } else {
             println! {"Unsupported type: {}", config.Type};
         }
