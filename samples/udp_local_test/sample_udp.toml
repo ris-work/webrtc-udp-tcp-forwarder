@@ -3,3 +3,4 @@ WebRTCMode = "Offer"
 Address = "127.0.0.1"
 Port = "10500"
 ICEServers = [{URLs= ['stun:vz.al']}]
+ConHost = true
