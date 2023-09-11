@@ -247,7 +247,11 @@ async fn configure_send_receive_udp(
     let (OtherSocketSendQueue_tx, OtherSocketSendQueue_rx): (
         Sender<AlignedMessage>,
         Receiver<AlignedMessage>,
-    ) = bounded::<AlignedMessage>(10);
+    ) = bounded::<AlignedMessage>(1000);
+    let (WebRTCSendQueue_tx, WebRTCSendQueue_rx): (
+        Sender<AlignedMessage>,
+        Receiver<AlignedMessage>,
+    ) = bounded::<AlignedMessage>(1000);
     let d1 = Arc::clone(&RTCDC);
     let mut ClonedSocketRecv = OtherSocket
         .try_clone()
@@ -274,7 +278,7 @@ async fn configure_send_receive_udp(
                                     Ok(amt) => {
                                         trace! {"{:?}", &buf[0..amt]};
                                         debug!{"Enqueued..."};
-                                        let _ = OtherSocketSendQueue_tx.send(AlignedMessage{size: amt, data: buf.into()});
+                                        let _ = WebRTCSendQueue_tx.send(AlignedMessage{size: amt, data: buf.into()});
                                     }
                                     Err(E) => {
                                         warn!("Unable to read or save to the buffer: {:?}", E);
@@ -284,9 +288,9 @@ async fn configure_send_receive_udp(
                                     }
                                 }
                                 }
-                            });
+                            }).expect("UDP -> WRTC SQ");
                 loop {
-                    let MessageWithSize: AlignedMessage = OtherSocketSendQueue_rx.recv().unwrap();
+                    let MessageWithSize: AlignedMessage = WebRTCSendQueue_rx.recv().unwrap();
                     let buf = MessageWithSize.data;
                     let amt = MessageWithSize.size;
                             trace! {"{:?}", &buf[0..amt]};
@@ -310,40 +314,52 @@ async fn configure_send_receive_udp(
 
                     }
                 }
-            ).expect("Unable to spawn thread.");
+            ).expect("Unable to spawn thread: WRTC Q -> WRTC DC");
 
         Box::pin(async move {
         })
     }));
-
+    thread::Builder::new()
+        .stack_size(THREAD_STACK_SIZE)
+        .name("OS->DC".to_string())
+        .spawn(move || {
+            loop {
+                let MessageWithSize = OtherSocketSendQueue_rx.recv().unwrap();
+                let msg = MessageWithSize.data;
+                let amt = MessageWithSize.size;
+                if (CAN_RECV.load(Ordering::Relaxed)) {
+                    match (ClonedSocketSend.send(&msg)) {
+                        Ok(amt) => {
+                            debug! {"DC->OS: Written {} bytes.", amt};
+                            //ClonedSocketSend
+                            //    .flush()
+                            //    .expect("Unable to flush the stream.");
+                        }
+                        Err(E) => {
+                            warn!("Unable to write data.");
+                        }
+                    }
+                } else {
+                    if (OtherSocketSendBuf.lock().len() + msg.len() > MaxOtherSocketSendBufSize) {
+                        warn! {"Buffer FULL: {} + {} > {}",
+                        OtherSocketSendBuf.lock().len(),
+                        msg.len(),
+                        MaxOtherSocketSendBufSize
+                        };
+                    } else {
+                        OtherSocketSendBuf.lock().extend_from_slice(&msg);
+                    }
+                }
+            }
+        })
+        .expect("Unable to spawn thread: SQ -> UDP");
     // Register text message handling
     let d_label = RTCDC.label().to_owned();
     RTCDC.on_message(Box::new(move |msg: DataChannelMessage| {
         let msg = msg.data.to_vec();
         trace!("Message from DataChannel '{d_label}': '{msg:?}'");
-        if (CAN_RECV.load(Ordering::Relaxed)) {
-            match (ClonedSocketSend.send(&msg)) {
-                Ok(amt) => {
-                    debug! {"DC->OS: Written {} bytes.", amt};
-                    //ClonedSocketSend
-                    //    .flush()
-                    //    .expect("Unable to flush the stream.");
-                }
-                Err(E) => {
-                    warn!("Unable to write data.");
-                }
-            }
-        } else {
-            if (OtherSocketSendBuf.lock().len() + msg.len() > MaxOtherSocketSendBufSize) {
-                warn! {"Buffer FULL: {} + {} > {}",
-                OtherSocketSendBuf.lock().len(),
-                msg.len(),
-                MaxOtherSocketSendBufSize
-                };
-            } else {
-                OtherSocketSendBuf.lock().extend_from_slice(&msg);
-            }
-        }
+        OtherSocketSendQueue_tx.send(AlignedMessage { size: 0, data: msg });
+
         Box::pin(async {})
     }));
     let (done_tx, mut done_rx) = tokio::sync::mpsc::channel::<()>(1);
