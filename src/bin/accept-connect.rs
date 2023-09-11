@@ -296,7 +296,7 @@ async fn configure_send_receive_udp(
         let (OtherSocketSendQueue_tx, OtherSocketSendQueue_rx): (
             Sender<AlignedMessage>,
             Receiver<AlignedMessage>,
-        ) = bounded::<AlignedMessage>(1000);
+        ) = bounded::<AlignedMessage>(1000000);
         let d_label = d.label().to_owned();
         let d_id = d.id();
         info!("New DataChannel {d_label} {d_id}");
@@ -322,18 +322,21 @@ async fn configure_send_receive_udp(
                     let (WebRTCSendQueue_tx, WebRTCSendQueue_rx): (
                         Sender<AlignedMessage>,
                         Receiver<AlignedMessage>,
-                    ) = bounded::<AlignedMessage>(1000);
+                    ) = bounded::<AlignedMessage>(1000000);
                     info!("Data channel '{d_label2}'-'{d_id2}' open.");
                     let d1=d1.clone();
                     let d = d1.clone();
                     thread::Builder::new()
-                        .name("OS->DC".to_string())
+                        .name("UDP SQ -> UDP".to_string())
                         .stack_size(THREAD_STACK_SIZE)
                         .spawn( move || {
                             loop{
+                                debug!{"Blocking on dequeueing UDP send queue. Queue size: {}.", OtherSocketSendQueue_rx.len()};
                             let msg = (OtherSocketSendQueue_rx.recv().unwrap()).data;
+                            debug!{"Block on UDP send queue dequeue is over"};
                             if (CAN_RECV.load(Ordering::Relaxed)){
                             let (mut ClonedSocketSend) = (ClonedSocketSend.try_clone().expect(""));
+                            log::debug!{"Message from the UDP send queue: {msg:?}"};
                             match(
                                 ClonedSocketSend.send(&msg)
                                 )
@@ -363,7 +366,7 @@ async fn configure_send_receive_udp(
                             }
                         }}
                         }
-                    );
+                    ).expect("Unable to spawn: UDP SQ -> UDP");
                     let spawned = thread::Builder::new()
                         .name("OS->DC".to_string())
                         .stack_size(THREAD_STACK_SIZE)
@@ -373,15 +376,19 @@ async fn configure_send_receive_udp(
                         .name("OS->DC".to_string())
                         .stack_size(THREAD_STACK_SIZE)
                         .spawn(move || {
+                            log::info!{"Spawned thread: UDP -> WRTC SQ."};
                             let (mut ClonedSocketRecv) = (ClonedSocketRecv.try_clone().expect(""));
                             loop{
                             let mut buf = [0; PKT_SIZE];
+                            debug!{"Blocking on recv..."};
                             let amt = ClonedSocketRecv
                                 .recv(&mut buf);
+                            debug!{"Block on recv() over."};
                             match (amt){
                                 Ok(amt) => {
-                                    trace! {"{:?}", &buf[0..amt]};
-                                    WebRTCSendQueue_tx.send(AlignedMessage{size: amt, data: buf.into()});
+                                    debug! {"Enqueueing to WebRTC Send Queue: {:?}", &buf[0..amt]};
+                                    WebRTCSendQueue_tx.try_send(AlignedMessage{size: amt, data: buf.into()});
+                                    debug!{"Enqueueing to WebRTC Send Queue block is over."};
                                 },
                                 #[cold] Err(E) => {
                                     info!{"OtherSocket: Connection closed."};
@@ -398,11 +405,14 @@ async fn configure_send_receive_udp(
                             .build()
                             .unwrap();
                         let d1 = d1.clone();
+                        info!{"WRTC SQ -> WRTC"}
                         loop {
                             let MessageWithSize = WebRTCSendQueue_rx.recv().unwrap();
+                            debug!{"Enqueued to WebRTC send queue: {MessageWithSize:?}, Queue size: {}.", WebRTCSendQueue_rx.len()};
                             let buf = MessageWithSize.data;
                             let amt = MessageWithSize.size;
                             let d1=d1.clone();
+                                    
                                     debug!{"Blocking on DC send..."};
                                     let written_bytes = rt.block_on(d1.send(&Bytes::copy_from_slice(&buf[0..amt])));
                                     match(written_bytes) {
@@ -428,7 +438,9 @@ async fn configure_send_receive_udp(
                     move |msg: DataChannelMessage| {
                         let msg = msg.data.to_vec();
                         trace!("Message from DataChannel '{d_label}': '{msg:?}'");
-                        OtherSocketSendQueue_tx.send(AlignedMessage{size: 0, data: msg});
+                        debug!{"Blocking on UDP send queue - Enque"};
+                        OtherSocketSendQueue_tx.try_send(AlignedMessage{size: 0, data: msg});
+                        debug!{"UDP send queue enqueue block is over."};
                         Box::pin(async {})
                     }}));
             }
