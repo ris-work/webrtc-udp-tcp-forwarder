@@ -291,13 +291,12 @@ async fn configure_send_receive_udp(
     let mut ClonedSocketSend = OtherSocket
         .try_clone()
         .expect("Unable to clone the TCP socket. :(");
-    
+
     RTCPC.on_data_channel(Box::new(move |d: Arc<RTCDataChannel>| {
         let (OtherSocketSendQueue_tx, OtherSocketSendQueue_rx): (
             Sender<AlignedMessage>,
             Receiver<AlignedMessage>,
         ) = bounded::<AlignedMessage>(1000);
-        
         let d_label = d.label().to_owned();
         let d_id = d.id();
         info!("New DataChannel {d_label} {d_id}");
@@ -305,7 +304,7 @@ async fn configure_send_receive_udp(
         // Register channel opening handling
         Box::pin({
             let d1 = d1.clone();
-
+            let d2 = d1.clone();
             let (mut ClonedSocketRecv, mut ClonedSocketSend) = (
                 ClonedSocketRecv.try_clone().expect(""),
                 ClonedSocketSend.try_clone().expect(""),
@@ -326,6 +325,45 @@ async fn configure_send_receive_udp(
                     ) = bounded::<AlignedMessage>(1000);
                     info!("Data channel '{d_label2}'-'{d_id2}' open.");
                     let d1=d1.clone();
+                    let d = d1.clone();
+                    thread::Builder::new()
+                        .name("OS->DC".to_string())
+                        .stack_size(THREAD_STACK_SIZE)
+                        .spawn( move || {
+                            loop{
+                            let msg = (OtherSocketSendQueue_rx.recv().unwrap()).data;
+                            if (CAN_RECV.load(Ordering::Relaxed)){
+                            let (mut ClonedSocketSend) = (ClonedSocketSend.try_clone().expect(""));
+                            match(
+                                ClonedSocketSend.send(&msg)
+                                )
+                            {
+                                Ok(amt) => {
+                                    debug!{"DC->OS: Written {} bytes.", amt};
+                                    //ClonedSocketSend.flush().expect("Unable to flush the stream.");
+                                },
+                                #[cold] Err(E) => {
+                                    warn!("OtherSocket: Unable to write data.");
+                                    OtherSocketReady.store(false, Ordering::Relaxed);
+                                    block_on(d.close());
+                                }
+                            }
+                        }
+                        //#[cold] 
+                        else {
+                            if (OtherSocketSendBuf.lock().len() + msg.len() > MaxOtherSocketSendBufSize) {
+                                warn! {"Buffer FULL: {} + {} > {}",
+                                OtherSocketSendBuf.lock().len(),
+                                msg.len(),
+                                MaxOtherSocketSendBufSize
+                                };
+                            } else {
+                                debug!{"OtherSocket not ready yet!"};
+                                OtherSocketSendBuf.lock().extend_from_slice(&msg);
+                            }
+                        }}
+                        }
+                    );
                     let spawned = thread::Builder::new()
                         .name("OS->DC".to_string())
                         .stack_size(THREAD_STACK_SIZE)
@@ -366,7 +404,7 @@ async fn configure_send_receive_udp(
                             let amt = MessageWithSize.size;
                             let d1=d1.clone();
                                     debug!{"Blocking on DC send..."};
-                                    let written_bytes = rt.block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])));
+                                    let written_bytes = rt.block_on(d1.send(&Bytes::copy_from_slice(&buf[0..amt])));
                                     match(written_bytes) {
                                         Ok(Bytes) => {debug!{"OS->DC: Written {Bytes} bytes!"};},
                                         #[cold] Err(E) => {
@@ -382,47 +420,15 @@ async fn configure_send_receive_udp(
                         Ok(JH)=>{Threads.lock().push(JH)},
                         Err(E) =>{error!{"Unable to spawn: {:?}", E}} 
                     }
-
                     Box::pin(async move {
                     })
                 }}));
-
-
                 // Register text message handling
-                d.on_message(Box::new({let d=d.clone();
+                d2.on_message(Box::new({let d=d2.clone();
                     move |msg: DataChannelMessage| {
                         let msg = msg.data.to_vec();
                         trace!("Message from DataChannel '{d_label}': '{msg:?}'");
-                        if (CAN_RECV.load(Ordering::Relaxed)){
-                            let (mut ClonedSocketSend) = (ClonedSocketSend.try_clone().expect(""));
-                            match(
-                                ClonedSocketSend.send(&msg)
-                                )
-                            {
-                                Ok(amt) => {
-                                    debug!{"DC->OS: Written {} bytes.", amt};
-                                    //ClonedSocketSend.flush().expect("Unable to flush the stream.");
-                                },
-                                #[cold] Err(E) => {
-                                    warn!("OtherSocket: Unable to write data.");
-                                    OtherSocketReady.store(false, Ordering::Relaxed);
-                                    block_on(d.close());
-                                }
-                            }
-                        }
-                        //#[cold] 
-                        else {
-                            if (OtherSocketSendBuf.lock().len() + msg.len() > MaxOtherSocketSendBufSize) {
-                                warn! {"Buffer FULL: {} + {} > {}",
-                                OtherSocketSendBuf.lock().len(),
-                                msg.len(),
-                                MaxOtherSocketSendBufSize
-                                };
-                            } else {
-                                debug!{"OtherSocket not ready yet!"};
-                                OtherSocketSendBuf.lock().extend_from_slice(&msg);
-                            }
-                        }
+                        OtherSocketSendQueue_tx.send(AlignedMessage{size: 0, data: msg});
                         Box::pin(async {})
                     }}));
             }
