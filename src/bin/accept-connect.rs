@@ -326,7 +326,7 @@ async fn configure_send_receive_udp(
                     info!("Data channel '{d_label2}'-'{d_id2}' open.");
                     let d1=d1.clone();
                     let d = d1.clone();
-                    thread::Builder::new()
+                    let udp_sq_to_udp = thread::Builder::new()
                         .name("UDP SQ -> UDP".to_string())
                         .stack_size(THREAD_STACK_SIZE)
                         .spawn( move || {
@@ -367,12 +367,13 @@ async fn configure_send_receive_udp(
                         }}
                         }
                     ).expect("Unable to spawn: UDP SQ -> UDP");
-                    let spawned = thread::Builder::new()
+                    Threads.lock().push(udp_sq_to_udp);
+                    let wrtc_sq_to_wrtc = thread::Builder::new()
                         .name("OS->DC".to_string())
                         .stack_size(THREAD_STACK_SIZE)
                         .spawn(move || {
                         info!{"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
-                        thread::Builder::new()
+                        let udp_to_wrtc_sq = thread::Builder::new()
                         .name("OS->DC".to_string())
                         .stack_size(THREAD_STACK_SIZE)
                         .spawn(move || {
@@ -399,13 +400,14 @@ async fn configure_send_receive_udp(
                             }
                         }
                         }).expect("Unable to spawn thread: UDP recv => WRTC SQ.");
+                        Threads.lock().push(udp_to_wrtc_sq);
                         let rt=Builder::new_multi_thread()
                             .worker_threads(1)
                             .thread_name("TOKIO: OS->DC")
                             .build()
                             .unwrap();
                         let d1 = d1.clone();
-                        info!{"WRTC SQ -> WRTC"}
+                        info!{"WRTC SQ -> WRTC"};
                         loop {
                             let MessageWithSize = WebRTCSendQueue_rx.recv().unwrap();
                             debug!{"Enqueued to WebRTC send queue: {MessageWithSize:?}, Queue size: {}.", WebRTCSendQueue_rx.len()};
@@ -426,7 +428,7 @@ async fn configure_send_receive_udp(
                                         }
                                     }
                         }});
-                    match(spawned){
+                    match(wrtc_sq_to_wrtc){
                         Ok(JH)=>{Threads.lock().push(JH)},
                         Err(E) =>{error!{"Unable to spawn: {:?}", E}} 
                     }
@@ -1013,7 +1015,7 @@ fn main() {
             .spawn(move || {
                 debug! {"Inactivity monitoring watchdog has started"}
                 loop {
-                    let five_seconds = time::Duration::from_secs(600);
+                    let five_seconds = time::Duration::from_secs(5);
                     debug! {"Watchdog will sleep for five seconds."};
                     let current_time : u64 = chrono::Utc::now().timestamp().try_into().expect(
                         "This software is not supposed to be used before UNIX was invented.",
@@ -1029,7 +1031,7 @@ fn main() {
                             info!{"Done, dead or killed: {:?}", thread};
                         }
                         else{
-                            debug!{"Alive: {:?}", thread};
+                            info!{"Alive: {:?}", thread};
                         }
                     }
                     thread::sleep(five_seconds);
