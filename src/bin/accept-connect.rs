@@ -20,6 +20,7 @@ use std::env;
 use std::error;
 use std::error::Error;
 
+use crossbeam_channel::{bounded, Receiver, Sender};
 use std::fs::read_to_string;
 use std::io;
 use std::io::Read;
@@ -63,6 +64,7 @@ use webrtc_udp_forwarder::hmac::{
     ConstructAuthenticatedMessage, HashAuthenticatedMessage, VerifyAndReturn,
 };
 use webrtc_udp_forwarder::message::{CheckAndReturn, ConstructMessage, TimedMessage};
+use webrtc_udp_forwarder::AlignedMessage::AlignedMessage;
 use webrtc_udp_forwarder::Config;
 
 use websocket::header::{Authorization, Basic, Bearer, Headers};
@@ -289,7 +291,13 @@ async fn configure_send_receive_udp(
     let mut ClonedSocketSend = OtherSocket
         .try_clone()
         .expect("Unable to clone the TCP socket. :(");
+    
     RTCPC.on_data_channel(Box::new(move |d: Arc<RTCDataChannel>| {
+        let (OtherSocketSendQueue_tx, OtherSocketSendQueue_rx): (
+            Sender<AlignedMessage>,
+            Receiver<AlignedMessage>,
+        ) = bounded::<AlignedMessage>(1000);
+        
         let d_label = d.label().to_owned();
         let d_id = d.id();
         info!("New DataChannel {d_label} {d_id}");
@@ -312,7 +320,10 @@ async fn configure_send_receive_udp(
                     ClonedSocketSend.try_clone().expect(""),
                     );
                 d.on_open(Box::new({let d1 = d1.clone(); move || {
-
+                    let (WebRTCSendQueue_tx, WebRTCSendQueue_rx): (
+                        Sender<AlignedMessage>,
+                        Receiver<AlignedMessage>,
+                    ) = bounded::<AlignedMessage>(1000);
                     info!("Data channel '{d_label2}'-'{d_id2}' open.");
                     let d1=d1.clone();
                     let spawned = thread::Builder::new()
@@ -320,22 +331,40 @@ async fn configure_send_receive_udp(
                         .stack_size(THREAD_STACK_SIZE)
                         .spawn(move || {
                         info!{"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
+                        thread::Builder::new()
+                        .name("OS->DC".to_string())
+                        .stack_size(THREAD_STACK_SIZE)
+                        .spawn(move || {
+                            let (mut ClonedSocketRecv) = (ClonedSocketRecv.try_clone().expect(""));
+                            loop{
+                            let mut buf = [0; PKT_SIZE];
+                            let amt = ClonedSocketRecv
+                                .recv(&mut buf);
+                            match (amt){
+                                Ok(amt) => {
+                                    trace! {"{:?}", &buf[0..amt]};
+                                    WebRTCSendQueue_tx.send(AlignedMessage{size: amt, data: buf.into()});
+                                },
+                                #[cold] Err(E) => {
+                                    info!{"OtherSocket: Connection closed."};
+                                    info!{"{:?}", E};
+                                    info!{"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
+                                break;
+                                }
+                            }
+                        }
+                        }).expect("Unable to spawn thread: UDP recv => WRTC SQ.");
                         let rt=Builder::new_multi_thread()
                             .worker_threads(1)
                             .thread_name("TOKIO: OS->DC")
                             .build()
                             .unwrap();
                         let d1 = d1.clone();
-                        let (mut ClonedSocketRecv) = (ClonedSocketRecv.try_clone().expect(""));
                         loop {
+                            let MessageWithSize = WebRTCSendQueue_rx.recv().unwrap();
+                            let buf = MessageWithSize.data;
+                            let amt = MessageWithSize.size;
                             let d1=d1.clone();
-                            let mut buf = [0; PKT_SIZE];
-                            let amt = ClonedSocketRecv
-                                .recv(&mut buf);
-                            match (amt){
-
-                                Ok(amt) => {
-                                    trace! {"{:?}", &buf[0..amt]};
                                     debug!{"Blocking on DC send..."};
                                     let written_bytes = rt.block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])));
                                     match(written_bytes) {
@@ -348,14 +377,6 @@ async fn configure_send_receive_udp(
                                             break;
                                         }
                                     }
-                                },
-                                #[cold] Err(E) => {
-                                    info!{"OtherSocket: Connection closed."};
-                                    info!{"{:?}", E};
-                                    info!{"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
-                                    break;
-                                }
-                            }
                         }});
                     match(spawned){
                         Ok(JH)=>{Threads.lock().push(JH)},
