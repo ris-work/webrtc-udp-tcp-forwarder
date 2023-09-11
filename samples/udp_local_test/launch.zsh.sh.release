@@ -1,0 +1,3 @@
+#!/bin/zsh
+coproc ../../target/release/accept-connect sample_udp_accept.toml
+../../target/release/offer-listen sample_udp.toml <&p >&p
