@@ -414,8 +414,7 @@ async fn configure_send_receive_udp(
                             let buf = MessageWithSize.data;
                             let amt = MessageWithSize.size;
                             let d1=d1.clone();
-                                    
-                                    debug!{"Blocking on DC send..."};
+                                    debug!{"Blocking on DC send... Len: {}", amt};
                                     let written_bytes = rt.block_on(d1.send(&Bytes::copy_from_slice(&buf[0..amt])));
                                     match(written_bytes) {
                                         Ok(Bytes) => {debug!{"OS->DC: Written {Bytes} bytes!"};},
@@ -440,6 +439,7 @@ async fn configure_send_receive_udp(
                     move |msg: DataChannelMessage| {
                         let msg = msg.data.to_vec();
                         trace!("Message from DataChannel '{d_label}': '{msg:?}'");
+                        debug!("Message from DataChannel '{d_label}'.: '{msg:?}', size: {}'", msg.len());
                         debug!{"Blocking on UDP send queue - Enque"};
                         OtherSocketSendQueue_tx.try_send(AlignedMessage{size: 0, data: msg});
                         debug!{"UDP send queue enqueue block is over."};
