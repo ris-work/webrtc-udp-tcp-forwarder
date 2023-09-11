@@ -19,6 +19,7 @@ use serde::Deserialize;
 use std::env;
 use std::error;
 
+use crossbeam_channel::{bounded, Receiver, Sender};
 use std::error::Error;
 use std::fs::read_to_string;
 use std::io;
@@ -61,11 +62,14 @@ use webrtc_udp_forwarder::hmac::{
     ConstructAuthenticatedMessage, HashAuthenticatedMessage, VerifyAndReturn,
 };
 use webrtc_udp_forwarder::message::{CheckAndReturn, ConstructMessage, TimedMessage};
+use webrtc_udp_forwarder::AlignedMessage::AlignedMessage;
 use webrtc_udp_forwarder::Config;
 
 use websocket::header::{Authorization, Basic, Bearer, Headers};
 use websocket::OwnedMessage::Text;
 use websocket::{ClientBuilder, Message};
+
+use crossbeam_queue::ArrayQueue;
 
 use mimalloc::MiMalloc;
 
@@ -78,10 +82,11 @@ static DataChannelReady: AtomicBool = AtomicBool::new(false);
 static CAN_RECV: AtomicBool = AtomicBool::new(true);
 static MaxOtherSocketSendBufSize: usize = 2048;
 static THREAD_STACK_SIZE: usize = 204800;
-const PKT_SIZE: usize = 2048;
+pub const PKT_SIZE: usize = 2046;
 
 lazy_static! {
     static ref OtherSocketSendBuf: Mutex<Vec<u8>> = Mutex::new(Vec::new());
+    static ref SocketSendQueue: ArrayQueue<AlignedMessage> = ArrayQueue::<AlignedMessage>::new(10);
 }
 
 #[derive(Deserialize)]
@@ -239,6 +244,10 @@ async fn configure_send_receive_udp(
 ) -> (Arc<RTCDataChannel>, UdpSocket) /*, Box<dyn error::Error>>*/ {
     // Register channel opening handling
     info! {"Configuring UDP<=>RTCDC..."};
+    let (OtherSocketSendQueue_tx, OtherSocketSendQueue_rx): (
+        Sender<AlignedMessage>,
+        Receiver<AlignedMessage>,
+    ) = bounded::<AlignedMessage>(10);
     let d1 = Arc::clone(&RTCDC);
     let mut ClonedSocketRecv = OtherSocket
         .try_clone()
@@ -255,10 +264,31 @@ async fn configure_send_receive_udp(
             .spawn(move || {
                 info!{"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
                 let rt=Builder::new_multi_thread().worker_threads(1).thread_name("TOKIO: OS->DC").build().unwrap();
+                            thread::Builder::new()
+                            .stack_size(THREAD_STACK_SIZE)
+                            .name("OS->DC".to_string())
+                            .spawn(move || {
+                                loop{
+                                    let mut buf = [0; PKT_SIZE];
+                                match (ClonedSocketRecv.recv(&mut buf)) {
+                                    Ok(amt) => {
+                                        trace! {"{:?}", &buf[0..amt]};
+                                        debug!{"Enqueued..."};
+                                        let _ = OtherSocketSendQueue_tx.send(AlignedMessage{size: amt, data: buf.into()});
+                                    }
+                                    Err(E) => {
+                                        warn!("Unable to read or save to the buffer: {:?}", E);
+                                        OtherSocketReady.store(false, Ordering::Relaxed);
+                                        info!{"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
+                                        break;
+                                    }
+                                }
+                                }
+                            });
                 loop {
-                    let mut buf = [0; PKT_SIZE];
-                    match (ClonedSocketRecv.recv(&mut buf)) {
-                        Ok(amt) => {
+                    let MessageWithSize: AlignedMessage = OtherSocketSendQueue_rx.recv().unwrap();
+                    let buf = MessageWithSize.data;
+                    let amt = MessageWithSize.size;
                             trace! {"{:?}", &buf[0..amt]};
                             debug!{"Blocking on DC send"};
                             rt.block_on({let d1=d1.clone();
@@ -277,16 +307,10 @@ async fn configure_send_receive_udp(
                                             //break;
                                         }
                                     }}});
-                        }
-                        Err(E) => {
-                            warn!("Unable to read or save to the buffer: {:?}", E);
-                            OtherSocketReady.store(false, Ordering::Relaxed);
-                            info!{"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
-                            break;
-                        }
+
                     }
                 }
-            });
+            ).expect("Unable to spawn thread.");
 
         Box::pin(async move {
         })

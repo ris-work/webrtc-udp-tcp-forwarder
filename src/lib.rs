@@ -9,6 +9,7 @@
 use chrono::naive::NaiveDateTime;
 use chrono::Utc;
 use serde::Deserialize;
+pub const PKT_SIZE: u16 = 2046;
 #[derive(Deserialize, Clone)]
 pub struct Config {
     pub Type: String,
@@ -124,5 +125,11 @@ pub mod message {
         } else {
             Err(Box::new(MessageTooOldOrTooNewError))
         }
+    }
+}
+pub mod AlignedMessage {
+    pub struct AlignedMessage {
+        pub size: usize,
+        pub data: Vec<u8>,
     }
 }
