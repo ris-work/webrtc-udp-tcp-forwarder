@@ -87,7 +87,7 @@ static DataChannelReady: AtomicBool = AtomicBool::new(false);
 static CAN_RECV: AtomicBool = AtomicBool::new(true);
 static MaxOtherSocketSendBufSize: usize = 2048;
 static THREAD_STACK_SIZE: usize = 204800;
-const PKT_SIZE: usize = 2048;
+const PKT_SIZE: usize = 2040;
 
 lazy_static! {
     static ref OtherSocketSendBuf: Mutex<Vec<u8>> = Mutex::new(Vec::new());
@@ -293,7 +293,7 @@ async fn configure_send_receive_udp(
         .expect("Unable to clone the TCP socket. :(");
 
     RTCPC.on_data_channel(Box::new(move |d: Arc<RTCDataChannel>| {
-        let (OtherSocketSendQueue_tx, OtherSocketSendQueue_rx): (Sender<AlignedMessage>, Receiver<AlignedMessage>) = bounded::<AlignedMessage>(1000);
+        let (OtherSocketSendQueue_tx, OtherSocketSendQueue_rx): (Sender<AlignedMessage>, Receiver<AlignedMessage>) = bounded::<AlignedMessage>(10000);
         let d_label = d.label().to_owned();
         let d_id = d.id();
         info!("New DataChannel {d_label} {d_id}");
@@ -313,7 +313,7 @@ async fn configure_send_receive_udp(
                 d.on_open(Box::new({
                     let d1 = d1.clone();
                     move || {
-                        let (WebRTCSendQueue_tx, WebRTCSendQueue_rx): (Sender<AlignedMessage>, Receiver<AlignedMessage>) = bounded::<AlignedMessage>(1000);
+                        let (WebRTCSendQueue_tx, WebRTCSendQueue_rx): (Sender<AlignedMessage>, Receiver<AlignedMessage>) = bounded::<AlignedMessage>(10000);
                         info!("Data channel '{d_label2}'-'{d_id2}' open.");
                         let d1 = d1.clone();
                         let d = d1.clone();
@@ -989,7 +989,7 @@ fn main() {
         let Watchdog = thread::Builder::new().name("Watchdog".to_string()).spawn(move || {
             debug! {"Inactivity monitoring watchdog has started"}
             loop {
-                let five_seconds = time::Duration::from_secs(5);
+                let five_seconds = time::Duration::from_secs(600);
                 debug! {"Watchdog will sleep for five seconds."};
                 let current_time: u64 = chrono::Utc::now().timestamp().try_into().expect("This software is not supposed to be used before UNIX was invented.");
                 debug! {
