@@ -60,9 +60,7 @@ use webrtc::peer_connection::peer_connection_state::RTCPeerConnectionState;
 use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
 use webrtc::peer_connection::RTCPeerConnection;
 
-use webrtc_udp_forwarder::hmac::{
-    ConstructAuthenticatedMessage, HashAuthenticatedMessage, VerifyAndReturn,
-};
+use webrtc_udp_forwarder::hmac::{ConstructAuthenticatedMessage, HashAuthenticatedMessage, VerifyAndReturn};
 use webrtc_udp_forwarder::message::{CheckAndReturn, ConstructMessage, TimedMessage};
 use webrtc_udp_forwarder::AlignedMessage::AlignedMessage;
 use webrtc_udp_forwarder::Config;
@@ -113,21 +111,12 @@ fn handle_TCP_client(stream: TcpStream) {}
 async fn accept_WebRTC_offer(
     offer: RTCSessionDescription,
     config: &Config,
-) -> Result<
-    (
-        Arc<RTCDataChannel>,
-        Arc<RTCPeerConnection>,
-        Arc<RTCSessionDescription>,
-        Option<RTCSessionDescription>,
-    ),
-    Box<dyn error::Error>,
-> {
+) -> Result<(Arc<RTCDataChannel>, Arc<RTCPeerConnection>, Arc<RTCSessionDescription>, Option<RTCSessionDescription>), Box<dyn error::Error>> {
     // Create a MediaEngine object to configure the supported codec
     let mut m = MediaEngine::default();
 
     // Register default codecs
-    m.register_default_codecs()
-        .expect("Could not register the default codecs.");
+    m.register_default_codecs().expect("Could not register the default codecs.");
 
     // Create a InterceptorRegistry. This is the user configurable RTP/RTCP Pipeline.
     // This provides NACKs, RTCP Reports and other features. If you use `webrtc.NewPeerConnection`
@@ -136,14 +125,10 @@ async fn accept_WebRTC_offer(
     let mut registry = Registry::new();
 
     // Use the default set of Interceptors
-    registry = register_default_interceptors(registry, &mut m)
-        .expect("Could not register the interceptor!");
+    registry = register_default_interceptors(registry, &mut m).expect("Could not register the interceptor!");
 
     // Create the API object with the MediaEngine
-    let api = APIBuilder::new()
-        .with_media_engine(m)
-        .with_interceptor_registry(registry)
-        .build();
+    let api = APIBuilder::new().with_media_engine(m).with_interceptor_registry(registry).build();
 
     // Prepare the configuration
     let mut ice_servers: Vec<RTCIceServer> = vec![];
@@ -152,10 +137,7 @@ async fn accept_WebRTC_offer(
             Some(Username) => ice_servers.push(RTCIceServer {
                 urls: ICEServer.URLs.clone(),
                 username: Username.clone(),
-                credential: ICEServer
-                    .Credential
-                    .clone()
-                    .expect("Empty credentials are not allowed."),
+                credential: ICEServer.Credential.clone().expect("Empty credentials are not allowed."),
                 credential_type: RTCIceCredentialType::Password,
                 ..Default::default()
             }),
@@ -219,9 +201,7 @@ async fn accept_WebRTC_offer(
     // Create channel that is blocked until ICE Gathering is complete
     let mut gather_complete = peer_connection.gathering_complete_promise().await;
 
-    peer_connection
-        .set_local_description(answer.clone())
-        .await?;
+    peer_connection.set_local_description(answer.clone()).await?;
 
     // Block until ICE Gathering is complete, disabling trickle ICE
     // we do this because we only can exchange one signaling message
@@ -246,12 +226,7 @@ async fn accept_WebRTC_offer(
         local_description = None;
         info!("generate local_description failed!");
     }
-    Ok((
-        Arc::clone(&data_channel),
-        peer_connection,
-        Arc::new(answer),
-        local_description,
-    ))
+    Ok((Arc::clone(&data_channel), peer_connection, Arc::new(answer), local_description))
 }
 pub trait Socket: Send + Sync + Unpin + Read + Write {
     fn read<B: Read>(&mut self, buf: &mut [u8]) -> IOResult<usize>
@@ -278,25 +253,14 @@ pub trait Socket: Send + Sync + Unpin + Read + Write {
         //Flush { socket: self }
     }
 }
-async fn configure_send_receive_udp(
-    RTCDC: Arc<RTCDataChannel>,
-    RTCPC: Arc<RTCPeerConnection>,
-    OtherSocket: UdpSocket,
-) -> (Arc<RTCDataChannel>, UdpSocket) /*, Box<dyn error::Error>>*/ {
+async fn configure_send_receive_udp(RTCDC: Arc<RTCDataChannel>, RTCPC: Arc<RTCPeerConnection>, OtherSocket: UdpSocket) -> (Arc<RTCDataChannel>, UdpSocket) /*, Box<dyn error::Error>>*/ {
     // Register channel opening handling
     let d1 = Arc::clone(&RTCDC);
-    let mut ClonedSocketRecv = OtherSocket
-        .try_clone()
-        .expect("Unable to clone the TCP socket. :(");
-    let mut ClonedSocketSend = OtherSocket
-        .try_clone()
-        .expect("Unable to clone the TCP socket. :(");
+    let mut ClonedSocketRecv = OtherSocket.try_clone().expect("Unable to clone the TCP socket. :(");
+    let mut ClonedSocketSend = OtherSocket.try_clone().expect("Unable to clone the TCP socket. :(");
 
     RTCPC.on_data_channel(Box::new(move |d: Arc<RTCDataChannel>| {
-        let (OtherSocketSendQueue_tx, OtherSocketSendQueue_rx): (
-            Sender<AlignedMessage>,
-            Receiver<AlignedMessage>,
-        ) = bounded::<AlignedMessage>(1000000);
+        let (OtherSocketSendQueue_tx, OtherSocketSendQueue_rx): (Sender<AlignedMessage>, Receiver<AlignedMessage>) = bounded::<AlignedMessage>(1000000);
         let d_label = d.label().to_owned();
         let d_id = d.id();
         info!("New DataChannel {d_label} {d_id}");
@@ -305,146 +269,140 @@ async fn configure_send_receive_udp(
         Box::pin({
             let d1 = d1.clone();
             let d2 = d1.clone();
-            let (mut ClonedSocketRecv, mut ClonedSocketSend) = (
-                ClonedSocketRecv.try_clone().expect(""),
-                ClonedSocketSend.try_clone().expect(""),
-                );
+            let (mut ClonedSocketRecv, mut ClonedSocketSend) = (ClonedSocketRecv.try_clone().expect(""), ClonedSocketSend.try_clone().expect(""));
             async move {
                 let d1 = Arc::clone(&d1);
                 let d2 = Arc::clone(&d);
                 let d_label2 = d_label.clone();
                 let d_id2 = d_id;
-                let (mut ClonedSocketRecv, mut ClonedSocketSend) = (
-                    ClonedSocketRecv.try_clone().expect(""),
-                    ClonedSocketSend.try_clone().expect(""),
-                    );
-                d.on_open(Box::new({let d1 = d1.clone(); move || {
-                    let (WebRTCSendQueue_tx, WebRTCSendQueue_rx): (
-                        Sender<AlignedMessage>,
-                        Receiver<AlignedMessage>,
-                    ) = bounded::<AlignedMessage>(1000000);
-                    info!("Data channel '{d_label2}'-'{d_id2}' open.");
-                    let d1=d1.clone();
-                    let d = d1.clone();
-                    let udp_sq_to_udp = thread::Builder::new()
-                        .name("UDP SQ -> UDP".to_string())
-                        .stack_size(THREAD_STACK_SIZE)
-                        .spawn( move || {
-                            loop{
-                                debug!{"Blocking on dequeueing UDP send queue. Queue size: {}.", OtherSocketSendQueue_rx.len()};
-                            let msg = (OtherSocketSendQueue_rx.recv().unwrap()).data;
-                            debug!{"Block on UDP send queue dequeue is over"};
-                            if (CAN_RECV.load(Ordering::Relaxed)){
-                            let (mut ClonedSocketSend) = (ClonedSocketSend.try_clone().expect(""));
-                            log::debug!{"Message from the UDP send queue: {msg:?}"};
-                            match(
-                                ClonedSocketSend.send(&msg)
-                                )
-                            {
-                                Ok(amt) => {
-                                    debug!{"DC->OS: Written {} bytes.", amt};
-                                    //ClonedSocketSend.flush().expect("Unable to flush the stream.");
-                                },
-                                #[cold] Err(E) => {
-                                    warn!("OtherSocket: Unable to write data.");
-                                    OtherSocketReady.store(false, Ordering::Relaxed);
-                                    block_on(d.close());
-                                }
-                            }
-                        }
-                        //#[cold] 
-                        else {
-                            if (OtherSocketSendBuf.lock().len() + msg.len() > MaxOtherSocketSendBufSize) {
-                                warn! {"Buffer FULL: {} + {} > {}",
-                                OtherSocketSendBuf.lock().len(),
-                                msg.len(),
-                                MaxOtherSocketSendBufSize
-                                };
-                            } else {
-                                debug!{"OtherSocket not ready yet!"};
-                                OtherSocketSendBuf.lock().extend_from_slice(&msg);
-                            }
-                        }}
-                        }
-                    ).expect("Unable to spawn: UDP SQ -> UDP");
-                    Threads.lock().push(udp_sq_to_udp);
-                    let wrtc_sq_to_wrtc = thread::Builder::new()
-                        .name("OS->DC".to_string())
-                        .stack_size(THREAD_STACK_SIZE)
-                        .spawn(move || {
-                        info!{"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
-                        let udp_to_wrtc_sq = thread::Builder::new()
-                        .name("OS->DC".to_string())
-                        .stack_size(THREAD_STACK_SIZE)
-                        .spawn(move || {
-                            log::info!{"Spawned thread: UDP -> WRTC SQ."};
-                            let (mut ClonedSocketRecv) = (ClonedSocketRecv.try_clone().expect(""));
-                            loop{
-                            let mut buf = [0; PKT_SIZE];
-                            debug!{"Blocking on recv..."};
-                            let amt = ClonedSocketRecv
-                                .recv(&mut buf);
-                            debug!{"Block on recv() over."};
-                            match (amt){
-                                Ok(amt) => {
-                                    debug! {"Enqueueing to WebRTC Send Queue: {:?}", &buf[0..amt]};
-                                    WebRTCSendQueue_tx.try_send(AlignedMessage{size: amt, data: buf.into()});
-                                    debug!{"Enqueueing to WebRTC Send Queue block is over."};
-                                },
-                                #[cold] Err(E) => {
-                                    info!{"OtherSocket: Connection closed."};
-                                    info!{"{:?}", E};
-                                    info!{"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
-                                break;
-                                }
-                            }
-                        }
-                        }).expect("Unable to spawn thread: UDP recv => WRTC SQ.");
-                        Threads.lock().push(udp_to_wrtc_sq);
-                        let rt=Builder::new_multi_thread()
-                            .worker_threads(1)
-                            .thread_name("TOKIO: OS->DC")
-                            .build()
-                            .unwrap();
+                let (mut ClonedSocketRecv, mut ClonedSocketSend) = (ClonedSocketRecv.try_clone().expect(""), ClonedSocketSend.try_clone().expect(""));
+                d.on_open(Box::new({
+                    let d1 = d1.clone();
+                    move || {
+                        let (WebRTCSendQueue_tx, WebRTCSendQueue_rx): (Sender<AlignedMessage>, Receiver<AlignedMessage>) = bounded::<AlignedMessage>(1000000);
+                        info!("Data channel '{d_label2}'-'{d_id2}' open.");
                         let d1 = d1.clone();
-                        info!{"WRTC SQ -> WRTC"};
-                        loop {
-                            let MessageWithSize = WebRTCSendQueue_rx.recv().unwrap();
-                            debug!{"Enqueued to WebRTC send queue: {MessageWithSize:?}, Queue size: {}.", WebRTCSendQueue_rx.len()};
-                            let buf = MessageWithSize.data;
-                            let amt = MessageWithSize.size;
-                            let d1=d1.clone();
-                                    debug!{"Blocking on DC send... Len: {}", amt};
-                                    let written_bytes = rt.block_on(d1.send(&Bytes::copy_from_slice(&buf[0..amt])));
-                                    match(written_bytes) {
-                                        Ok(Bytes) => {debug!{"OS->DC: Written {Bytes} bytes!"};},
-                                        #[cold] Err(E) => {
-                                            info!{"DataConnection {}: unable to send: {:?}.",
-                                            d1.label(),
-                                            E};
-                                            info!{"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
-                                            break;
+                        let d = d1.clone();
+                        let udp_sq_to_udp = thread::Builder::new()
+                            .name("UDP SQ -> UDP".to_string())
+                            .stack_size(THREAD_STACK_SIZE)
+                            .spawn(move || {
+                                loop {
+                                    debug! {"Blocking on dequeueing UDP send queue. Queue size: {}.", OtherSocketSendQueue_rx.len()};
+                                    let msg = (OtherSocketSendQueue_rx.recv().unwrap()).data;
+                                    debug! {"Block on UDP send queue dequeue is over"};
+                                    if (CAN_RECV.load(Ordering::Relaxed)) {
+                                        let (mut ClonedSocketSend) = (ClonedSocketSend.try_clone().expect(""));
+                                        log::debug! {"Message from the UDP send queue: {msg:?}"};
+                                        match (ClonedSocketSend.send(&msg)) {
+                                            Ok(amt) => {
+                                                debug! {"DC->OS: Written {} bytes.", amt};
+                                                //ClonedSocketSend.flush().expect("Unable to flush the stream.");
+                                            }
+                                            #[cold]
+                                            Err(E) => {
+                                                warn!("OtherSocket: Unable to write data.");
+                                                OtherSocketReady.store(false, Ordering::Relaxed);
+                                                block_on(d.close());
+                                            }
                                         }
                                     }
-                        }});
-                    match(wrtc_sq_to_wrtc){
-                        Ok(JH)=>{Threads.lock().push(JH)},
-                        Err(E) =>{error!{"Unable to spawn: {:?}", E}} 
+                                    //#[cold]
+                                    else {
+                                        if (OtherSocketSendBuf.lock().len() + msg.len() > MaxOtherSocketSendBufSize) {
+                                            warn! {"Buffer FULL: {} + {} > {}",
+                                            OtherSocketSendBuf.lock().len(),
+                                            msg.len(),
+                                            MaxOtherSocketSendBufSize
+                                            };
+                                        } else {
+                                            debug! {"OtherSocket not ready yet!"};
+                                            OtherSocketSendBuf.lock().extend_from_slice(&msg);
+                                        }
+                                    }
+                                }
+                            })
+                            .expect("Unable to spawn: UDP SQ -> UDP");
+                        Threads.lock().push(udp_sq_to_udp);
+                        let wrtc_sq_to_wrtc = thread::Builder::new().name("OS->DC".to_string()).stack_size(THREAD_STACK_SIZE).spawn(move || {
+                            info! {"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
+                            let udp_to_wrtc_sq = thread::Builder::new()
+                                .name("OS->DC".to_string())
+                                .stack_size(THREAD_STACK_SIZE)
+                                .spawn(move || {
+                                    log::info! {"Spawned thread: UDP -> WRTC SQ."};
+                                    let (mut ClonedSocketRecv) = (ClonedSocketRecv.try_clone().expect(""));
+                                    loop {
+                                        let mut buf = [0; PKT_SIZE];
+                                        debug! {"Blocking on recv..."};
+                                        let amt = ClonedSocketRecv.recv(&mut buf);
+                                        debug! {"Block on recv() over."};
+                                        match (amt) {
+                                            Ok(amt) => {
+                                                debug! {"Enqueueing to WebRTC Send Queue: {:?}", &buf[0..amt]};
+                                                WebRTCSendQueue_tx.try_send(AlignedMessage { size: amt, data: buf.into() });
+                                                debug! {"Enqueueing to WebRTC Send Queue block is over."};
+                                            }
+                                            #[cold]
+                                            Err(E) => {
+                                                info! {"OtherSocket: Connection closed."};
+                                                info! {"{:?}", E};
+                                                info! {"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
+                                                break;
+                                            }
+                                        }
+                                    }
+                                })
+                                .expect("Unable to spawn thread: UDP recv => WRTC SQ.");
+                            Threads.lock().push(udp_to_wrtc_sq);
+                            let rt = Builder::new_multi_thread().worker_threads(1).thread_name("TOKIO: OS->DC").build().unwrap();
+                            let d1 = d1.clone();
+                            info! {"WRTC SQ -> WRTC"};
+                            loop {
+                                let MessageWithSize = WebRTCSendQueue_rx.recv().unwrap();
+                                debug! {"Enqueued to WebRTC send queue: {MessageWithSize:?}, Queue size: {}.", WebRTCSendQueue_rx.len()};
+                                let buf = MessageWithSize.data;
+                                let amt = MessageWithSize.size;
+                                let d1 = d1.clone();
+                                debug! {"Blocking on DC send... Len: {}", amt};
+                                let written_bytes = rt.block_on(d1.send(&Bytes::copy_from_slice(&buf[0..amt])));
+                                match (written_bytes) {
+                                    Ok(Bytes) => {
+                                        debug! {"OS->DC: Written {Bytes} bytes!"};
+                                    }
+                                    #[cold]
+                                    Err(E) => {
+                                        info! {"DataConnection {}: unable to send: {:?}.",
+                                        d1.label(),
+                                        E};
+                                        info! {"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
+                                        break;
+                                    }
+                                }
+                            }
+                        });
+                        match (wrtc_sq_to_wrtc) {
+                            Ok(JH) => Threads.lock().push(JH),
+                            Err(E) => {
+                                error! {"Unable to spawn: {:?}", E}
+                            }
+                        }
+                        Box::pin(async move {})
                     }
-                    Box::pin(async move {
-                    })
-                }}));
+                }));
                 // Register text message handling
-                d2.on_message(Box::new({let d=d2.clone();
+                d2.on_message(Box::new({
+                    let d = d2.clone();
                     move |msg: DataChannelMessage| {
                         let msg = msg.data.to_vec();
                         trace!("Message from DataChannel '{d_label}': '{msg:?}'");
                         debug!("Message from DataChannel '{d_label}'.: '{msg:?}', size: {}'", msg.len());
-                        debug!{"Blocking on UDP send queue - Enque"};
-                        OtherSocketSendQueue_tx.try_send(AlignedMessage{size: 0, data: msg});
-                        debug!{"UDP send queue enqueue block is over."};
+                        debug! {"Blocking on UDP send queue - Enque"};
+                        OtherSocketSendQueue_tx.try_send(AlignedMessage { size: 0, data: msg });
+                        debug! {"UDP send queue enqueue block is over."};
                         Box::pin(async {})
-                    }}));
+                    }
+                }));
             }
         })
     }));
@@ -459,19 +417,11 @@ async fn configure_send_receive_udp(
     (Arc::clone(&RTCDC), OtherSocket) /*)*/
 }
 #[cfg(feature = "tcp")]
-async fn configure_send_receive_tcp(
-    RTCDC: Arc<RTCDataChannel>,
-    RTCPC: Arc<RTCPeerConnection>,
-    OtherSocket: TcpStream,
-) -> (Arc<RTCDataChannel>, TcpStream) /*, Box<dyn error::Error>>*/ {
+async fn configure_send_receive_tcp(RTCDC: Arc<RTCDataChannel>, RTCPC: Arc<RTCPeerConnection>, OtherSocket: TcpStream) -> (Arc<RTCDataChannel>, TcpStream) /*, Box<dyn error::Error>>*/ {
     // Register channel opening handling
     let d1 = Arc::clone(&RTCDC);
-    let mut ClonedSocketRecv = OtherSocket
-        .try_clone()
-        .expect("Unable to clone the TCP socket. :(");
-    let mut ClonedSocketSend = OtherSocket
-        .try_clone()
-        .expect("Unable to clone the TCP socket. :(");
+    let mut ClonedSocketRecv = OtherSocket.try_clone().expect("Unable to clone the TCP socket. :(");
+    let mut ClonedSocketSend = OtherSocket.try_clone().expect("Unable to clone the TCP socket. :(");
     RTCPC.on_data_channel(Box::new(move |d: Arc<RTCDataChannel>| {
         let d_label = d.label().to_owned();
         let d_id = d.id();
@@ -481,98 +431,89 @@ async fn configure_send_receive_tcp(
         Box::pin({
             let d1 = d1.clone();
 
-            let (mut ClonedSocketRecv, mut ClonedSocketSend) = (
-                ClonedSocketRecv.try_clone().expect(""),
-                ClonedSocketSend.try_clone().expect(""),
-                );
+            let (mut ClonedSocketRecv, mut ClonedSocketSend) = (ClonedSocketRecv.try_clone().expect(""), ClonedSocketSend.try_clone().expect(""));
             async move {
                 let d1 = Arc::clone(&d1);
                 let d2 = Arc::clone(&d);
                 let d_label2 = d_label.clone();
                 let d_id2 = d_id;
-                let (mut ClonedSocketRecv, mut ClonedSocketSend) = (
-                    ClonedSocketRecv.try_clone().expect(""),
-                    ClonedSocketSend.try_clone().expect(""),
-                    );
-                d.on_open(Box::new({let d1 = d1.clone(); move || {
-
-                    info!("Data channel '{d_label2}'-'{d_id2}' open.");
-                    let d1=d1.clone();
-                    let spawned = thread::Builder::new()
-                        .name("OS->DC".to_string())
-                        .stack_size(THREAD_STACK_SIZE)
-                        .spawn(move || {
-                        info!{"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
-                        let rt=Builder::new_multi_thread()
-                            .worker_threads(1)
-                            .thread_name("TOKIO: OS->DC")
-                            .build()
-                            .unwrap();
+                let (mut ClonedSocketRecv, mut ClonedSocketSend) = (ClonedSocketRecv.try_clone().expect(""), ClonedSocketSend.try_clone().expect(""));
+                d.on_open(Box::new({
+                    let d1 = d1.clone();
+                    move || {
+                        info!("Data channel '{d_label2}'-'{d_id2}' open.");
                         let d1 = d1.clone();
-                        let (mut ClonedSocketRecv) = (ClonedSocketRecv.try_clone().expect(""));
-                        loop {
-                            let d1=d1.clone();
-                            let mut buf = [0; PKT_SIZE];
-                            let amt = ClonedSocketRecv
-                                .read(&mut buf);
-                            match (amt){
-
-                                Ok(amt) => {
-                                    trace! {"{:?}", &buf[0..amt]};
-                                    debug!{"Blocking on DC send..."};
-                                    let written_bytes = rt.block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])));
-                                    match(written_bytes) {
-                                        Ok(Bytes) => {debug!{"OS->DC: Written {Bytes} bytes!"};},
-                                        #[cold] Err(E) => {
-                                            info!{"DataConnection {}: unable to send: {:?}.",
-                                            d1.label(),
-                                            E};
-                                            info!{"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
-                                            break;
+                        let spawned = thread::Builder::new().name("OS->DC".to_string()).stack_size(THREAD_STACK_SIZE).spawn(move || {
+                            info! {"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
+                            let rt = Builder::new_multi_thread().worker_threads(1).thread_name("TOKIO: OS->DC").build().unwrap();
+                            let d1 = d1.clone();
+                            let (mut ClonedSocketRecv) = (ClonedSocketRecv.try_clone().expect(""));
+                            loop {
+                                let d1 = d1.clone();
+                                let mut buf = [0; PKT_SIZE];
+                                let amt = ClonedSocketRecv.read(&mut buf);
+                                match (amt) {
+                                    Ok(amt) => {
+                                        trace! {"{:?}", &buf[0..amt]};
+                                        debug! {"Blocking on DC send..."};
+                                        let written_bytes = rt.block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])));
+                                        match (written_bytes) {
+                                            Ok(Bytes) => {
+                                                debug! {"OS->DC: Written {Bytes} bytes!"};
+                                            }
+                                            #[cold]
+                                            Err(E) => {
+                                                info! {"DataConnection {}: unable to send: {:?}.",
+                                                d1.label(),
+                                                E};
+                                                info! {"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
+                                                break;
+                                            }
                                         }
                                     }
-                                },
-                                #[cold] Err(E) => {
-                                    info!{"OtherSocket: Connection closed."};
-                                    info!{"{:?}", E};
-                                    info!{"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
-                                    break;
+                                    #[cold]
+                                    Err(E) => {
+                                        info! {"OtherSocket: Connection closed."};
+                                        info! {"{:?}", E};
+                                        info! {"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
+                                        break;
+                                    }
                                 }
                             }
-                        }});
-                    match(spawned){
-                        Ok(JH)=>{Threads.lock().push(JH)},
-                        Err(E) =>{error!{"Unable to spawn: {:?}", E}} 
+                        });
+                        match (spawned) {
+                            Ok(JH) => Threads.lock().push(JH),
+                            Err(E) => {
+                                error! {"Unable to spawn: {:?}", E}
+                            }
+                        }
+
+                        Box::pin(async move {})
                     }
-
-                    Box::pin(async move {
-                    })
-                }}));
-
+                }));
 
                 // Register text message handling
-                d.on_message(Box::new({let d=d.clone();
+                d.on_message(Box::new({
+                    let d = d.clone();
                     move |msg: DataChannelMessage| {
                         let msg = msg.data.to_vec();
                         trace!("Message from DataChannel '{d_label}': '{msg:?}'");
-                        if (CAN_RECV.load(Ordering::Relaxed)){
+                        if (CAN_RECV.load(Ordering::Relaxed)) {
                             let (mut ClonedSocketSend) = (ClonedSocketSend.try_clone().expect(""));
-                            match(
-                                ClonedSocketSend.write(&msg)
-                                )
-                            {
+                            match (ClonedSocketSend.write(&msg)) {
                                 Ok(amt) => {
-                                    debug!{"DC->OS: Written {} bytes.", amt};
+                                    debug! {"DC->OS: Written {} bytes.", amt};
                                     ClonedSocketSend.flush().expect("Unable to flush the stream.");
-                                },
-                                #[cold] Err(E) => {
+                                }
+                                #[cold]
+                                Err(E) => {
                                     warn!("OtherSocket: Unable to write data.");
                                     OtherSocketReady.store(false, Ordering::Relaxed);
                                     block_on(d.close());
                                 }
                             }
                         }
-                        // #[cold] 
+                        // #[cold]
                         else {
                             if (OtherSocketSendBuf.lock().len() + msg.len() > MaxOtherSocketSendBufSize) {
                                 warn! {"Buffer FULL: {} + {} > {}",
@@ -581,12 +522,13 @@ async fn configure_send_receive_tcp(
                                 MaxOtherSocketSendBufSize
                                 };
                             } else {
-                                debug!{"OtherSocket not ready yet!"};
+                                debug! {"OtherSocket not ready yet!"};
                                 OtherSocketSendBuf.lock().extend_from_slice(&msg);
                             }
                         }
                         Box::pin(async {})
-                    }}));
+                    }
+                }));
             }
         })
     }));
@@ -601,19 +543,11 @@ async fn configure_send_receive_tcp(
     (Arc::clone(&RTCDC), OtherSocket) /*)*/
 }
 #[cfg(feature = "uds")]
-async fn configure_send_receive_uds(
-    RTCDC: Arc<RTCDataChannel>,
-    RTCPC: Arc<RTCPeerConnection>,
-    OtherSocket: UnixStream,
-) -> (Arc<RTCDataChannel>, UnixStream) /*, Box<dyn error::Error>>*/ {
+async fn configure_send_receive_uds(RTCDC: Arc<RTCDataChannel>, RTCPC: Arc<RTCPeerConnection>, OtherSocket: UnixStream) -> (Arc<RTCDataChannel>, UnixStream) /*, Box<dyn error::Error>>*/ {
     // Register channel opening handling
     let d1 = Arc::clone(&RTCDC);
-    let mut ClonedSocketRecv = OtherSocket
-        .try_clone()
-        .expect("Unable to clone the TCP socket. :(");
-    let mut ClonedSocketSend = OtherSocket
-        .try_clone()
-        .expect("Unable to clone the TCP socket. :(");
+    let mut ClonedSocketRecv = OtherSocket.try_clone().expect("Unable to clone the TCP socket. :(");
+    let mut ClonedSocketSend = OtherSocket.try_clone().expect("Unable to clone the TCP socket. :(");
     RTCPC.on_data_channel(Box::new(move |d: Arc<RTCDataChannel>| {
         let d_label = d.label().to_owned();
         let d_id = d.id();
@@ -623,98 +557,89 @@ async fn configure_send_receive_uds(
         Box::pin({
             let d1 = d1.clone();
 
-            let (mut ClonedSocketRecv, mut ClonedSocketSend) = (
-                ClonedSocketRecv.try_clone().expect(""),
-                ClonedSocketSend.try_clone().expect(""),
-                );
+            let (mut ClonedSocketRecv, mut ClonedSocketSend) = (ClonedSocketRecv.try_clone().expect(""), ClonedSocketSend.try_clone().expect(""));
             async move {
                 let d1 = Arc::clone(&d1);
                 let d2 = Arc::clone(&d);
                 let d_label2 = d_label.clone();
                 let d_id2 = d_id;
-                let (mut ClonedSocketRecv, mut ClonedSocketSend) = (
-                    ClonedSocketRecv.try_clone().expect(""),
-                    ClonedSocketSend.try_clone().expect(""),
-                    );
-                d.on_open(Box::new({let d1 = d1.clone(); move || {
-
-                    info!("Data channel '{d_label2}'-'{d_id2}' open.");
-                    let d1=d1.clone();
-                    let spawned = thread::Builder::new()
-                        .name("OS->DC".to_string())
-                        .stack_size(THREAD_STACK_SIZE)
-                        .spawn(move || {
-                        info!{"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
-                        let rt=Builder::new_multi_thread()
-                            .worker_threads(1)
-                            .thread_name("TOKIO: OS->DC")
-                            .build()
-                            .unwrap();
+                let (mut ClonedSocketRecv, mut ClonedSocketSend) = (ClonedSocketRecv.try_clone().expect(""), ClonedSocketSend.try_clone().expect(""));
+                d.on_open(Box::new({
+                    let d1 = d1.clone();
+                    move || {
+                        info!("Data channel '{d_label2}'-'{d_id2}' open.");
                         let d1 = d1.clone();
-                        let (mut ClonedSocketRecv) = (ClonedSocketRecv.try_clone().expect(""));
-                        loop {
-                            let d1=d1.clone();
-                            let mut buf = [0; PKT_SIZE];
-                            let amt = ClonedSocketRecv
-                                .read(&mut buf);
-                            match (amt){
-
-                                Ok(amt) => {
-                                    trace! {"{:?}", &buf[0..amt]};
-                                    debug!{"Blocking on DC send..."};
-                                    let written_bytes = rt.block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])));
-                                    match(written_bytes) {
-                                        Ok(Bytes) => {debug!{"OS->DC: Written {Bytes} bytes!"};},
-                                        #[cold] Err(E) => {
-                                            info!{"DataConnection {}: unable to send: {:?}.",
-                                            d1.label(),
-                                            E};
-                                            info!{"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
-                                            break;
+                        let spawned = thread::Builder::new().name("OS->DC".to_string()).stack_size(THREAD_STACK_SIZE).spawn(move || {
+                            info! {"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
+                            let rt = Builder::new_multi_thread().worker_threads(1).thread_name("TOKIO: OS->DC").build().unwrap();
+                            let d1 = d1.clone();
+                            let (mut ClonedSocketRecv) = (ClonedSocketRecv.try_clone().expect(""));
+                            loop {
+                                let d1 = d1.clone();
+                                let mut buf = [0; PKT_SIZE];
+                                let amt = ClonedSocketRecv.read(&mut buf);
+                                match (amt) {
+                                    Ok(amt) => {
+                                        trace! {"{:?}", &buf[0..amt]};
+                                        debug! {"Blocking on DC send..."};
+                                        let written_bytes = rt.block_on(d2.send(&Bytes::copy_from_slice(&buf[0..amt])));
+                                        match (written_bytes) {
+                                            Ok(Bytes) => {
+                                                debug! {"OS->DC: Written {Bytes} bytes!"};
+                                            }
+                                            #[cold]
+                                            Err(E) => {
+                                                info! {"DataConnection {}: unable to send: {:?}.",
+                                                d1.label(),
+                                                E};
+                                                info! {"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
+                                                break;
+                                            }
                                         }
                                     }
-                                },
-                                #[cold] Err(E) => {
-                                    info!{"OtherSocket: Connection closed."};
-                                    info!{"{:?}", E};
-                                    info!{"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
-                                    break;
+                                    #[cold]
+                                    Err(E) => {
+                                        info! {"OtherSocket: Connection closed."};
+                                        info! {"{:?}", E};
+                                        info! {"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
+                                        break;
+                                    }
                                 }
                             }
-                        }});
-                    match(spawned){
-                        Ok(JH)=>{Threads.lock().push(JH)},
-                        Err(E) =>{error!{"Unable to spawn: {:?}", E}} 
+                        });
+                        match (spawned) {
+                            Ok(JH) => Threads.lock().push(JH),
+                            Err(E) => {
+                                error! {"Unable to spawn: {:?}", E}
+                            }
+                        }
+
+                        Box::pin(async move {})
                     }
-
-                    Box::pin(async move {
-                    })
-                }}));
-
+                }));
 
                 // Register text message handling
-                d.on_message(Box::new({let d=d.clone();
+                d.on_message(Box::new({
+                    let d = d.clone();
                     move |msg: DataChannelMessage| {
                         let msg = msg.data.to_vec();
                         trace!("Message from DataChannel '{d_label}': '{msg:?}'");
-                        if (CAN_RECV.load(Ordering::Relaxed)){
+                        if (CAN_RECV.load(Ordering::Relaxed)) {
                             let (mut ClonedSocketSend) = (ClonedSocketSend.try_clone().expect(""));
-                            match(
-                                ClonedSocketSend.write(&msg)
-                                )
-                            {
+                            match (ClonedSocketSend.write(&msg)) {
                                 Ok(amt) => {
-                                    debug!{"DC->OS: Written {} bytes.", amt};
+                                    debug! {"DC->OS: Written {} bytes.", amt};
                                     ClonedSocketSend.flush().expect("Unable to flush the stream.");
-                                },
-                                #[cold] Err(E) => {
+                                }
+                                #[cold]
+                                Err(E) => {
                                     warn!("OtherSocket: Unable to write data.");
                                     OtherSocketReady.store(false, Ordering::Relaxed);
                                     block_on(d.close());
                                 }
                             }
                         }
-                        // #[cold] 
+                        // #[cold]
                         else {
                             if (OtherSocketSendBuf.lock().len() + msg.len() > MaxOtherSocketSendBufSize) {
                                 warn! {"Buffer FULL: {} + {} > {}",
@@ -723,12 +648,13 @@ async fn configure_send_receive_uds(
                                 MaxOtherSocketSendBufSize
                                 };
                             } else {
-                                debug!{"OtherSocket not ready yet!"};
+                                debug! {"OtherSocket not ready yet!"};
                                 OtherSocketSendBuf.lock().extend_from_slice(&msg);
                             }
                         }
                         Box::pin(async {})
-                    }}));
+                    }
+                }));
             }
         })
     }));
@@ -775,21 +701,16 @@ fn read_offer_stdio(config: Config) -> String {
                 let mut line: String;
                 let mut buf: Vec<u8> = vec![];
                 BufReader::new(io::stdin()).read_until(b'/', &mut buf);
-                let lines: String =
-                    String::from(std::str::from_utf8(&buf).expect("Input not UTF-8"));
+                let lines: String = String::from(std::str::from_utf8(&buf).expect("Input not UTF-8"));
                 line = String::from(lines.replace("\n", "").replace("\r", "").replace(" ", ""));
                 let _ = line.pop();
                 offerBase64Text = line;
             } else {
-                let _ = io::stdin()
-                    .read_line(&mut offerBase64Text)
-                    .expect("Cannot read the offer!");
+                let _ = io::stdin().read_line(&mut offerBase64Text).expect("Cannot read the offer!");
             }
         }
         None => {
-            let _ = io::stdin()
-                .read_line(&mut offerBase64Text)
-                .expect("Cannot read the offer!");
+            let _ = io::stdin().read_line(&mut offerBase64Text).expect("Cannot read the offer!");
         }
     }
     offerBase64Text
@@ -805,41 +726,25 @@ fn read_offer_ws(config: Config) -> Option<String> {
     }
     if (AuthType == "Basic") {
         headers.set(Authorization(Basic {
-            username: config
-                .PublishAuthUser
-                .clone()
-                .expect("No user specified for WS(S) basic auth."),
+            username: config.PublishAuthUser.clone().expect("No user specified for WS(S) basic auth."),
             password: config.PublishAuthPass.clone(),
         }));
     } else if (AuthType == "Bearer") {
         headers.set(Authorization(Bearer {
-            token: config
-                .PublishAuthUser
-                .clone()
-                .expect("No user specified for WS(S) basic auth."),
+            token: config.PublishAuthUser.clone().expect("No user specified for WS(S) basic auth."),
         }));
     }
-    let mut client = ClientBuilder::new(
-        &config
-            .PublishEndpoint
-            .clone()
-            .expect("No WS(S) endpoint specified."),
-    )
-    .unwrap()
-    .custom_headers(&headers)
-    .connect(None)
-    .unwrap();
+    let mut client = ClientBuilder::new(&config.PublishEndpoint.clone().expect("No WS(S) endpoint specified."))
+        .unwrap()
+        .custom_headers(&headers)
+        .connect(None)
+        .unwrap();
     if let Some(ref PeerAuthType) = config.PeerAuthType {
         if PeerAuthType == "PSK" {
             let aanswer = client.recv_message().expect("WS: Unable to receive.");
             if let Text(aanswer) = aanswer {
-                let AuthenticatedMessage: HashAuthenticatedMessage =
-                    serde_json::from_str(&aanswer).expect("Deserialization error.");
-                let answer = CheckAndReturn(
-                    VerifyAndReturn(AuthenticatedMessage, config)
-                        .expect("An error occured while deserializing."),
-                )
-                .expect("Authentication error.");
+                let AuthenticatedMessage: HashAuthenticatedMessage = serde_json::from_str(&aanswer).expect("Deserialization error.");
+                let answer = CheckAndReturn(VerifyAndReturn(AuthenticatedMessage, config).expect("An error occured while deserializing.")).expect("Authentication error.");
                 Some(answer)
             } else {
                 log::error!("Malformed response received from the WS endpoint");
@@ -853,10 +758,7 @@ fn read_offer_ws(config: Config) -> Option<String> {
         None
     }
 }
-fn write_answer(
-    local: Option<RTCSessionDescription>,
-    config: Config,
-) -> Result<(), Box<dyn error::Error>> {
+fn write_answer(local: Option<RTCSessionDescription>, config: Config) -> Result<(), Box<dyn error::Error>> {
     if let Some(true) = config.Publish {
         if let Some(ref ptype) = config.PublishType {
             match (ptype.as_str()) {
@@ -878,16 +780,11 @@ fn write_answer(
     }
 }
 fn write_answer_stdio(local: Option<RTCSessionDescription>, config: Config) -> () {
-    let json_str = serde_json::to_string(&(local.expect("Empty local SD.")))
-        .expect("Could not serialize the localDescription to JSON");
+    let json_str = serde_json::to_string(&(local.expect("Empty local SD."))).expect("Could not serialize the localDescription to JSON");
     println! {"{}", encode(&json_str)};
 }
-fn write_answer_ws(
-    local: Option<RTCSessionDescription>,
-    config: Config,
-) -> Result<(), Box<dyn Error>> {
-    let json_str = serde_json::to_string(&(local.expect("Empty local SD.")))
-        .expect("Could not serialize the localDescription to JSON");
+fn write_answer_ws(local: Option<RTCSessionDescription>, config: Config) -> Result<(), Box<dyn Error>> {
+    let json_str = serde_json::to_string(&(local.expect("Empty local SD."))).expect("Could not serialize the localDescription to JSON");
     let mut offerBase64Text: String = String::new();
     let mut headers = Headers::new();
     let AuthType: String;
@@ -898,54 +795,34 @@ fn write_answer_ws(
     }
     if (AuthType == "Basic") {
         headers.set(Authorization(Basic {
-            username: config
-                .PublishAuthUser
-                .clone()
-                .expect("No user specified for WS(S) basic auth."),
+            username: config.PublishAuthUser.clone().expect("No user specified for WS(S) basic auth."),
             password: config.PublishAuthPass.clone(),
         }));
     } else if (AuthType == "Bearer") {
         headers.set(Authorization(Bearer {
-            token: config
-                .PublishAuthUser
-                .clone()
-                .expect("No user specified for WS(S) basic auth."),
+            token: config.PublishAuthUser.clone().expect("No user specified for WS(S) basic auth."),
         }));
     }
-    let mut client = ClientBuilder::new(
-        &config
-            .PublishEndpoint
-            .clone()
-            .expect("No WS(S) endpoint specified."),
-    )
-    .unwrap()
-    .custom_headers(&headers)
-    .connect(None)
-    .unwrap();
+    let mut client = ClientBuilder::new(&config.PublishEndpoint.clone().expect("No WS(S) endpoint specified."))
+        .unwrap()
+        .custom_headers(&headers)
+        .connect(None)
+        .unwrap();
     if let Some(ref PeerAuthType) = config.PeerAuthType {
         if PeerAuthType == "PSK" {
             let tmessage: TimedMessage = ConstructMessage(encode(&json_str));
-            let amessage: HashAuthenticatedMessage =
-                ConstructAuthenticatedMessage(tmessage, config.clone());
-            let message = websocket::Message::text(
-                serde_json::to_string(&amessage).expect("Serialization error"),
-            );
+            let amessage: HashAuthenticatedMessage = ConstructAuthenticatedMessage(tmessage, config.clone());
+            let message = websocket::Message::text(serde_json::to_string(&amessage).expect("Serialization error"));
             client.send_message(&message).expect("WS: Unable to send.");
             Ok(())
         } else {
             log::error! {"Unsupported peer authentication type: {}", PeerAuthType};
-            Err(Box::new(ioError::new(
-                ErrorKind::InvalidInput,
-                "Invalid PeerAuthType.",
-            )))
+            Err(Box::new(ioError::new(ErrorKind::InvalidInput, "Invalid PeerAuthType.")))
         }
     } else {
         let tmessage: TimedMessage = ConstructMessage(encode(&json_str));
-        let amessage: HashAuthenticatedMessage =
-            ConstructAuthenticatedMessage(tmessage, config.clone());
-        let message = websocket::Message::text(
-            serde_json::to_string(&amessage).expect("Serialization error"),
-        );
+        let amessage: HashAuthenticatedMessage = ConstructAuthenticatedMessage(tmessage, config.clone());
+        let message = websocket::Message::text(serde_json::to_string(&amessage).expect("Serialization error"));
         client.send_message(&message).expect("WS: Unable to send.");
         Ok(())
     }
@@ -984,67 +861,44 @@ fn main() {
     info!("Configuration: type: {}", config.Type);
     if (config.WebRTCMode == "Accept") {
         //let rt = Runtime::new().unwrap();
-        let rt = Builder::new_multi_thread()
-            .worker_threads(2)
-            .enable_all()
-            .thread_name("TOKIO: main")
-            .build()
-            .unwrap();
+        let rt = Builder::new_multi_thread().worker_threads(2).enable_all().thread_name("TOKIO: main").build().unwrap();
 
         let offerBase64TextTrimmed = read_offer(config.clone());
         info! {"Read offer: {}", offerBase64TextTrimmed};
         let offer = decode(&offerBase64TextTrimmed).expect("base64 conversion error");
-        let offerRTCSD = serde_json::from_str::<RTCSessionDescription>(&offer)
-            .expect("Error parsing the offer!");
-        let (mut data_channel, mut peer_connection, mut answer, local_description) = rt
-            .block_on(accept_WebRTC_offer(offerRTCSD, &config))
-            .expect("Failed creating a WebRTC Data Channel.");
-        (peer_connection, data_channel) = rt
-            .block_on(handle_offer(
-                peer_connection,
-                data_channel,
-                (*answer).clone(),
-            ))
-            .expect("Error acccepting offer!");
-        let ConnectAddress = config
-            .Address
-            .clone()
-            .expect("Binding address not specified");
-        let Watchdog = thread::Builder::new()
-            .name("Watchdog".to_string())
-            .spawn(move || {
-                debug! {"Inactivity monitoring watchdog has started"}
-                loop {
-                    let five_seconds = time::Duration::from_secs(5);
-                    debug! {"Watchdog will sleep for five seconds."};
-                    let current_time : u64 = chrono::Utc::now().timestamp().try_into().expect(
-                        "This software is not supposed to be used before UNIX was invented.",
-                        );
-                    debug!{
-                        "Stream was last active {} seconds ago. The current time is: {}. Last active time: {}.", 
-                        current_time - STREAM_LAST_ACTIVE_TIME.load(Ordering::Relaxed),
-                        current_time,
-                        STREAM_LAST_ACTIVE_TIME.load(Ordering::Relaxed)
-                    };
-                    for thread in Threads.lock().iter(){
-                        if (thread.is_finished()){
-                            info!{"Done, dead or killed: {:?}", thread};
-                        }
-                        else{
-                            info!{"Alive: {:?}", thread};
-                        }
+        let offerRTCSD = serde_json::from_str::<RTCSessionDescription>(&offer).expect("Error parsing the offer!");
+        let (mut data_channel, mut peer_connection, mut answer, local_description) = rt.block_on(accept_WebRTC_offer(offerRTCSD, &config)).expect("Failed creating a WebRTC Data Channel.");
+        (peer_connection, data_channel) = rt.block_on(handle_offer(peer_connection, data_channel, (*answer).clone())).expect("Error acccepting offer!");
+        let ConnectAddress = config.Address.clone().expect("Binding address not specified");
+        let Watchdog = thread::Builder::new().name("Watchdog".to_string()).spawn(move || {
+            debug! {"Inactivity monitoring watchdog has started"}
+            loop {
+                let five_seconds = time::Duration::from_secs(5);
+                debug! {"Watchdog will sleep for five seconds."};
+                let current_time: u64 = chrono::Utc::now().timestamp().try_into().expect("This software is not supposed to be used before UNIX was invented.");
+                debug! {
+                    "Stream was last active {} seconds ago. The current time is: {}. Last active time: {}.",
+                    current_time - STREAM_LAST_ACTIVE_TIME.load(Ordering::Relaxed),
+                    current_time,
+                    STREAM_LAST_ACTIVE_TIME.load(Ordering::Relaxed)
+                };
+                for thread in Threads.lock().iter() {
+                    if (thread.is_finished()) {
+                        info! {"Done, dead or killed: {:?}", thread};
+                    } else {
+                        info! {"Alive: {:?}", thread};
                     }
-                    thread::sleep(five_seconds);
-                    debug! {"Watchdog: Resuming..."};
                 }
-            });
+                thread::sleep(five_seconds);
+                debug! {"Watchdog: Resuming..."};
+            }
+        });
         let mut buf = [0; PKT_SIZE];
         if (config.Type == "UDP") {
             info! {"UDP socket requested"};
             let ConnectPort = config.Port.clone().expect("Connecting port not specified");
             info! {"Connecting to UDP to address {} port {}", ConnectAddress, ConnectPort};
-            let mut OtherSocket =
-                UdpSocket::bind("0.0.0.0:0").expect("UDP Socket: unable to bind: 0.0.0.0:0.");
+            let mut OtherSocket = UdpSocket::bind("0.0.0.0:0").expect("UDP Socket: unable to bind: 0.0.0.0:0.");
             /*.connect(format! {"{}:{}", ConnectAddress, ConnectPort})
             .expect(&format! {
                 "Could not connect to UDP port: {}:{}", &ConnectAddress, &ConnectPort
@@ -1056,26 +910,17 @@ fn main() {
                     "{}:{}", ConnectAddress, ConnectPort
                 }});
             STREAM_LAST_ACTIVE_TIME.store(
-                chrono::Utc::now()
-                    .timestamp()
-                    .try_into()
-                    .expect("This software is not supposed to be used before UNIX was invented."),
+                chrono::Utc::now().timestamp().try_into().expect("This software is not supposed to be used before UNIX was invented."),
                 Ordering::Relaxed,
             );
-            (data_channel, OtherSocket) = rt.block_on(configure_send_receive_udp(
-                data_channel,
-                peer_connection,
-                OtherSocket,
-            ));
+            (data_channel, OtherSocket) = rt.block_on(configure_send_receive_udp(data_channel, peer_connection, OtherSocket));
         } else if (config.Type == "TCP") {
             #[cfg(feature = "tcp")]
             {
                 info! {"TCP socket requested"};
                 let ConnectPort = config.Port.clone().expect("Connecting port not specified");
                 info! {"Connecting TCP on address {} port {}", ConnectAddress, ConnectPort};
-                let mut OtherSocket =
-                    TcpStream::connect(format!("{}:{}", ConnectAddress, ConnectPort))
-                        .expect("Error getting the TCP stream");
+                let mut OtherSocket = TcpStream::connect(format!("{}:{}", ConnectAddress, ConnectPort)).expect("Error getting the TCP stream");
                 debug! {"Attempting to write the send buffer: {:?}", &OtherSocketSendBuf.lock()};
                 OtherSocket.write(&OtherSocketSendBuf.lock());
                 info! {"Connected to TCP: address {} port {}", ConnectAddress, ConnectPort};
@@ -1084,16 +929,10 @@ fn main() {
                     Err(_) => warn!("SO_NODELAY failed."),
                 }
                 STREAM_LAST_ACTIVE_TIME.store(
-                    chrono::Utc::now().timestamp().try_into().expect(
-                        "This software is not supposed to be used before UNIX was invented.",
-                    ),
+                    chrono::Utc::now().timestamp().try_into().expect("This software is not supposed to be used before UNIX was invented."),
                     Ordering::Relaxed,
                 );
-                (data_channel, OtherSocket) = rt.block_on(configure_send_receive_tcp(
-                    data_channel,
-                    peer_connection,
-                    OtherSocket,
-                ));
+                (data_channel, OtherSocket) = rt.block_on(configure_send_receive_tcp(data_channel, peer_connection, OtherSocket));
             }
             #[cfg(not(feature = "tcp"))]
             {
@@ -1103,13 +942,8 @@ fn main() {
             #[cfg(feature = "uds")]
             {
                 info! {"Unix Domain Socket requested."};
-                let mut OtherSocket =
-                    UnixStream::connect(ConnectAddress).expect("UDS connect error");
-                (data_channel, OtherSocket) = rt.block_on(configure_send_receive_uds(
-                    data_channel,
-                    peer_connection,
-                    OtherSocket,
-                ));
+                let mut OtherSocket = UnixStream::connect(ConnectAddress).expect("UDS connect error");
+                (data_channel, OtherSocket) = rt.block_on(configure_send_receive_uds(data_channel, peer_connection, OtherSocket));
             }
             #[cfg(not(feature = "uds"))]
             {
