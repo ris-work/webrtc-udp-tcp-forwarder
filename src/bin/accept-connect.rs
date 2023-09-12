@@ -306,6 +306,7 @@ async fn configure_send_receive_udp(
             async move {
                 let d1 = Arc::clone(&d1);
                 let d2 = Arc::clone(&d);
+                let d3 = Arc::clone(&d);
                 let d_label2 = d_label.clone();
                 let d_id2 = d_id;
                 let (mut ClonedSocketRecv, mut ClonedSocketSend) = (ClonedSocketRecv.try_clone().expect(""), ClonedSocketSend.try_clone().expect(""));
@@ -398,7 +399,7 @@ async fn configure_send_receive_udp(
                                 let amt = MessageWithSize.size;
                                 let d1 = d1.clone();
                                 debug! {"Blocking on DC send... Len: {}", amt};
-                                let written_bytes = rt.block_on(d1.send(&Bytes::copy_from_slice(&buf[0..amt])));
+                                let written_bytes = rt.block_on(d3.send(&Bytes::copy_from_slice(&buf[0..amt])));
                                 match (written_bytes) {
                                     Ok(Bytes) => {
                                         debug! {"OS->DC: Written {Bytes} bytes!"};
