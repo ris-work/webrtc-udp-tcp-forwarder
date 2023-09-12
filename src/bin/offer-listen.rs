@@ -247,11 +247,11 @@ async fn configure_send_receive_udp(
     let (OtherSocketSendQueue_tx, OtherSocketSendQueue_rx): (
         Sender<AlignedMessage>,
         Receiver<AlignedMessage>,
-    ) = bounded::<AlignedMessage>(10000);
+    ) = bounded::<AlignedMessage>(128);
     let (WebRTCSendQueue_tx, WebRTCSendQueue_rx): (
         Sender<AlignedMessage>,
         Receiver<AlignedMessage>,
-    ) = bounded::<AlignedMessage>(10000);
+    ) = bounded::<AlignedMessage>(128);
     let d1 = Arc::clone(&RTCDC);
     let mut ClonedSocketRecv = OtherSocket
         .try_clone()
@@ -267,7 +267,7 @@ async fn configure_send_receive_udp(
             .name("OS->DC".to_string())
             .spawn(move || {
                 info! {"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
-                let rt = Builder::new_multi_thread().worker_threads(1).thread_name("TOKIO: OS->DC").build().unwrap();
+                let rt = Builder::new_multi_thread().worker_threads(2).thread_name("TOKIO: OS->DC").build().unwrap();
                 thread::Builder::new()
                     .stack_size(THREAD_STACK_SIZE)
                     .name("OS->DC".to_string())

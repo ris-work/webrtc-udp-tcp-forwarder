@@ -293,7 +293,7 @@ async fn configure_send_receive_udp(
         .expect("Unable to clone the TCP socket. :(");
 
     RTCPC.on_data_channel(Box::new(move |d: Arc<RTCDataChannel>| {
-        let (OtherSocketSendQueue_tx, OtherSocketSendQueue_rx): (Sender<AlignedMessage>, Receiver<AlignedMessage>) = bounded::<AlignedMessage>(10000);
+        let (OtherSocketSendQueue_tx, OtherSocketSendQueue_rx): (Sender<AlignedMessage>, Receiver<AlignedMessage>) = bounded::<AlignedMessage>(128);
         let d_label = d.label().to_owned();
         let d_id = d.id();
         info!("New DataChannel {d_label} {d_id}");
@@ -313,7 +313,7 @@ async fn configure_send_receive_udp(
                 d.on_open(Box::new({
                     let d1 = d1.clone();
                     move || {
-                        let (WebRTCSendQueue_tx, WebRTCSendQueue_rx): (Sender<AlignedMessage>, Receiver<AlignedMessage>) = bounded::<AlignedMessage>(10000);
+                        let (WebRTCSendQueue_tx, WebRTCSendQueue_rx): (Sender<AlignedMessage>, Receiver<AlignedMessage>) = bounded::<AlignedMessage>(128);
                         info!("Data channel '{d_label2}'-'{d_id2}' open.");
                         let d1 = d1.clone();
                         let d = d1.clone();
@@ -389,7 +389,7 @@ async fn configure_send_receive_udp(
                                 })
                                 .expect("Unable to spawn thread: UDP recv => WRTC SQ.");
                             Threads.lock().push(udp_to_wrtc_sq);
-                            let rt = Builder::new_multi_thread().worker_threads(1).thread_name("TOKIO: OS->DC").build().unwrap();
+                            let rt = Builder::new_multi_thread().worker_threads(2).thread_name("TOKIO: OS->DC").build().unwrap();
                             let d1 = d1.clone();
                             info! {"WRTC SQ -> WRTC"};
                             loop {
