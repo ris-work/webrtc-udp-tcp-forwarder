@@ -82,7 +82,7 @@ static DataChannelReady: AtomicBool = AtomicBool::new(false);
 static CAN_RECV: AtomicBool = AtomicBool::new(true);
 static MaxOtherSocketSendBufSize: usize = 2048;
 static THREAD_STACK_SIZE: usize = 204800;
-pub const PKT_SIZE: usize = 2046;
+pub const PKT_SIZE: usize = 2040;
 
 lazy_static! {
     static ref OtherSocketSendBuf: Mutex<Vec<u8>> = Mutex::new(Vec::new());
@@ -247,11 +247,11 @@ async fn configure_send_receive_udp(
     let (OtherSocketSendQueue_tx, OtherSocketSendQueue_rx): (
         Sender<AlignedMessage>,
         Receiver<AlignedMessage>,
-    ) = bounded::<AlignedMessage>(1000);
+    ) = bounded::<AlignedMessage>(10000);
     let (WebRTCSendQueue_tx, WebRTCSendQueue_rx): (
         Sender<AlignedMessage>,
         Receiver<AlignedMessage>,
-    ) = bounded::<AlignedMessage>(1000);
+    ) = bounded::<AlignedMessage>(10000);
     let d1 = Arc::clone(&RTCDC);
     let mut ClonedSocketRecv = OtherSocket
         .try_clone()

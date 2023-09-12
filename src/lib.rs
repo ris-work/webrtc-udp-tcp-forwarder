@@ -132,6 +132,6 @@ pub mod AlignedMessage {
     #[derive(Debug)]
     pub struct AlignedMessage {
         pub size: usize,
-        pub data: Vec<u8>,
+        pub data: [u8; 2040],
     }
 }
