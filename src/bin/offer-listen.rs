@@ -326,7 +326,7 @@ async fn configure_send_receive_udp(
                 let MessageWithSize = OtherSocketSendQueue_rx.recv().unwrap();
                 let msg = MessageWithSize.data;
                 let amt = MessageWithSize.size;
-                if (CAN_RECV.load(Ordering::Relaxed)) {
+                //if (CAN_RECV.load(Ordering::Relaxed)) {
                     match (ClonedSocketSend.send(&msg)) {
                         Ok(amt) => {
                             debug! {"DC->OS: Written {} bytes.", amt};
@@ -338,7 +338,7 @@ async fn configure_send_receive_udp(
                             warn!("Unable to write data.");
                         }
                     }
-                } else {
+                /*} else {
                     if (OtherSocketSendBuf.lock().len() + msg.len() > MaxOtherSocketSendBufSize) {
                         warn! {"Buffer FULL: {} + {} > {}",
                         OtherSocketSendBuf.lock().len(),
@@ -348,7 +348,7 @@ async fn configure_send_receive_udp(
                     } else {
                         OtherSocketSendBuf.lock().extend_from_slice(&msg);
                     }
-                }
+                }*/
             }
         })
         .expect("Unable to spawn thread: SQ -> UDP");

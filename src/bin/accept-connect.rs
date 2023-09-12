@@ -324,7 +324,7 @@ async fn configure_send_receive_udp(
                                     debug! {"Blocking on dequeueing UDP send queue. Queue size: {}.", OtherSocketSendQueue_rx.len()};
                                     let msg = (OtherSocketSendQueue_rx.recv().unwrap()).data;
                                     debug! {"Block on UDP send queue dequeue is over"};
-                                    if (CAN_RECV.load(Ordering::Relaxed)) {
+                                    //if (CAN_RECV.load(Ordering::Relaxed)) {
                                         let (mut ClonedSocketSend) = (ClonedSocketSend.try_clone().expect(""));
                                         log::debug! {"Message from the UDP send queue: {msg:?}"};
                                         match (ClonedSocketSend.send(&msg)) {
@@ -339,7 +339,7 @@ async fn configure_send_receive_udp(
                                                 block_on(d.close());
                                             }
                                         }
-                                    }
+                                    /*}
                                     //#[cold]
                                     else {
                                         if (OtherSocketSendBuf.lock().len() + msg.len() > MaxOtherSocketSendBufSize) {
@@ -352,7 +352,7 @@ async fn configure_send_receive_udp(
                                             debug! {"OtherSocket not ready yet!"};
                                             OtherSocketSendBuf.lock().extend_from_slice(&msg);
                                         }
-                                    }
+                                    }*/
                                 }
                             })
                             .expect("Unable to spawn: UDP SQ -> UDP");
