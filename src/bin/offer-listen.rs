@@ -297,7 +297,7 @@ async fn configure_send_receive_udp(
     RTCDC.on_message(Box::new(move |msg: DataChannelMessage| {
         let msg = msg.data.to_vec();
         trace!("Message from DataChannel '{d_label}': '{msg:?}'");
-        if (CAN_RECV.load(Ordering::Relaxed)) {
+        //if (CAN_RECV.load(Ordering::Relaxed)) {
             match (ClonedSocketSend.send(&msg)) {
                 Ok(amt) => {
                     debug! {"DC->OS: Written {} bytes.", amt};
@@ -309,7 +309,7 @@ async fn configure_send_receive_udp(
                     warn!("Unable to write data.");
                 }
             }
-        } else {
+        /*} else {
             if (OtherSocketSendBuf.lock().len() + msg.len() > MaxOtherSocketSendBufSize) {
                 warn! {"Buffer FULL: {} + {} > {}",
                 OtherSocketSendBuf.lock().len(),
@@ -319,7 +319,7 @@ async fn configure_send_receive_udp(
             } else {
                 OtherSocketSendBuf.lock().extend_from_slice(&msg);
             }
-        }
+        }*/
         Box::pin(async {})
     }));
     let (done_tx, mut done_rx) = tokio::sync::mpsc::channel::<()>(1);

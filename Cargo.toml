@@ -35,7 +35,7 @@ sha2 = "0.10.7"
 tokio = "1.32.0"
 toml = "0.7.8"
 uds_windows = "1.0.2"
-webrtc =  "0.8.0"
+webrtc =  "0.9.0"
 websocket = "0.26.5"
 openssl = {version = "0.10", features = ["vendored"]}
 

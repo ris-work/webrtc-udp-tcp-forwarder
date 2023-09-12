@@ -372,7 +372,7 @@ async fn configure_send_receive_udp(
                     move |msg: DataChannelMessage| {
                         let msg = msg.data.to_vec();
                         trace!("Message from DataChannel '{d_label}': '{msg:?}'");
-                        if (CAN_RECV.load(Ordering::Relaxed)){
+                        //if (CAN_RECV.load(Ordering::Relaxed)){
                             let (mut ClonedSocketSend) = (ClonedSocketSend.try_clone().expect(""));
                             match(
                                 ClonedSocketSend.send(&msg)
@@ -390,7 +390,7 @@ async fn configure_send_receive_udp(
                             }
                         }
                         //#[cold] 
-                        else {
+                        /*else {
                             if (OtherSocketSendBuf.lock().len() + msg.len() > MaxOtherSocketSendBufSize) {
                                 warn! {"Buffer FULL: {} + {} > {}",
                                 OtherSocketSendBuf.lock().len(),
@@ -401,7 +401,7 @@ async fn configure_send_receive_udp(
                                 debug!{"OtherSocket not ready yet!"};
                                 OtherSocketSendBuf.lock().extend_from_slice(&msg);
                             }
-                        }
+                        }*/
                         Box::pin(async {})
                     }}));
             }
