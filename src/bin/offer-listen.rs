@@ -277,7 +277,7 @@ async fn configure_send_receive_udp(
                             Ok(amt) => {
                                 trace! {"{:?}", &buf[0..amt]};
                                 debug! {"Enqueued..."};
-                                let _ = WebRTCSendQueue_tx.send(AlignedMessage { size: amt, data: buf.into() });
+                                let _ = WebRTCSendQueue_tx.try_send(AlignedMessage { size: amt, data: buf.into() });
                             }
                             Err(E) => {
                                 warn!("Unable to read or save to the buffer: {:?}", E);
@@ -357,7 +357,7 @@ async fn configure_send_receive_udp(
     RTCDC.on_message(Box::new(move |msg: DataChannelMessage| {
         let msg = msg.data.to_vec();
         trace!("Message from DataChannel '{d_label}': '{msg:?}'");
-        OtherSocketSendQueue_tx.send(AlignedMessage { size: 0, data: msg });
+        OtherSocketSendQueue_tx.try_send(AlignedMessage { size: 0, data: msg });
 
         Box::pin(async {})
     }));
