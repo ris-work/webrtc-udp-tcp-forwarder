@@ -388,7 +388,7 @@ async fn configure_send_receive_udp(
                                     block_on(d.close());
                                 }
                             }
-                        }
+                        //}
                         //#[cold] 
                         /*else {
                             if (OtherSocketSendBuf.lock().len() + msg.len() > MaxOtherSocketSendBufSize) {
