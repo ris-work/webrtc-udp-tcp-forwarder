@@ -59,9 +59,16 @@ pub mod hmac {
         pub MessageWithTime: String,
         pub MAC: String,
     }
-    pub fn ConstructAuthenticatedMessage(Timed: TimedMessage, config: Config) -> HashAuthenticatedMessage {
-        let SerializedMessage: String = serde_json::to_string(&Timed).expect("Unable to serialize.");
-        let mut MacGen = Hmac::<Sha256>::new_from_slice(config.PeerPSK.expect("No peer PSK provided.").as_bytes()).expect("Unable to load the MAC generator.");
+    pub fn ConstructAuthenticatedMessage(
+        Timed: TimedMessage,
+        config: Config,
+    ) -> HashAuthenticatedMessage {
+        let SerializedMessage: String =
+            serde_json::to_string(&Timed).expect("Unable to serialize.");
+        let mut MacGen = Hmac::<Sha256>::new_from_slice(
+            config.PeerPSK.expect("No peer PSK provided.").as_bytes(),
+        )
+        .expect("Unable to load the MAC generator.");
         MacGen.update(SerializedMessage.as_bytes());
         let Mac = MacGen.finalize();
         HashAuthenticatedMessage {
@@ -69,9 +76,14 @@ pub mod hmac {
             MAC: String::from(hex::encode(Mac.into_bytes())),
         }
     }
-    pub fn VerifyAndReturn(Msg: HashAuthenticatedMessage, config: Config) -> stdResult<TimedMessage, Box<dyn Error>> {
+    pub fn VerifyAndReturn(
+        Msg: HashAuthenticatedMessage,
+        config: Config,
+    ) -> stdResult<TimedMessage, Box<dyn Error>> {
         let MAC = hex::decode(Msg.MAC)?;
-        let mut MacGen = Hmac::<Sha256>::new_from_slice(config.PeerPSK.expect("No peer PSK provided.").as_bytes())?;
+        let mut MacGen = Hmac::<Sha256>::new_from_slice(
+            config.PeerPSK.expect("No peer PSK provided.").as_bytes(),
+        )?;
         MacGen.update(Msg.MessageWithTime.as_bytes());
         MacGen.verify_slice(&MAC[..])?;
         let Timed: TimedMessage = serde_json::from_str(&Msg.MessageWithTime)?;
