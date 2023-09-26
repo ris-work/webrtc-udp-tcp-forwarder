@@ -241,7 +241,8 @@ async fn create_WebRTC_offer(
 async fn configure_send_receive_udp(
     RTCDC: Arc<RTCDataChannel>,
     OtherSocket: UdpSocket,
-) -> (Arc<RTCDataChannel>, UdpSocket) /*, Box<dyn error::Error>>*/ {
+) -> (Arc<RTCDataChannel>, UdpSocket) /*, Box<dyn error::Error>>*/
+{
     // Register channel opening handling
     info! {"Configuring UDP<=>RTCDC..."};
     let (OtherSocketSendQueue_tx, OtherSocketSendQueue_rx): (
@@ -267,7 +268,11 @@ async fn configure_send_receive_udp(
             .name("OS->DC".to_string())
             .spawn(move || {
                 info! {"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
-                let rt = Builder::new_multi_thread().worker_threads(2).thread_name("TOKIO: OS->DC").build().unwrap();
+                let rt = Builder::new_multi_thread()
+                    .worker_threads(2)
+                    .thread_name("TOKIO: OS->DC")
+                    .build()
+                    .unwrap();
                 thread::Builder::new()
                     .stack_size(THREAD_STACK_SIZE)
                     .name("OS->DC".to_string())
@@ -315,6 +320,17 @@ async fn configure_send_receive_udp(
                 }
             })
             .expect("Unable to spawn thread: WRTC Q -> WRTC DC");
+        #[cfg(feature = "queuemon")]
+        let QueueMon = thread::Builder::new().name("QueueMon".to_string()).spawn(move || {
+            debug! {"Inactivity monitoring watchdog has started"}
+            loop {
+                let five_seconds = time::Duration::from_secs(10);
+                info! {"WebRTC SendQueue: {}, OtherSocketSendQueue: {}.", WebRTCSendQueue_tx.len(), OtherSocketSendQueue_tx.len()};
+                debug! {"QueueMon will sleep for five seconds."};
+                thread::sleep(five_seconds);
+                debug! {"Watchdog: Resuming..."};
+            }
+        });
 
         Box::pin(async move {})
     }));
@@ -327,17 +343,17 @@ async fn configure_send_receive_udp(
                 let msg = MessageWithSize.data;
                 let amt = MessageWithSize.size;
                 //if (CAN_RECV.load(Ordering::Relaxed)) {
-                    match (ClonedSocketSend.send(&msg)) {
-                        Ok(amt) => {
-                            debug! {"DC->OS: Written {} bytes.", amt};
-                            //ClonedSocketSend
-                            //    .flush()
-                            //    .expect("Unable to flush the stream.");
-                        }
-                        Err(E) => {
-                            warn!("Unable to write data.");
-                        }
+                match (ClonedSocketSend.send(&msg)) {
+                    Ok(amt) => {
+                        debug! {"DC->OS: Written {} bytes.", amt};
+                        //ClonedSocketSend
+                        //    .flush()
+                        //    .expect("Unable to flush the stream.");
                     }
+                    Err(E) => {
+                        warn!("Unable to write data.");
+                    }
+                }
                 /*} else {
                     if (OtherSocketSendBuf.lock().len() + msg.len() > MaxOtherSocketSendBufSize) {
                         warn! {"Buffer FULL: {} + {} > {}",
@@ -373,7 +389,8 @@ async fn configure_send_receive_udp(
 async fn configure_send_receive_tcp(
     RTCDC: Arc<RTCDataChannel>,
     OtherSocket: TcpStream,
-) -> (Arc<RTCDataChannel>, TcpStream) /*, Box<dyn error::Error>>*/ {
+) -> (Arc<RTCDataChannel>, TcpStream) /*, Box<dyn error::Error>>*/
+{
     // Register channel opening handling
     info! {"Configuring TCP<=>RTCDC..."};
     let d1 = Arc::clone(&RTCDC);
@@ -386,43 +403,50 @@ async fn configure_send_receive_tcp(
     RTCDC.on_open(Box::new(move || {
         info!("Data channel '{}'-'{}' open.", d1.label(), d1.id());
         let d2 = Arc::clone(&d1);
-        thread::Builder::new().stack_size(THREAD_STACK_SIZE).name("OS->DC".to_string()).spawn(move || {
-            info! {"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
-            let rt = Builder::new_multi_thread().worker_threads(1).thread_name("TOKIO: OS->DC").build().unwrap();
-            loop {
-                let mut buf = [0; PKT_SIZE];
-                match (ClonedSocketRecv.read(&mut buf)) {
-                    Ok(amt) => {
-                        trace! {"{:?}", &buf[0..amt]};
-                        debug! {"Blocking on DC send"};
-                        rt.block_on({
-                            let d1 = d1.clone();
-                            let d2 = d2.clone();
-                            async move {
-                                let written_bytes = (d2.send(&Bytes::copy_from_slice(&buf[0..amt]))).await;
-                                match (written_bytes) {
-                                    Ok(Bytes) => {
-                                        debug! {"OS->DC: Written {Bytes} bytes!"};
-                                    }
-                                    Err(E) => {
-                                        warn! {"DataConnection {}: unable to send: {:?}.", d1.label(), E};
-                                        DataChannelReady.store(false, Ordering::Relaxed);
-                                        info! {"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
-                                        //break;
+        thread::Builder::new()
+            .stack_size(THREAD_STACK_SIZE)
+            .name("OS->DC".to_string())
+            .spawn(move || {
+                info! {"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
+                let rt = Builder::new_multi_thread()
+                    .worker_threads(1)
+                    .thread_name("TOKIO: OS->DC")
+                    .build()
+                    .unwrap();
+                loop {
+                    let mut buf = [0; PKT_SIZE];
+                    match (ClonedSocketRecv.read(&mut buf)) {
+                        Ok(amt) => {
+                            trace! {"{:?}", &buf[0..amt]};
+                            debug! {"Blocking on DC send"};
+                            rt.block_on({
+                                let d1 = d1.clone();
+                                let d2 = d2.clone();
+                                async move {
+                                    let written_bytes = (d2.send(&Bytes::copy_from_slice(&buf[0..amt]))).await;
+                                    match (written_bytes) {
+                                        Ok(Bytes) => {
+                                            debug! {"OS->DC: Written {Bytes} bytes!"};
+                                        }
+                                        Err(E) => {
+                                            warn! {"DataConnection {}: unable to send: {:?}.", d1.label(), E};
+                                            DataChannelReady.store(false, Ordering::Relaxed);
+                                            info! {"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
+                                            //break;
+                                        }
                                     }
                                 }
-                            }
-                        });
-                    }
-                    Err(E) => {
-                        warn!("Unable to read or save to the buffer: {:?}", E);
-                        OtherSocketReady.store(false, Ordering::Relaxed);
-                        info! {"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
-                        break;
+                            });
+                        }
+                        Err(E) => {
+                            warn!("Unable to read or save to the buffer: {:?}", E);
+                            OtherSocketReady.store(false, Ordering::Relaxed);
+                            info! {"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
+                            break;
+                        }
                     }
                 }
-            }
-        });
+            });
 
         Box::pin(async move {})
     }));
@@ -469,7 +493,8 @@ async fn configure_send_receive_tcp(
 async fn configure_send_receive_uds(
     RTCDC: Arc<RTCDataChannel>,
     OtherSocket: UnixStream,
-) -> (Arc<RTCDataChannel>, UnixStream) /*, Box<dyn error::Error>>*/ {
+) -> (Arc<RTCDataChannel>, UnixStream) /*, Box<dyn error::Error>>*/
+{
     // Register channel opening handling
     info! {"Configuring UDS<=>RTCDC..."};
     let d1 = Arc::clone(&RTCDC);
@@ -482,44 +507,51 @@ async fn configure_send_receive_uds(
     RTCDC.on_open(Box::new(move || {
         info!("Data channel '{}'-'{}' open.", d1.label(), d1.id());
         let d2 = Arc::clone(&d1);
-        thread::Builder::new().stack_size(THREAD_STACK_SIZE).name("OS->DC".to_string()).spawn(move || {
-            info! {"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
-            let rt = Builder::new_multi_thread().worker_threads(1).thread_name("TOKIO: OS->DC").build().unwrap();
-            loop {
-                let mut buf = [0; PKT_SIZE];
-                match (ClonedSocketRecv.read(&mut buf)) {
-                    Ok(amt) => {
-                        trace! {"{:?}", &buf[0..amt]};
-                        debug! {"Blocking on DC send"};
-                        rt.block_on({
-                            let d1 = d1.clone();
-                            let d2 = d2.clone();
-                            async move {
-                                //let _permit = permit;
-                                let written_bytes = (d2.send(&Bytes::copy_from_slice(&buf[0..amt]))).await;
-                                match (written_bytes) {
-                                    Ok(Bytes) => {
-                                        debug! {"OS->DC: Written {Bytes} bytes!"};
-                                    }
-                                    Err(E) => {
-                                        warn! {"DataConnection {}: unable to send: {:?}.", d1.label(), E};
-                                        DataChannelReady.store(false, Ordering::Relaxed);
-                                        info! {"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
-                                        //break;
+        thread::Builder::new()
+            .stack_size(THREAD_STACK_SIZE)
+            .name("OS->DC".to_string())
+            .spawn(move || {
+                info! {"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
+                let rt = Builder::new_multi_thread()
+                    .worker_threads(1)
+                    .thread_name("TOKIO: OS->DC")
+                    .build()
+                    .unwrap();
+                loop {
+                    let mut buf = [0; PKT_SIZE];
+                    match (ClonedSocketRecv.read(&mut buf)) {
+                        Ok(amt) => {
+                            trace! {"{:?}", &buf[0..amt]};
+                            debug! {"Blocking on DC send"};
+                            rt.block_on({
+                                let d1 = d1.clone();
+                                let d2 = d2.clone();
+                                async move {
+                                    //let _permit = permit;
+                                    let written_bytes = (d2.send(&Bytes::copy_from_slice(&buf[0..amt]))).await;
+                                    match (written_bytes) {
+                                        Ok(Bytes) => {
+                                            debug! {"OS->DC: Written {Bytes} bytes!"};
+                                        }
+                                        Err(E) => {
+                                            warn! {"DataConnection {}: unable to send: {:?}.", d1.label(), E};
+                                            DataChannelReady.store(false, Ordering::Relaxed);
+                                            info! {"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
+                                            //break;
+                                        }
                                     }
                                 }
-                            }
-                        });
-                    }
-                    Err(E) => {
-                        warn!("Unable to read or save to the buffer: {:?}", E);
-                        OtherSocketReady.store(false, Ordering::Relaxed);
-                        info! {"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
-                        break;
+                            });
+                        }
+                        Err(E) => {
+                            warn!("Unable to read or save to the buffer: {:?}", E);
+                            OtherSocketReady.store(false, Ordering::Relaxed);
+                            info! {"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
+                            break;
+                        }
                     }
                 }
-            }
-        });
+            });
 
         Box::pin(async move {})
     }));
@@ -784,22 +816,28 @@ fn main() {
             .Address
             .clone()
             .expect("Binding address not specified");
-        let Watchdog = thread::Builder::new().stack_size(THREAD_STACK_SIZE).name("Watchdog".to_string()).spawn(move || {
-            debug! {"Inactivity monitoring watchdog has started"}
-            loop {
-                let five_seconds = time::Duration::from_secs(600);
-                debug! {"Watchdog will sleep for five seconds."};
-                let current_time: u64 = chrono::Utc::now().timestamp().try_into().expect("This software is not supposed to be used before UNIX was invented.");
-                debug! {
-                    "Stream was last active {} seconds ago. The current time is: {}. Last active time: {}.",
-                    current_time - STREAM_LAST_ACTIVE_TIME.load(Ordering::Relaxed),
-                    current_time,
-                    STREAM_LAST_ACTIVE_TIME.load(Ordering::Relaxed)
-                };
-                thread::sleep(five_seconds);
-                debug! {"Watchdog: Resuming..."};
-            }
-        });
+        let Watchdog = thread::Builder::new()
+            .stack_size(THREAD_STACK_SIZE)
+            .name("Watchdog".to_string())
+            .spawn(move || {
+                debug! {"Inactivity monitoring watchdog has started"}
+                loop {
+                    let five_seconds = time::Duration::from_secs(600);
+                    debug! {"Watchdog will sleep for five seconds."};
+                    let current_time: u64 = chrono::Utc::now()
+                        .timestamp()
+                        .try_into()
+                        .expect("This software is not supposed to be used before UNIX was invented.");
+                    debug! {
+                        "Stream was last active {} seconds ago. The current time is: {}. Last active time: {}.",
+                        current_time - STREAM_LAST_ACTIVE_TIME.load(Ordering::Relaxed),
+                        current_time,
+                        STREAM_LAST_ACTIVE_TIME.load(Ordering::Relaxed)
+                    };
+                    thread::sleep(five_seconds);
+                    debug! {"Watchdog: Resuming..."};
+                }
+            });
         let mut buf = [0; PKT_SIZE];
         if (config.Type == "UDP") {
             info! {"UDP socket requested"};
