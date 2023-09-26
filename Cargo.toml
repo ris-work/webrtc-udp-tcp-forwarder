@@ -48,5 +48,5 @@ webrtc-sctp = {path = "webrtc/sctp/"}
 [features]
 tcp=[]
 uds=[]
-default = []
+default = ["queuemon"]
 queuemon = []
