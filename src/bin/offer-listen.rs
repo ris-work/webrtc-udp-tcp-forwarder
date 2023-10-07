@@ -18,6 +18,7 @@ use parking_lot::Mutex;
 use serde::Deserialize;
 use std::env;
 use std::error;
+use std::time::Duration;
 
 use crossbeam_channel::{bounded, Receiver, Sender};
 use std::error::Error;
@@ -250,6 +251,7 @@ async fn configure_send_receive_udp(RTCDC: Arc<RTCDataChannel>, OtherSocket: Udp
                     .name("OS->DC".to_string())
                     .spawn(move || loop {
                         let mut buf = [0; PKT_SIZE];
+                        if(Done_rx.try_recv()==Ok(true)){break}
                         match (ClonedSocketRecv.recv(&mut buf)) {
                             Ok(amt) => {
                                 trace! {"{:?}", &buf[0..amt]};
@@ -349,197 +351,6 @@ async fn configure_send_receive_udp(RTCDC: Arc<RTCDataChannel>, OtherSocket: Udp
 
         Box::pin(async {})
     }));
-    done_rx.recv().await;
-    debug! {"Closing!"};
-    RTCDC.close().await.expect("Error closing the connection");
-
-    /* Ok(*/
-    (Arc::clone(&RTCDC), OtherSocket) /*)*/
-}
-#[cfg(feature = "tcp")]
-async fn configure_send_receive_tcp(RTCDC: Arc<RTCDataChannel>, OtherSocket: TcpStream) -> (Arc<RTCDataChannel>, TcpStream) /*, Box<dyn error::Error>>*/
-{
-    // Register channel opening handling
-    info! {"Configuring TCP<=>RTCDC..."};
-    let d1 = Arc::clone(&RTCDC);
-    let mut ClonedSocketRecv = OtherSocket.try_clone().expect("Unable to clone the UDP socket. :(");
-    let mut ClonedSocketSend = OtherSocket.try_clone().expect("Unable to clone the UDP socket. :(");
-    RTCDC.on_open(Box::new(move || {
-        info!("Data channel '{}'-'{}' open.", d1.label(), d1.id());
-        let d2 = Arc::clone(&d1);
-        thread::Builder::new()
-            .stack_size(THREAD_STACK_SIZE)
-            .name("OS->DC".to_string())
-            .spawn(move || {
-                info! {"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
-                let rt = Builder::new_multi_thread()
-                    .worker_threads(1)
-                    .thread_name("TOKIO: OS->DC")
-                    .build()
-                    .unwrap();
-                loop {
-                    let mut buf = [0; PKT_SIZE];
-                    match (ClonedSocketRecv.read(&mut buf)) {
-                        Ok(amt) => {
-                            trace! {"{:?}", &buf[0..amt]};
-                            debug! {"Blocking on DC send"};
-                            rt.block_on({
-                                let d1 = d1.clone();
-                                let d2 = d2.clone();
-                                async move {
-                                    let written_bytes = (d2.send(&Bytes::copy_from_slice(&buf[0..amt]))).await;
-                                    match (written_bytes) {
-                                        Ok(Bytes) => {
-                                            debug! {"OS->DC: Written {Bytes} bytes!"};
-                                        }
-                                        Err(E) => {
-                                            warn! {"DataConnection {}: unable to send: {:?}.", d1.label(), E};
-                                            DataChannelReady.store(false, Ordering::Relaxed);
-                                            info! {"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
-                                            //break;
-                                        }
-                                    }
-                                }
-                            });
-                        }
-                        Err(E) => {
-                            warn!("Unable to read or save to the buffer: {:?}", E);
-                            OtherSocketReady.store(false, Ordering::Relaxed);
-                            info! {"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
-                            break;
-                        }
-                    }
-                }
-            });
-
-        Box::pin(async move {})
-    }));
-
-    // Register text message handling
-    let d_label = RTCDC.label().to_owned();
-    RTCDC.on_message(Box::new(move |msg: DataChannelMessage| {
-        let msg = msg.data.to_vec();
-        trace!("Message from DataChannel '{d_label}': '{msg:?}'");
-        if (CAN_RECV.load(Ordering::Relaxed)) {
-            match (ClonedSocketSend.write(&msg)) {
-                Ok(amt) => {
-                    debug! {"DC->OS: Written {} bytes.", amt};
-                    ClonedSocketSend.flush().expect("Unable to flush the stream.");
-                }
-                Err(E) => {
-                    warn!("Unable to write data.");
-                }
-            }
-        } else {
-            if (OtherSocketSendBuf.lock().len() + msg.len() > MaxOtherSocketSendBufSize) {
-                warn! {"Buffer FULL: {} + {} > {}",
-                OtherSocketSendBuf.lock().len(),
-                msg.len(),
-                MaxOtherSocketSendBufSize
-                };
-            } else {
-                OtherSocketSendBuf.lock().extend_from_slice(&msg);
-            }
-        }
-        Box::pin(async {})
-    }));
-    let (done_tx, mut done_rx) = tokio::sync::mpsc::channel::<()>(1);
-    done_rx.recv().await;
-    debug! {"Closing!"};
-    RTCDC.close().await.expect("Error closing the connection");
-
-    /* Ok(*/
-    (Arc::clone(&RTCDC), OtherSocket) /*)*/
-}
-#[cfg(feature = "uds")]
-async fn configure_send_receive_uds(RTCDC: Arc<RTCDataChannel>, OtherSocket: UnixStream) -> (Arc<RTCDataChannel>, UnixStream) /*, Box<dyn error::Error>>*/
-{
-    // Register channel opening handling
-    info! {"Configuring UDS<=>RTCDC..."};
-    let d1 = Arc::clone(&RTCDC);
-    let mut ClonedSocketRecv = OtherSocket.try_clone().expect("Unable to clone the UDP socket. :(");
-    let mut ClonedSocketSend = OtherSocket.try_clone().expect("Unable to clone the UDP socket. :(");
-    RTCDC.on_open(Box::new(move || {
-        info!("Data channel '{}'-'{}' open.", d1.label(), d1.id());
-        let d2 = Arc::clone(&d1);
-        thread::Builder::new()
-            .stack_size(THREAD_STACK_SIZE)
-            .name("OS->DC".to_string())
-            .spawn(move || {
-                info! {"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
-                let rt = Builder::new_multi_thread()
-                    .worker_threads(1)
-                    .thread_name("TOKIO: OS->DC")
-                    .build()
-                    .unwrap();
-                loop {
-                    let mut buf = [0; PKT_SIZE];
-                    match (ClonedSocketRecv.read(&mut buf)) {
-                        Ok(amt) => {
-                            trace! {"{:?}", &buf[0..amt]};
-                            debug! {"Blocking on DC send"};
-                            rt.block_on({
-                                let d1 = d1.clone();
-                                let d2 = d2.clone();
-                                async move {
-                                    //let _permit = permit;
-                                    let written_bytes = (d2.send(&Bytes::copy_from_slice(&buf[0..amt]))).await;
-                                    match (written_bytes) {
-                                        Ok(Bytes) => {
-                                            debug! {"OS->DC: Written {Bytes} bytes!"};
-                                        }
-                                        Err(E) => {
-                                            warn! {"DataConnection {}: unable to send: {:?}.", d1.label(), E};
-                                            DataChannelReady.store(false, Ordering::Relaxed);
-                                            info! {"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
-                                            //break;
-                                        }
-                                    }
-                                }
-                            });
-                        }
-                        Err(E) => {
-                            warn!("Unable to read or save to the buffer: {:?}", E);
-                            OtherSocketReady.store(false, Ordering::Relaxed);
-                            info! {"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
-                            break;
-                        }
-                    }
-                }
-            });
-
-        Box::pin(async move {})
-    }));
-
-    // Register text message handling
-    let d_label = RTCDC.label().to_owned();
-    RTCDC.on_message(Box::new(move |msg: DataChannelMessage| {
-        let msg = msg.data.to_vec();
-        trace!("Message from DataChannel '{d_label}': '{msg:?}'");
-        if (CAN_RECV.load(Ordering::Relaxed)) {
-            match (ClonedSocketSend.write(&msg)) {
-                Ok(amt) => {
-                    debug! {"DC->OS: Written {} bytes.", amt};
-                    ClonedSocketSend.flush().expect("Unable to flush the stream.");
-                }
-                Err(E) => {
-                    warn!("Unable to write data.");
-                }
-            }
-        } else {
-            if (OtherSocketSendBuf.lock().len() + msg.len() > MaxOtherSocketSendBufSize) {
-                warn! {"Buffer FULL: {} + {} > {}",
-                OtherSocketSendBuf.lock().len(),
-                msg.len(),
-                MaxOtherSocketSendBufSize
-                };
-            } else {
-                OtherSocketSendBuf.lock().extend_from_slice(&msg);
-            }
-        }
-        Box::pin(async {})
-    }));
-    let (done_tx, mut done_rx) = tokio::sync::mpsc::channel::<()>(1);
     done_rx.recv().await;
     debug! {"Closing!"};
     RTCDC.close().await.expect("Error closing the connection");
@@ -759,6 +570,7 @@ fn main() {
             let (amt, src) = OtherSocket.peek_from(&mut buf).expect("Error saving to buffer");
             info!("UDP connecting to: {}", src);
             OtherSocket.connect(src).expect(&format! {"UDP connect error: connect() to {}", src});
+            OtherSocket.set_read_timeout(Some(Duration::new(2,0)));
             STREAM_LAST_ACTIVE_TIME.store(
                 chrono::Utc::now()
                     .timestamp()
@@ -767,41 +579,8 @@ fn main() {
                 Ordering::Relaxed,
             );
             (data_channel, OtherSocket) = rt.block_on(configure_send_receive_udp(data_channel, OtherSocket, done_rx, cb_done_rx));
-        } else if (config.Type == "TCP") {
-            #[cfg(feature = "tcp")]
-            {
-                info! {"TCP socket requested"};
-                let BindPort = config.Port.clone().expect("Binding port not specified");
-                info! {"Binding TCP on address {} port {}", BindAddress, BindPort};
-                let Listener = TcpListener::bind(format! {"{}:{}", BindAddress, BindPort})
-                    .expect(&format! {"Could not bind to TCP port: {}:{}", &BindAddress, &BindPort});
-                info! {"Bound TCP on address {} port {}", BindAddress, BindPort};
-                let mut OtherSocket = Listener
-                    .incoming()
-                    .next()
-                    .expect("Error getting the TCP stream")
-                    .expect("TCP stream error");
-                match (OtherSocket.set_nodelay(true)) {
-                    Ok(_) => debug! {"NODELAY set"},
-                    Err(_) => warn!("SO_NODELAY failed."),
-                }
-                STREAM_LAST_ACTIVE_TIME.store(
-                    chrono::Utc::now()
-                        .timestamp()
-                        .try_into()
-                        .expect("This software is not supposed to be used before UNIX was invented."),
-                    Ordering::Relaxed,
-                );
-                debug! {"Attempting to write the send buffer: {:?}", &OtherSocketSendBuf.lock()};
-                OtherSocket.write(&OtherSocketSendBuf.lock());
-                (data_channel, OtherSocket) = rt.block_on(configure_send_receive_tcp(data_channel, OtherSocket));
-            }
-            #[cfg(not(feature = "tcp"))]
-            {
-                println! {"Feature available but not enabled: TCP."};
-            }
-        } else if (config.Type == "UDS") {
-            #[cfg(feature = "uds")]
+        } else if (config.Type == "UDD") {
+            #[cfg(feature = "udd")]
             {
                 info! {"Unix Domain Socket requested."};
                 let Listener = UnixListener::bind(BindAddress);
@@ -813,9 +592,9 @@ fn main() {
                     .expect("UDS stream error");
                 (data_channel, OtherSocket) = rt.block_on(configure_send_receive_uds(data_channel, OtherSocket));
             }
-            #[cfg(not(feature = "uds"))]
+            #[cfg(not(feature = "udd"))]
             {
-                println! {"Feature available but nor enabled: UDS."};
+                println! {"Feature available but nor enabled: UDD."};
             }
         } else {
             println! {"Unsupported type: {}", config.Type};
