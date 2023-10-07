@@ -222,7 +222,7 @@ async fn create_WebRTC_offer(
     }
     Ok((Arc::clone(&data_channel), peer_connection, local_description, done_rx, Done_rx))
 }
-async fn configure_send_receive_udp(RTCDC: Arc<RTCDataChannel>, OtherSocket: UdpSocket, done_rx: tokio::sync::mpsc::Receiver<()>, Done_rx: crossbeam_channel::Receiver<bool>) -> (Arc<RTCDataChannel>, UdpSocket) /*, Box<dyn error::Error>>*/
+async fn configure_send_receive_udp(RTCDC: Arc<RTCDataChannel>, OtherSocket: UdpSocket, mut done_rx: tokio::sync::mpsc::Receiver<()>, Done_rx: crossbeam_channel::Receiver<bool>) -> (Arc<RTCDataChannel>, UdpSocket) /*, Box<dyn error::Error>>*/
 {
     // Register channel opening handling
     info! {"Configuring UDP<=>RTCDC..."};
@@ -349,7 +349,6 @@ async fn configure_send_receive_udp(RTCDC: Arc<RTCDataChannel>, OtherSocket: Udp
 
         Box::pin(async {})
     }));
-    let (done_tx, mut done_rx) = tokio::sync::mpsc::channel::<()>(1);
     done_rx.recv().await;
     debug! {"Closing!"};
     RTCDC.close().await.expect("Error closing the connection");
