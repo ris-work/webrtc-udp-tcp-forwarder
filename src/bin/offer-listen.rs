@@ -106,9 +106,10 @@ pub fn decode(s: &str) -> Result<String> {
 fn handle_TCP_client(stream: TcpStream) {}
 async fn create_WebRTC_offer(
     config: &Config,
-) -> Result<(Arc<RTCDataChannel>, Arc<RTCPeerConnection>, Option<RTCSessionDescription>), Box<dyn error::Error>> {
+) -> Result<(Arc<RTCDataChannel>, Arc<RTCPeerConnection>, Option<RTCSessionDescription>, tokio::sync::mpsc::Receiver<()>, crossbeam_channel::Receiver<bool>), Box<dyn error::Error>> {
     // Create a MediaEngine object to configure the supported codec
     let mut m = MediaEngine::default();
+    let (Done_tx, Done_rx): (Sender<bool>, Receiver<bool>) = bounded::<bool>(4);
 
     // Register default codecs
     m.register_default_codecs().expect("Could not register the default codecs.");
@@ -177,11 +178,15 @@ async fn create_WebRTC_offer(
             // Use webrtc.PeerConnectionStateDisconnected if you are interested in detecting faster timeout.
             // Note that the PeerConnection may come back from PeerConnectionStateDisconnected.
             info!("Peer Connection has gone to failed exiting");
-            std::process::exit(0);
+            //std::process::exit(0);
+            Done_tx.send(true);
+            Done_tx.send(true);
             let _ = done_tx.try_send(());
         } else if s == RTCPeerConnectionState::Disconnected {
             info!("Peer Connection has disconnected");
-            std::process::exit(0);
+            //std::process::exit(0);
+            Done_tx.send(true);
+            Done_tx.send(true);
             let _ = done_tx.try_send(());
         }
 
@@ -215,9 +220,9 @@ async fn create_WebRTC_offer(
         info!("generate local_description failed!");
         local_description = None;
     }
-    Ok((Arc::clone(&data_channel), peer_connection, local_description))
+    Ok((Arc::clone(&data_channel), peer_connection, local_description, done_rx, Done_rx))
 }
-async fn configure_send_receive_udp(RTCDC: Arc<RTCDataChannel>, OtherSocket: UdpSocket) -> (Arc<RTCDataChannel>, UdpSocket) /*, Box<dyn error::Error>>*/
+async fn configure_send_receive_udp(RTCDC: Arc<RTCDataChannel>, OtherSocket: UdpSocket, done_rx: tokio::sync::mpsc::Receiver<()>, Done_rx: crossbeam_channel::Receiver<bool>) -> (Arc<RTCDataChannel>, UdpSocket) /*, Box<dyn error::Error>>*/
 {
     // Register channel opening handling
     info! {"Configuring UDP<=>RTCDC..."};
@@ -713,7 +718,7 @@ fn main() {
             .thread_name("TOKIO: main")
             .build()
             .unwrap();
-        let (mut data_channel, mut peer_connection, local_description) =
+        let (mut data_channel, mut peer_connection, local_description, done_rx, cb_done_rx) =
             rt.block_on(create_WebRTC_offer(&config)).expect("Failed creating a WebRTC Data Channel.");
         let offerBase64TextTrimmed = write_offer_and_read_answer(local_description, config.clone());
         let offer = decode(&offerBase64TextTrimmed).expect("base64 conversion error");
@@ -762,7 +767,7 @@ fn main() {
                     .expect("This software is not supposed to be used before UNIX was invented."),
                 Ordering::Relaxed,
             );
-            (data_channel, OtherSocket) = rt.block_on(configure_send_receive_udp(data_channel, OtherSocket));
+            (data_channel, OtherSocket) = rt.block_on(configure_send_receive_udp(data_channel, OtherSocket, done_rx, cb_done_rx));
         } else if (config.Type == "TCP") {
             #[cfg(feature = "tcp")]
             {
