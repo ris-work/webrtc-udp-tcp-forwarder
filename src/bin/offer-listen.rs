@@ -24,6 +24,7 @@ use crossbeam_channel::{bounded, Receiver, Sender};
 use std::error::Error;
 use std::fs::read_to_string;
 use std::io;
+use std::io::ErrorKind;
 use std::io::Read;
 use std::io::Write;
 use std::io::{BufRead, BufReader};
@@ -107,7 +108,16 @@ pub fn decode(s: &str) -> Result<String> {
 fn handle_TCP_client(stream: TcpStream) {}
 async fn create_WebRTC_offer(
     config: &Config,
-) -> Result<(Arc<RTCDataChannel>, Arc<RTCPeerConnection>, Option<RTCSessionDescription>, tokio::sync::mpsc::Receiver<()>, crossbeam_channel::Receiver<bool>), Box<dyn error::Error>> {
+) -> Result<
+    (
+        Arc<RTCDataChannel>,
+        Arc<RTCPeerConnection>,
+        Option<RTCSessionDescription>,
+        tokio::sync::mpsc::Receiver<()>,
+        crossbeam_channel::Receiver<bool>,
+    ),
+    Box<dyn error::Error>,
+> {
     // Create a MediaEngine object to configure the supported codec
     let mut m = MediaEngine::default();
     let (Done_tx, Done_rx): (Sender<bool>, Receiver<bool>) = bounded::<bool>(4);
@@ -223,7 +233,12 @@ async fn create_WebRTC_offer(
     }
     Ok((Arc::clone(&data_channel), peer_connection, local_description, done_rx, Done_rx))
 }
-async fn configure_send_receive_udp(RTCDC: Arc<RTCDataChannel>, OtherSocket: UdpSocket, mut done_rx: tokio::sync::mpsc::Receiver<()>, Done_rx: crossbeam_channel::Receiver<bool>) -> (Arc<RTCDataChannel>, UdpSocket) /*, Box<dyn error::Error>>*/
+async fn configure_send_receive_udp(
+    RTCDC: Arc<RTCDataChannel>,
+    OtherSocket: UdpSocket,
+    mut done_rx: tokio::sync::mpsc::Receiver<()>,
+    Done_rx: crossbeam_channel::Receiver<bool>,
+) -> (Arc<RTCDataChannel>, UdpSocket) /*, Box<dyn error::Error>>*/
 {
     // Register channel opening handling
     info! {"Configuring UDP<=>RTCDC..."};
@@ -250,47 +265,62 @@ async fn configure_send_receive_udp(RTCDC: Arc<RTCDataChannel>, OtherSocket: Udp
                     .stack_size(THREAD_STACK_SIZE)
                     .name("OS->DC".to_string())
                     .spawn(move || loop {
+                        let E_TIMEDOUT = std::io::Error::from(ErrorKind::TimedOut);
+                        let E_WOULDBLOCK = std::io::Error::from(ErrorKind::WouldBlock);
                         let mut buf = [0; PKT_SIZE];
-                        if(Done_rx.try_recv()==Ok(true)){break}
+                        if (Done_rx.try_recv() == Ok(true)) {
+                            break;
+                        }
                         match (ClonedSocketRecv.recv(&mut buf)) {
                             Ok(amt) => {
                                 trace! {"{:?}", &buf[0..amt]};
                                 debug! {"Enqueued..."};
                                 let _ = WebRTCSendQueue_tx.try_send(AlignedMessage { size: amt, data: buf.into() });
                             }
-                            Err(E) => {
-                                warn!("Unable to read or save to the buffer: {:?}", E);
-                                OtherSocketReady.store(false, Ordering::Relaxed);
-                                info! {"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
-                                break;
-                            }
+                            Err(E) => match (E) {
+                                E_TIMEDOUT | E_WOULDBLOCK => {
+                                    warn!("Unable to read or save to the buffer: {:?}", E);
+                                    info! {"Restarting the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
+                                }
+                                _ => {
+                                    warn!("Unable to read or save to the buffer: {:?}", E);
+                                    OtherSocketReady.store(false, Ordering::Relaxed);
+                                    info! {"Ending the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
+                                    break;
+                                }
+                            },
                         }
                     })
                     .expect("UDP -> WRTC SQ");
                 loop {
-                    let MessageWithSize: AlignedMessage = WebRTCSendQueue_rx.recv().unwrap();
-                    let buf = MessageWithSize.data;
-                    let amt = MessageWithSize.size;
-                    trace! {"{:?}", &buf[0..amt]};
-                    debug! {"Blocking on DC send"};
-                    rt.block_on({
-                        let d1 = d1.clone();
-                        let d2 = d2.clone();
-                        async move {
-                            let written_bytes = (d2.send(&Bytes::copy_from_slice(&buf[0..amt]))).await;
-                            match (written_bytes) {
-                                Ok(Bytes) => {
-                                    debug! {"OS->DC: Written {Bytes} bytes!"};
-                                }
-                                Err(E) => {
-                                    warn! {"DataConnection {}: unable to send: {:?}.", d1.label(), E};
-                                    DataChannelReady.store(false, Ordering::Relaxed);
-                                    info! {"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
-                                    //break;
+                    if let Ok(MessageWithSize) = WebRTCSendQueue_rx.recv_timeout(Duration::from_secs(1)) {
+                        let buf = MessageWithSize.data;
+                        let amt = MessageWithSize.size;
+                        trace! {"{:?}", &buf[0..amt]};
+                        debug! {"Blocking on DC send"};
+                        rt.block_on({
+                            let d1 = d1.clone();
+                            let d2 = d2.clone();
+                            async move {
+                                let written_bytes = (d2.send(&Bytes::copy_from_slice(&buf[0..amt]))).await;
+                                match (written_bytes) {
+                                    Ok(Bytes) => {
+                                        debug! {"OS->DC: Written {Bytes} bytes!"};
+                                    }
+                                    Err(E) => {
+                                        warn! {"DataConnection {}: unable to send: {:?}.", d1.label(), E};
+                                        DataChannelReady.store(false, Ordering::Relaxed);
+                                        info! {"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
+                                        //break;
+                                    }
                                 }
                             }
+                        });
+                    } else {
+                        if Done_rx.try_recv() == Ok(true) {
+                            break;
                         }
-                    });
+                    }
                 }
             })
             .expect("Unable to spawn thread: WRTC Q -> WRTC DC");
@@ -313,19 +343,24 @@ async fn configure_send_receive_udp(RTCDC: Arc<RTCDataChannel>, OtherSocket: Udp
         .name("OS->DC".to_string())
         .spawn(move || {
             loop {
-                let MessageWithSize = OtherSocketSendQueue_rx.recv().unwrap();
-                let msg = MessageWithSize.data;
-                let amt = MessageWithSize.size;
-                //if (CAN_RECV.load(Ordering::Relaxed)) {
-                match (ClonedSocketSend.send(&msg)) {
-                    Ok(amt) => {
-                        debug! {"DC->OS: Written {} bytes.", amt};
-                        //ClonedSocketSend
-                        //    .flush()
-                        //    .expect("Unable to flush the stream.");
+                if let Ok(MessageWithSize) = OtherSocketSendQueue_rx.recv_timeout(Duration::from_secs(1)) {
+                    let msg = MessageWithSize.data;
+                    let amt = MessageWithSize.size;
+                    //if (CAN_RECV.load(Ordering::Relaxed)) {
+                    match (ClonedSocketSend.send(&msg)) {
+                        Ok(amt) => {
+                            debug! {"DC->OS: Written {} bytes.", amt};
+                            //ClonedSocketSend
+                            //    .flush()
+                            //    .expect("Unable to flush the stream.");
+                        }
+                        Err(E) => {
+                            warn!("Unable to write data.");
+                        }
                     }
-                    Err(E) => {
-                        warn!("Unable to write data.");
+                } else {
+                    if Done_rx.try_recv() == Ok(true) {
+                        break;
                     }
                 }
                 /*} else {
@@ -570,7 +605,7 @@ fn main() {
             let (amt, src) = OtherSocket.peek_from(&mut buf).expect("Error saving to buffer");
             info!("UDP connecting to: {}", src);
             OtherSocket.connect(src).expect(&format! {"UDP connect error: connect() to {}", src});
-            OtherSocket.set_read_timeout(Some(Duration::new(2,0)));
+            OtherSocket.set_read_timeout(Some(Duration::new(2, 0)));
             STREAM_LAST_ACTIVE_TIME.store(
                 chrono::Utc::now()
                     .timestamp()
