@@ -468,7 +468,6 @@ async fn configure_send_receive_udp(
     }));
 
     debug! {"Successfully registered the on_message handle"};
-    let (done_tx, mut done_rx) = tokio::sync::mpsc::channel::<()>(1);
     done_rx.recv().await;
     debug! {"Closing!"};
     RTCDC.close().await.expect("Error closing the connection");
