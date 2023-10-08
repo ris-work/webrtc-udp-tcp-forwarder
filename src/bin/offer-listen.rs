@@ -248,9 +248,11 @@ async fn configure_send_receive_udp(
     let mut ClonedSocketRecv = OtherSocket.try_clone().expect("Unable to clone the UDP socket. :(");
     let mut ClonedSocketSend = OtherSocket.try_clone().expect("Unable to clone the UDP socket. :(");
     let (OtherSocketSendQueue_tx_c, WebRTCSendQueue_tx_c) = (OtherSocketSendQueue_tx.clone(), WebRTCSendQueue_tx.clone());
+    let Done_rx_2 = Done_rx.clone();
     RTCDC.on_open(Box::new(move || {
         info!("Data channel '{}'-'{}' open.", d1.label(), d1.id());
         let d2 = Arc::clone(&d1);
+        let Done_rx_2 = Done_rx.clone();
         thread::Builder::new()
             .stack_size(THREAD_STACK_SIZE)
             .name("OS->DC".to_string())
@@ -264,7 +266,7 @@ async fn configure_send_receive_udp(
                 thread::Builder::new()
                     .stack_size(THREAD_STACK_SIZE)
                     .name("OS->DC".to_string())
-                    .spawn(move || loop {
+                    .spawn({let Done_rx = Done_rx.clone(); move || loop {
                         let E_TIMEDOUT = std::io::Error::from(ErrorKind::TimedOut);
                         let E_WOULDBLOCK = std::io::Error::from(ErrorKind::WouldBlock);
                         let mut buf = [0; PKT_SIZE];
@@ -277,11 +279,15 @@ async fn configure_send_receive_udp(
                                 debug! {"Enqueued..."};
                                 let _ = WebRTCSendQueue_tx.try_send(AlignedMessage { size: amt, data: buf.into() });
                             }
-                            Err(E) => match (E) {
-                                E_TIMEDOUT | E_WOULDBLOCK => {
+                            Err(E) => match (E.kind()) {
+                                std::io::ErrorKind::WouldBlock => {
                                     warn!("Unable to read or save to the buffer: {:?}", E);
                                     info! {"Restarting the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
-                                }
+                                },
+                                std::io::ErrorKind::TimedOut => {
+                                    warn!("Unable to read or save to the buffer: {:?}", E);
+                                    info! {"Restarting the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
+                                },
                                 _ => {
                                     warn!("Unable to read or save to the buffer: {:?}", E);
                                     OtherSocketReady.store(false, Ordering::Relaxed);
@@ -290,7 +296,7 @@ async fn configure_send_receive_udp(
                                 }
                             },
                         }
-                    })
+                    }})
                     .expect("UDP -> WRTC SQ");
                 loop {
                     if let Ok(MessageWithSize) = WebRTCSendQueue_rx.recv_timeout(Duration::from_secs(1)) {
@@ -317,7 +323,7 @@ async fn configure_send_receive_udp(
                             }
                         });
                     } else {
-                        if Done_rx.try_recv() == Ok(true) {
+                        if Done_rx_2.try_recv() == Ok(true) {
                             break;
                         }
                     }
@@ -359,7 +365,7 @@ async fn configure_send_receive_udp(
                         }
                     }
                 } else {
-                    if Done_rx.try_recv() == Ok(true) {
+                    if Done_rx_2.try_recv() == Ok(true) {
                         break;
                     }
                 }
