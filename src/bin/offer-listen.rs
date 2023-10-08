@@ -192,10 +192,14 @@ async fn create_WebRTC_offer(
             //std::process::exit(0);
             Done_tx.send(true);
             Done_tx.send(true);
+            Done_tx.send(true);
+            Done_tx.send(true);
             let _ = done_tx.try_send(());
         } else if s == RTCPeerConnectionState::Disconnected {
             info!("Peer Connection has disconnected");
             //std::process::exit(0);
+            Done_tx.send(true);
+            Done_tx.send(true);
             Done_tx.send(true);
             Done_tx.send(true);
             let _ = done_tx.try_send(());
