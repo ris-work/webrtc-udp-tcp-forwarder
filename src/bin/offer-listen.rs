@@ -262,45 +262,44 @@ async fn configure_send_receive_udp(
             .name("OS->DC".to_string())
             .spawn(move || {
                 info! {"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
-                let rt = Builder::new_multi_thread()
-                    .worker_threads(2)
-                    .thread_name("TOKIO: OS->DC")
-                    .build()
-                    .unwrap();
+                let rt = Builder::new_multi_thread().worker_threads(2).thread_name("TOKIO: OS->DC").build().unwrap();
                 thread::Builder::new()
                     .stack_size(THREAD_STACK_SIZE)
                     .name("OS->DC".to_string())
-                    .spawn({let Done_rx = Done_rx.clone(); move || loop {
-                        let E_TIMEDOUT = std::io::Error::from(ErrorKind::TimedOut);
-                        let E_WOULDBLOCK = std::io::Error::from(ErrorKind::WouldBlock);
-                        let mut buf = [0; PKT_SIZE];
-                        if (Done_rx.try_recv() == Ok(true)) {
-                            break;
-                        }
-                        match (ClonedSocketRecv.recv(&mut buf)) {
-                            Ok(amt) => {
-                                trace! {"{:?}", &buf[0..amt]};
-                                debug! {"Enqueued..."};
-                                let _ = WebRTCSendQueue_tx.try_send(AlignedMessage { size: amt, data: buf.into() });
+                    .spawn({
+                        let Done_rx = Done_rx.clone();
+                        move || loop {
+                            let E_TIMEDOUT = std::io::Error::from(ErrorKind::TimedOut);
+                            let E_WOULDBLOCK = std::io::Error::from(ErrorKind::WouldBlock);
+                            let mut buf = [0; PKT_SIZE];
+                            if (Done_rx.try_recv() == Ok(true)) {
+                                break;
                             }
-                            Err(E) => match (E.kind()) {
-                                std::io::ErrorKind::WouldBlock => {
-                                    warn!("Unable to read or save to the buffer: {:?}", E);
-                                    info! {"Restarting the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
-                                },
-                                std::io::ErrorKind::TimedOut => {
-                                    warn!("Unable to read or save to the buffer: {:?}", E);
-                                    info! {"Restarting the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
-                                },
-                                _ => {
-                                    warn!("Unable to read or save to the buffer: {:?}", E);
-                                    OtherSocketReady.store(false, Ordering::Relaxed);
-                                    info! {"Ending the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
-                                    break;
+                            match (ClonedSocketRecv.recv(&mut buf)) {
+                                Ok(amt) => {
+                                    trace! {"{:?}", &buf[0..amt]};
+                                    debug! {"Enqueued..."};
+                                    let _ = WebRTCSendQueue_tx.try_send(AlignedMessage { size: amt, data: buf.into() });
                                 }
-                            },
+                                Err(E) => match (E.kind()) {
+                                    std::io::ErrorKind::WouldBlock => {
+                                        warn!("Unable to read or save to the buffer: {:?}", E);
+                                        info! {"Restarting the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
+                                    }
+                                    std::io::ErrorKind::TimedOut => {
+                                        warn!("Unable to read or save to the buffer: {:?}", E);
+                                        info! {"Restarting the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
+                                    }
+                                    _ => {
+                                        warn!("Unable to read or save to the buffer: {:?}", E);
+                                        OtherSocketReady.store(false, Ordering::Relaxed);
+                                        info! {"Ending the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
+                                        break;
+                                    }
+                                },
+                            }
                         }
-                    }})
+                    })
                     .expect("UDP -> WRTC SQ");
                 loop {
                     if let Ok(MessageWithSize) = WebRTCSendQueue_rx.recv_timeout(Duration::from_secs(1)) {
@@ -479,8 +478,7 @@ fn write_offer_and_read_answer_ws(local: Option<RTCSessionDescription>, config: 
             let aanswer = client.recv_message().expect("WS: Unable to receive.");
             if let Text(aanswer) = aanswer {
                 let AuthenticatedMessage: HashAuthenticatedMessage = serde_json::from_str(&aanswer).expect("Deserialization error.");
-                let answer = CheckAndReturn(VerifyAndReturn(AuthenticatedMessage, config).expect("An error occured while deserializing."))
-                    .expect("Authentication error.");
+                let answer = CheckAndReturn(VerifyAndReturn(AuthenticatedMessage, config).expect("An error occured while deserializing.")).expect("Authentication error.");
                 Some(answer)
             } else {
                 log::error!("Malformed response received from the WS endpoint");
@@ -498,8 +496,7 @@ fn write_offer_and_read_answer_ws(local: Option<RTCSessionDescription>, config: 
         let aanswer = client.recv_message().expect("WS: Unable to receive.");
         if let Text(aanswer) = aanswer {
             let AuthenticatedMessage: HashAuthenticatedMessage = serde_json::from_str(&aanswer).expect("Deserialization error.");
-            let answer = CheckAndReturn(VerifyAndReturn(AuthenticatedMessage, config).expect("An error occured while deserializing."))
-                .expect("Authentication error.");
+            let answer = CheckAndReturn(VerifyAndReturn(AuthenticatedMessage, config).expect("An error occured while deserializing.")).expect("Authentication error.");
             Some(answer)
         } else {
             log::error!("Malformed response received from the WS endpoint");
@@ -567,60 +564,42 @@ fn main() {
     info!("Configuration: type: {}", config.Type);
     if (config.WebRTCMode == "Offer") {
         //let rt = Runtime::new().unwrap();
-        let rt = Builder::new_multi_thread()
-            .worker_threads(2)
-            .enable_all()
-            .thread_name("TOKIO: main")
-            .build()
-            .unwrap();
-        let (mut data_channel, mut peer_connection, local_description, done_rx, cb_done_rx) =
-            rt.block_on(create_WebRTC_offer(&config)).expect("Failed creating a WebRTC Data Channel.");
+        let rt = Builder::new_multi_thread().worker_threads(2).enable_all().thread_name("TOKIO: main").build().unwrap();
+        let (mut data_channel, mut peer_connection, local_description, done_rx, cb_done_rx) = rt.block_on(create_WebRTC_offer(&config)).expect("Failed creating a WebRTC Data Channel.");
         let offerBase64TextTrimmed = write_offer_and_read_answer(local_description, config.clone());
         let offer = decode(&offerBase64TextTrimmed).expect("base64 conversion error");
         let answer = serde_json::from_str::<RTCSessionDescription>(&offer).expect("Error parsing the offer!");
-        (peer_connection, data_channel) = rt
-            .block_on(handle_offer(peer_connection, data_channel, answer))
-            .expect("Error acccepting offer!");
+        (peer_connection, data_channel) = rt.block_on(handle_offer(peer_connection, data_channel, answer)).expect("Error acccepting offer!");
         let BindAddress = config.Address.clone().expect("Binding address not specified");
-        let Watchdog = thread::Builder::new()
-            .stack_size(THREAD_STACK_SIZE)
-            .name("Watchdog".to_string())
-            .spawn(move || {
-                debug! {"Inactivity monitoring watchdog has started"}
-                loop {
-                    let five_seconds = time::Duration::from_secs(600);
-                    debug! {"Watchdog will sleep for five seconds."};
-                    let current_time: u64 = chrono::Utc::now()
-                        .timestamp()
-                        .try_into()
-                        .expect("This software is not supposed to be used before UNIX was invented.");
-                    debug! {
-                        "Stream was last active {} seconds ago. The current time is: {}. Last active time: {}.",
-                        current_time - STREAM_LAST_ACTIVE_TIME.load(Ordering::Relaxed),
-                        current_time,
-                        STREAM_LAST_ACTIVE_TIME.load(Ordering::Relaxed)
-                    };
-                    thread::sleep(five_seconds);
-                    debug! {"Watchdog: Resuming..."};
-                }
-            });
+        let Watchdog = thread::Builder::new().stack_size(THREAD_STACK_SIZE).name("Watchdog".to_string()).spawn(move || {
+            debug! {"Inactivity monitoring watchdog has started"}
+            loop {
+                let five_seconds = time::Duration::from_secs(600);
+                debug! {"Watchdog will sleep for five seconds."};
+                let current_time: u64 = chrono::Utc::now().timestamp().try_into().expect("This software is not supposed to be used before UNIX was invented.");
+                debug! {
+                    "Stream was last active {} seconds ago. The current time is: {}. Last active time: {}.",
+                    current_time - STREAM_LAST_ACTIVE_TIME.load(Ordering::Relaxed),
+                    current_time,
+                    STREAM_LAST_ACTIVE_TIME.load(Ordering::Relaxed)
+                };
+                thread::sleep(five_seconds);
+                debug! {"Watchdog: Resuming..."};
+            }
+        });
         let mut buf = [0; PKT_SIZE];
         if (config.Type == "UDP") {
             info! {"UDP socket requested"};
             let BindPort = config.Port.clone().expect("Binding port not specified");
             info! {"Binding UDP on address {} port {}", BindAddress, BindPort};
-            let mut OtherSocket = UdpSocket::bind(format! {"{}:{}", BindAddress, BindPort})
-                .expect(&format! {"Could not bind to UDP port: {}:{}", &BindAddress, &BindPort});
+            let mut OtherSocket = UdpSocket::bind(format! {"{}:{}", BindAddress, BindPort}).expect(&format! {"Could not bind to UDP port: {}:{}", &BindAddress, &BindPort});
             info! {"Bound UDP on address {} port {}", BindAddress, BindPort};
             let (amt, src) = OtherSocket.peek_from(&mut buf).expect("Error saving to buffer");
             info!("UDP connecting to: {}", src);
             OtherSocket.connect(src).expect(&format! {"UDP connect error: connect() to {}", src});
             OtherSocket.set_read_timeout(Some(Duration::new(2, 0)));
             STREAM_LAST_ACTIVE_TIME.store(
-                chrono::Utc::now()
-                    .timestamp()
-                    .try_into()
-                    .expect("This software is not supposed to be used before UNIX was invented."),
+                chrono::Utc::now().timestamp().try_into().expect("This software is not supposed to be used before UNIX was invented."),
                 Ordering::Relaxed,
             );
             (data_channel, OtherSocket) = rt.block_on(configure_send_receive_udp(data_channel, OtherSocket, done_rx, cb_done_rx));
@@ -629,12 +608,7 @@ fn main() {
             {
                 info! {"Unix Domain Socket requested."};
                 let Listener = UnixListener::bind(BindAddress);
-                let mut OtherSocket = Listener
-                    .expect("UDS listen error")
-                    .incoming()
-                    .next()
-                    .expect("Error getting the UDS stream")
-                    .expect("UDS stream error");
+                let mut OtherSocket = Listener.expect("UDS listen error").incoming().next().expect("Error getting the UDS stream").expect("UDS stream error");
                 (data_channel, OtherSocket) = rt.block_on(configure_send_receive_uds(data_channel, OtherSocket));
             }
             #[cfg(not(feature = "udd"))]

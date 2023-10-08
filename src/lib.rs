@@ -61,8 +61,7 @@ pub mod hmac {
     }
     pub fn ConstructAuthenticatedMessage(Timed: TimedMessage, config: Config) -> HashAuthenticatedMessage {
         let SerializedMessage: String = serde_json::to_string(&Timed).expect("Unable to serialize.");
-        let mut MacGen =
-            Hmac::<Sha256>::new_from_slice(config.PeerPSK.expect("No peer PSK provided.").as_bytes()).expect("Unable to load the MAC generator.");
+        let mut MacGen = Hmac::<Sha256>::new_from_slice(config.PeerPSK.expect("No peer PSK provided.").as_bytes()).expect("Unable to load the MAC generator.");
         MacGen.update(SerializedMessage.as_bytes());
         let Mac = MacGen.finalize();
         HashAuthenticatedMessage {
