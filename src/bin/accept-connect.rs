@@ -119,7 +119,9 @@ async fn accept_WebRTC_offer(
         Arc<RTCSessionDescription>,
         Option<RTCSessionDescription>,
         tokio::sync::mpsc::Receiver<()>,
+        tokio::sync::mpsc::Sender<()>,
         crossbeam_channel::Receiver<bool>,
+        crossbeam_channel::Sender<bool>,
     ),
     Box<dyn error::Error>,
 > {
@@ -166,7 +168,7 @@ async fn accept_WebRTC_offer(
 
     // Create a new RTCPeerConnection
     let peer_connection = Arc::new(api.new_peer_connection(config).await?);
-    let (Done_tx, Done_rx): (Sender<bool>, Receiver<bool>) = bounded::<bool>(4);
+    let (cb_done_tx, cb_done_rx): (Sender<bool>, Receiver<bool>) = bounded::<bool>(4);
 
     // Create a datachannel with label 'data'
     let data_channel = peer_connection
@@ -183,6 +185,8 @@ async fn accept_WebRTC_offer(
         .await?;
 
     let (done_tx, mut done_rx) = tokio::sync::mpsc::channel::<()>(1);
+    let cb_done_tx_2 = cb_done_tx.clone();
+    let (done_tx_2) = (done_tx.clone());
 
     // Set the handler for Peer connection state
     // This will notify you when the peer has connected/disconnected
@@ -195,18 +199,18 @@ async fn accept_WebRTC_offer(
             // Note that the PeerConnection may come back from PeerConnectionStateDisconnected.
             info!("Peer Connection has gone to failed exiting");
             //std::process::exit(0);
-            Done_tx.send(true);
-            Done_tx.send(true);
-            Done_tx.send(true);
-            Done_tx.send(true);
+            cb_done_tx.send(true);
+            cb_done_tx.send(true);
+            cb_done_tx.send(true);
+            cb_done_tx.send(true);
             let _ = done_tx.try_send(());
         } else if s == RTCPeerConnectionState::Disconnected {
             info!("Peer Connection has disconnected");
             //std::process::exit(0);
-            Done_tx.send(true);
-            Done_tx.send(true);
-            Done_tx.send(true);
-            Done_tx.send(true);
+            cb_done_tx.send(true);
+            cb_done_tx.send(true);
+            cb_done_tx.send(true);
+            cb_done_tx.send(true);
             let _ = done_tx.try_send(());
         }
 
@@ -246,7 +250,16 @@ async fn accept_WebRTC_offer(
         local_description = None;
         info!("generate local_description failed!");
     }
-    Ok((Arc::clone(&data_channel), peer_connection, Arc::new(answer), local_description, done_rx, Done_rx))
+    Ok((
+        Arc::clone(&data_channel),
+        peer_connection,
+        Arc::new(answer),
+        local_description,
+        done_rx,
+        done_tx_2,
+        cb_done_rx,
+        cb_done_tx_2,
+    ))
 }
 pub trait Socket: Send + Sync + Unpin + Read + Write {
     fn read<B: Read>(&mut self, buf: &mut [u8]) -> IOResult<usize>
@@ -278,7 +291,10 @@ async fn configure_send_receive_udp(
     RTCPC: Arc<RTCPeerConnection>,
     OtherSocket: UdpSocket,
     mut done_rx: tokio::sync::mpsc::Receiver<()>,
+    mut done_tx: tokio::sync::mpsc::Sender<()>,
     Done_rx: crossbeam_channel::Receiver<bool>,
+    cb_done_tx: crossbeam_channel::Sender<bool>,
+    config: Config,
 ) -> (Arc<RTCDataChannel>, UdpSocket) /*, Box<dyn error::Error>>*/ {
     // Register channel opening handling
     let d1 = Arc::clone(&RTCDC);
@@ -297,6 +313,8 @@ async fn configure_send_receive_udp(
         Box::pin({
             let d1 = d1.clone();
             let d2 = d1.clone();
+            let cb_done_tx = cb_done_tx.clone();
+            let done_tx = done_tx.clone();
             let (mut ClonedSocketRecv, mut ClonedSocketSend) = (ClonedSocketRecv.try_clone().expect(""), ClonedSocketSend.try_clone().expect(""));
             let Done_rx = Done_rx.clone();
             async move {
@@ -379,7 +397,17 @@ async fn configure_send_receive_udp(
                                 .spawn(move || {
                                     log::info! {"Spawned thread: UDP -> WRTC SQ."};
                                     let (mut ClonedSocketRecv) = (ClonedSocketRecv.try_clone().expect(""));
+                                    let no_data_count_max: u64 = config.TimeoutCountMax.unwrap_or(3 as u64);
+                                    let mut no_data_counter: u64 = 0;
                                     loop {
+                                        if (no_data_counter > no_data_count_max) {
+                                            let mut i = 0;
+                                            while (i < 4) {
+                                                cb_done_tx.try_send(true);
+                                                done_tx.try_send(());
+                                                i += 1;
+                                            }
+                                        }
                                         let mut buf = [0; PKT_SIZE];
                                         if (Done_rx.try_recv() == Ok(true)) {
                                             break;
@@ -388,14 +416,17 @@ async fn configure_send_receive_udp(
                                             Ok(amt) => {
                                                 trace! {"{:?}", &buf[0..amt]};
                                                 debug! {"Enqueued..."};
+                                                no_data_counter = 0;
                                                 let _ = WebRTCSendQueue_tx.try_send(AlignedMessage { size: amt, data: buf.into() });
                                             }
                                             Err(E) => match (E.kind()) {
                                                 std::io::ErrorKind::WouldBlock => {
+                                                    no_data_counter += 1;
                                                     debug!("Unable to read or save to the buffer: {:?}", E);
                                                     debug! {"Restarting the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
                                                 }
                                                 std::io::ErrorKind::TimedOut => {
+                                                    no_data_counter += 1;
                                                     debug!("Unable to read or save to the buffer: {:?}", E);
                                                     debug! {"Restarting the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
                                                 }
@@ -675,7 +706,7 @@ fn main() {
         info! {"Read offer: {}", offerBase64TextTrimmed};
         let offer = decode(&offerBase64TextTrimmed).expect("base64 conversion error");
         let offerRTCSD = serde_json::from_str::<RTCSessionDescription>(&offer).expect("Error parsing the offer!");
-        let (mut data_channel, mut peer_connection, mut answer, local_description, done_rx, cb_done_rx) =
+        let (mut data_channel, mut peer_connection, mut answer, local_description, done_rx, done_tx, cb_done_rx, cb_done_tx) =
             rt.block_on(accept_WebRTC_offer(offerRTCSD, &config)).expect("Failed creating a WebRTC Data Channel.");
         (peer_connection, data_channel) = rt.block_on(handle_offer(peer_connection, data_channel, (*answer).clone())).expect("Error acccepting offer!");
         let ConnectAddress = config.Address.clone().expect("Binding address not specified");
@@ -723,7 +754,16 @@ fn main() {
                 chrono::Utc::now().timestamp().try_into().expect("This software is not supposed to be used before UNIX was invented."),
                 Ordering::Relaxed,
             );
-            (data_channel, OtherSocket) = rt.block_on(configure_send_receive_udp(data_channel, peer_connection, OtherSocket, done_rx, cb_done_rx));
+            (data_channel, OtherSocket) = rt.block_on(configure_send_receive_udp(
+                data_channel,
+                peer_connection,
+                OtherSocket,
+                done_rx,
+                done_tx,
+                cb_done_rx,
+                cb_done_tx,
+                config.clone(),
+            ));
         } else if (config.Type == "TCP") {
             #[cfg(feature = "tcp")]
             {

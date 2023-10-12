@@ -27,6 +27,8 @@ pub struct Config {
     pub PublishAuthPass: Option<String>,
     pub PeerAuthType: Option<String>,
     pub PeerPSK: Option<String>,
+    pub nsTimeout: Option<u64>, //TODO
+    pub TimeoutCountMax: Option<u64>,
 }
 #[derive(Deserialize, Clone)]
 pub struct ICEServer {
