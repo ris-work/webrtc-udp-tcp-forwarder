@@ -295,6 +295,7 @@ async fn configure_send_receive_udp(
                             }
                             match (ClonedSocketRecv.recv(&mut buf)) {
                                 Ok(amt) => {
+                                    no_data_counter = 0;
                                     trace! {"{:?}", &buf[0..amt]};
                                     debug! {"Enqueued..."};
                                     let _ = WebRTCSendQueue_tx.try_send(AlignedMessage { size: amt, data: buf.into() });
