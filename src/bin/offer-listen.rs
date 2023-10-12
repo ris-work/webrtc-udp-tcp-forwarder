@@ -114,13 +114,15 @@ async fn create_WebRTC_offer(
         Arc<RTCPeerConnection>,
         Option<RTCSessionDescription>,
         tokio::sync::mpsc::Receiver<()>,
+        tokio::sync::mpsc::Sender<()>,
         crossbeam_channel::Receiver<bool>,
+        crossbeam_channel::Sender<bool>,
     ),
     Box<dyn error::Error>,
 > {
     // Create a MediaEngine object to configure the supported codec
     let mut m = MediaEngine::default();
-    let (Done_tx, Done_rx): (Sender<bool>, Receiver<bool>) = bounded::<bool>(4);
+    let (cb_done_tx, cb_done_rx): (Sender<bool>, Receiver<bool>) = bounded::<bool>(4);
 
     // Register default codecs
     m.register_default_codecs().expect("Could not register the default codecs.");
@@ -178,6 +180,7 @@ async fn create_WebRTC_offer(
         .await?;
 
     let (done_tx, mut done_rx) = tokio::sync::mpsc::channel::<()>(1);
+    let (cb_done_tx_2, done_tx_2) = (cb_done_tx.clone(), done_tx.clone());
 
     // Set the handler for Peer connection state
     // This will notify you when the peer has connected/disconnected
@@ -190,18 +193,18 @@ async fn create_WebRTC_offer(
             // Note that the PeerConnection may come back from PeerConnectionStateDisconnected.
             info!("Peer Connection has gone to failed exiting");
             //std::process::exit(0);
-            Done_tx.send(true);
-            Done_tx.send(true);
-            Done_tx.send(true);
-            Done_tx.send(true);
+            cb_done_tx.send(true);
+            cb_done_tx.send(true);
+            cb_done_tx.send(true);
+            cb_done_tx.send(true);
             let _ = done_tx.try_send(());
         } else if s == RTCPeerConnectionState::Disconnected {
             info!("Peer Connection has disconnected");
             //std::process::exit(0);
-            Done_tx.send(true);
-            Done_tx.send(true);
-            Done_tx.send(true);
-            Done_tx.send(true);
+            cb_done_tx.send(true);
+            cb_done_tx.send(true);
+            cb_done_tx.send(true);
+            cb_done_tx.send(true);
             let _ = done_tx.try_send(());
         }
 
@@ -235,13 +238,16 @@ async fn create_WebRTC_offer(
         info!("generate local_description failed!");
         local_description = None;
     }
-    Ok((Arc::clone(&data_channel), peer_connection, local_description, done_rx, Done_rx))
+    Ok((Arc::clone(&data_channel), peer_connection, local_description, done_rx, done_tx_2, cb_done_rx, cb_done_tx_2))
 }
 async fn configure_send_receive_udp(
     RTCDC: Arc<RTCDataChannel>,
     OtherSocket: UdpSocket,
     mut done_rx: tokio::sync::mpsc::Receiver<()>,
+    mut done_tx: tokio::sync::mpsc::Sender<()>,
     Done_rx: crossbeam_channel::Receiver<bool>,
+    cb_done_tx: crossbeam_channel::Sender<bool>,
+    config: Config,
 ) -> (Arc<RTCDataChannel>, UdpSocket) /*, Box<dyn error::Error>>*/
 {
     // Register channel opening handling
@@ -268,9 +274,21 @@ async fn configure_send_receive_udp(
                     .name("OS->DC".to_string())
                     .spawn({
                         let Done_rx = Done_rx.clone();
+                        let no_data_count_max: u64 = config.TimeoutCountMax.unwrap_or(3 as u64);
+                        let mut no_data_counter: u64 = 0;
                         move || loop {
                             let E_TIMEDOUT = std::io::Error::from(ErrorKind::TimedOut);
                             let E_WOULDBLOCK = std::io::Error::from(ErrorKind::WouldBlock);
+                            if (no_data_counter > no_data_count_max) {
+                                let mut i = 0;
+                                while (i < 4) {
+                                    cb_done_tx.try_send(true);
+                                    done_tx.try_send(());
+                                    i += 1;
+                                }
+                                info! {"Quitting due to inactivity..."};
+                                break;
+                            }
                             let mut buf = [0; PKT_SIZE];
                             if (Done_rx.try_recv() == Ok(true)) {
                                 break;
@@ -565,7 +583,8 @@ fn main() {
     if (config.WebRTCMode == "Offer") {
         //let rt = Runtime::new().unwrap();
         let rt = Builder::new_multi_thread().worker_threads(2).enable_all().thread_name("TOKIO: main").build().unwrap();
-        let (mut data_channel, mut peer_connection, local_description, done_rx, cb_done_rx) = rt.block_on(create_WebRTC_offer(&config)).expect("Failed creating a WebRTC Data Channel.");
+        let (mut data_channel, mut peer_connection, local_description, done_rx, done_tx, cb_done_rx, cb_done_tx) =
+            rt.block_on(create_WebRTC_offer(&config)).expect("Failed creating a WebRTC Data Channel.");
         let offerBase64TextTrimmed = write_offer_and_read_answer(local_description, config.clone());
         let offer = decode(&offerBase64TextTrimmed).expect("base64 conversion error");
         let answer = serde_json::from_str::<RTCSessionDescription>(&offer).expect("Error parsing the offer!");
@@ -602,7 +621,7 @@ fn main() {
                 chrono::Utc::now().timestamp().try_into().expect("This software is not supposed to be used before UNIX was invented."),
                 Ordering::Relaxed,
             );
-            (data_channel, OtherSocket) = rt.block_on(configure_send_receive_udp(data_channel, OtherSocket, done_rx, cb_done_rx));
+            (data_channel, OtherSocket) = rt.block_on(configure_send_receive_udp(data_channel, OtherSocket, done_rx, done_tx, cb_done_rx, cb_done_tx, config.clone()));
         } else if (config.Type == "UDD") {
             #[cfg(feature = "udd")]
             {

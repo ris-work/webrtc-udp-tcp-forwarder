@@ -407,6 +407,8 @@ async fn configure_send_receive_udp(
                                                 done_tx.try_send(());
                                                 i += 1;
                                             }
+                                            info! {"Quitting due to inactivity..."};
+                                            break;
                                         }
                                         let mut buf = [0; PKT_SIZE];
                                         if (Done_rx.try_recv() == Ok(true)) {
