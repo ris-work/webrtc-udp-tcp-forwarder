@@ -25,27 +25,42 @@ env_logger = "0.10.0"
 futures = "0.3.28"
 hex = "0.4.3"
 hmac = "0.12.1"
-hyper = "0.14.27"
 lazy_static = "1.4.0"
 log = {version="0.4", features=["release_max_level_info"]}
 mimalloc = {version="0.1.39", default-features=false}
 parking_lot = "0.12.1"
-serde = "1.0.188"
+serde = "1.0.189"
 serde_json = "1.0.107"
 sha2 = "0.10.8"
-tokio = "1.33.0"
 toml = "0.8.2"
 uds_windows = "1.0.2"
-webrtc =  "0.9.0"
+webrtc =  "0.8.0"
 websocket = "0.27.0"
+hyper = { git = "https://github.com/wasix-org/hyper", branch = "v0.14.18" }
+libc = { git = "https://github.com/wasix-org/libc", branch = "master" }
+rustls = { git = "https://github.com/wasix-org/rustls", branch = "v0.21.5" }
+sct = { git = "https://github.com/wasix-org/sct", branch = "v0.7.0" }
+socket2 = { git = "https://github.com/wasix-org/socket2", branch = "v0.5.3" }
+tokio = { version = "1.24.1", git = "https://github.com/wasix-org/tokio", branch = "wasix-1.24.2" }
+ring = { git = "https://github.com/wasix-org/ring", branch = "wasix" }
+mio =  {version="^0.8.0", git = "https://github.com/wasix-org/mio" }
+
+
 [target.'cfg(target_env="musl")'.dependencies]
 openssl = {version = "0.10", features = ["vendored"]}
 [target.'cfg(target_os="netbsd")'.dependencies]
 openssl = {version = "0.10", features = ["vendored"]}
 
 [patch.crates-io]
-webrtc = {path = "webrtc/webrtc/"}
-webrtc-sctp = {path = "webrtc/sctp/"}
+#webrtc = {path = "webrtc/webrtc/"}
+#webrtc-sctp = {path = "webrtc/sctp/"}
+hyper = { git = "https://github.com/wasix-org/hyper", branch = "v0.14.18" }
+libc = { git = "https://github.com/wasix-org/libc", branch = "master" }
+rustls = { git = "https://github.com/wasix-org/rustls", branch = "v0.21.5" }
+sct = { git = "https://github.com/wasix-org/sct", branch = "v0.7.0" }
+socket2 = { git = "https://github.com/wasix-org/socket2", branch = "v0.5.3" }
+tokio = { git = "https://github.com/wasix-org/tokio", branch = "wasix-1.24.2" }
+[patch."https://github.com/wasix-org/tokio"]
 
 [features]
 tcp=[]
