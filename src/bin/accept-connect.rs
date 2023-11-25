@@ -392,7 +392,7 @@ async fn configure_send_receive_udp(
                                                     done_tx2.try_send(());
                                                     i += 1;
                                                 }
-                                                info! {"Quitting due to inactivity..."};
+                                                info! {"Quitting due to inactivity... (No data channel message has been received.)"};
                                                 break;
                                             }
                                             if (Done_rx_3.try_recv() == Ok(true)) {
@@ -439,7 +439,7 @@ async fn configure_send_receive_udp(
                                                 done_tx.try_send(());
                                                 i += 1;
                                             }
-                                            info! {"Quitting due to inactivity..."};
+                                            info! {"Quitting due to inactivity... (No datagram has been received.)"};
                                             break;
                                         }
                                         let mut buf = [0; PKT_SIZE];
