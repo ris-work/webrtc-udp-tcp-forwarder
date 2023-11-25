@@ -401,7 +401,7 @@ async fn configure_send_receive_udp(
                         }
                     }
                     Err(RecvTimeoutError) => {
-                        no_data_counter = no_data_count_max + 1;
+                        no_data_counter = no_data_counter + 1;
                         if (no_data_counter > no_data_count_max) {
                             let mut i = 0;
                             while (i < 4) {
