@@ -259,6 +259,7 @@ async fn configure_send_receive_udp(
     let mut ClonedSocketSend = OtherSocket.try_clone().expect("Unable to clone the UDP socket. :(");
     let (OtherSocketSendQueue_tx_c, WebRTCSendQueue_tx_c) = (OtherSocketSendQueue_tx.clone(), WebRTCSendQueue_tx.clone());
     let Done_rx_2 = Done_rx.clone();
+    let Done_rx_3 = Done_rx.clone();
     RTCDC.on_open(Box::new(move || {
         info!("Data channel '{}'-'{}' open.", d1.label(), d1.id());
         let d2 = Arc::clone(&d1);
@@ -366,42 +367,56 @@ async fn configure_send_receive_udp(
 
         Box::pin(async move {})
     }));
+    let cb_done_tx2 = cb_done_tx.clone();
+    let done_tx2 = done_tx.clone();
     thread::Builder::new()
         .stack_size(THREAD_STACK_SIZE)
         .name("OS->DC".to_string())
         .spawn(move || {
+            let no_data_count_max: u64 = config.TimeoutCountMax.unwrap_or(3 as u64);
+            let mut no_data_counter: u64 = 0;
             loop {
-                if let Ok(MessageWithSize) = OtherSocketSendQueue_rx.recv_timeout(Duration::from_secs(1)) {
-                    let msg = MessageWithSize.data;
-                    let amt = MessageWithSize.size;
-                    //if (CAN_RECV.load(Ordering::Relaxed)) {
-                    match (ClonedSocketSend.send(&msg)) {
-                        Ok(amt) => {
-                            debug! {"DC->OS: Written {} bytes.", amt};
-                            //ClonedSocketSend
-                            //    .flush()
-                            //    .expect("Unable to flush the stream.");
-                        }
-                        Err(E) => {
-                            warn!("Unable to write data.");
+                debug! {"Blocking on dequeueing UDP send queue. Queue size: {}.", OtherSocketSendQueue_rx.len()};
+                let recv_attempt = OtherSocketSendQueue_rx.recv_timeout(time::Duration::from_secs(1));
+                debug! {"Block on UDP send queue dequeue is over"};
+                match (recv_attempt) {
+                    Ok(msg) => {
+                        let msg = msg.data;
+                        no_data_counter = 0;
+                        let (mut ClonedSocketSend) = (ClonedSocketSend.try_clone().expect(""));
+                        log::debug! {"Message from the UDP send queue: {msg:?}"};
+                        match (ClonedSocketSend.send(&msg)) {
+                            Ok(amt) => {
+                                debug! {"DC->OS: Written {} bytes.", amt};
+                                //ClonedSocketSend.flush().expect("Unable to flush the stream.");
+                            }
+                            #[cold]
+                            Err(E) => {
+                                warn!("OtherSocket: Unable to write data.");
+                                OtherSocketReady.store(false, Ordering::Relaxed);
+                                cb_done_tx2.try_send(true);
+                                done_tx2.try_send(());
+                                //block_on(d.close());
+                            }
                         }
                     }
-                } else {
-                    if Done_rx_2.try_recv() == Ok(true) {
-                        break;
+                    Err(RecvTimeoutError) => {
+                        no_data_counter = no_data_count_max + 1;
+                        if (no_data_counter > no_data_count_max) {
+                            let mut i = 0;
+                            while (i < 4) {
+                                cb_done_tx2.try_send(true);
+                                done_tx2.try_send(());
+                                i += 1;
+                            }
+                            info! {"Quitting due to inactivity..."};
+                            break;
+                        }
+                        if (Done_rx_3.try_recv() == Ok(true)) {
+                            break;
+                        }
                     }
                 }
-                /*} else {
-                    if (OtherSocketSendBuf.lock().len() + msg.len() > MaxOtherSocketSendBufSize) {
-                        warn! {"Buffer FULL: {} + {} > {}",
-                        OtherSocketSendBuf.lock().len(),
-                        msg.len(),
-                        MaxOtherSocketSendBufSize
-                        };
-                    } else {
-                        OtherSocketSendBuf.lock().extend_from_slice(&msg);
-                    }
-                }*/
             }
         })
         .expect("Unable to spawn thread: SQ -> UDP");
