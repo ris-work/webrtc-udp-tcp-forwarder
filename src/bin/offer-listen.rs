@@ -260,6 +260,8 @@ async fn configure_send_receive_udp(
     let (OtherSocketSendQueue_tx_c, WebRTCSendQueue_tx_c) = (OtherSocketSendQueue_tx.clone(), WebRTCSendQueue_tx.clone());
     let Done_rx_2 = Done_rx.clone();
     let Done_rx_3 = Done_rx.clone();
+    let cb_done_tx2 = cb_done_tx.clone();
+    let done_tx2 = done_tx.clone();
     RTCDC.on_open(Box::new(move || {
         info!("Data channel '{}'-'{}' open.", d1.label(), d1.id());
         let d2 = Arc::clone(&d1);
@@ -367,8 +369,7 @@ async fn configure_send_receive_udp(
 
         Box::pin(async move {})
     }));
-    let cb_done_tx2 = cb_done_tx.clone();
-    let done_tx2 = done_tx.clone();
+    
     thread::Builder::new()
         .stack_size(THREAD_STACK_SIZE)
         .name("OS->DC".to_string())
