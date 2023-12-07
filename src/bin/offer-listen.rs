@@ -630,7 +630,7 @@ fn main() {
             info! {"Binding UDP on address {} port {}", BindAddress, BindPort};
             let mut OtherSocket = UdpSocket::bind(format! {"{}:{}", BindAddress, BindPort}).expect(&format! {"Could not bind to UDP port: {}:{}", &BindAddress, &BindPort});
             info! {"Bound UDP on address {} port {}", BindAddress, BindPort};
-            OtherSocket.set_read_timeout(Some(Duration::new(5, 0)));
+            OtherSocket.set_read_timeout(Some(Duration::new(1 * config.TimeoutCountMax.unwrap_or(3), 0)));
             let (amt, src) = OtherSocket.peek_from(&mut buf).expect("Error saving to buffer");
             info!("UDP connecting to: {}", src);
             OtherSocket.connect(src).expect(&format! {"UDP connect error: connect() to {}", src});
