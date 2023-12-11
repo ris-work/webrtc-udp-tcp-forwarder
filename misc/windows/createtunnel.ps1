@@ -1,6 +1,6 @@
 $tet = Read-Host "Tunnel Endpoint Type [o-l|a-c]"
 
-if ($tet -eq "a-c" OR $tet -eq "o-l"){
+if ($tet -eq "a-c" -or $tet -eq "o-l"){
     $ten = Read-Host "Tunnel Endpoint Name"
     $teip = Read-Host "IP Addresses [WG] [CIDR]"
     $teport = Read-Host "Tunnel port"
@@ -10,13 +10,15 @@ if ($tet -eq "a-c" OR $tet -eq "o-l"){
     Echo "Great! Our public key is: $PubKey"
     Echo "Please email/IM it to whoever requested you to run this script."
     $conf = "[Interface]"
-    $conf = += "`nPrivateKey = $key"
+    $conf += "`nPrivateKey = $key"
     if ($tet -eq "a-c"){
-        $conf += "ListenPort = `n$teport"
+        $conf += "`nListenPort = $teport"
     }
-    $conf += "`n[Peer]"
+    $conf += "`n`n[Peer]"
     $conf += "`nAllowedIPs = $teip"
     $PeerPubKey = Read-Host "Peer Public Key"
+    $conf += "`nPublicKey = $PeerPublicKey"
+    $conf += "`nPersistentKeepalive = 2"
     echo $conf
 }
 else {
