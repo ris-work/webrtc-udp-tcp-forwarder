@@ -12,8 +12,8 @@ curl.exe -O https://download.wireguard.com/windows-client/wireguard-installer.ex
 curl.exe -O https://www.tightvnc.com/download/2.8.81/tightvnc-2.8.81-gpl-setup-64bit.msi
 
 #Scripts
-curl.exe -o aclfunctions.ps1 https://vz.al/chromebook/webrtc-udp-tcp-forwarder/raw?name=misc/windows/aclfunctions.ps1&ci=tip
-curl.exe -o setupfunctions.ps1 https://vz.al/chromebook/webrtc-udp-tcp-forwarder/raw?name=misc/windows/setupfunctions.ps1&ci=tip
+curl.exe -o aclfunctions.ps1 "https://vz.al/chromebook/webrtc-udp-tcp-forwarder/raw?name=misc/windows/aclfunctions.ps1&ci=tip"
+curl.exe -o setupfunctions.ps1 "https://vz.al/chromebook/webrtc-udp-tcp-forwarder/raw?name=misc/windows/setupfunctions.ps1&ci=tip"
 
 . ./aclfunctions.ps1
 mkdir c:\tunsvc
