@@ -1,3 +1,4 @@
+. .\setupfunctions.ps1
 $tet = Read-Host "Tunnel Endpoint Type [o-l|a-c]"
 $tunnelroot = "C:\tunsvc"
 mkdir $tunnelroot

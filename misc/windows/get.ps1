@@ -16,6 +16,7 @@ curl.exe -o aclfunctions.ps1 "https://vz.al/chromebook/webrtc-udp-tcp-forwarder/
 curl.exe -o setupfunctions.ps1 "https://vz.al/chromebook/webrtc-udp-tcp-forwarder/raw?name=misc/windows/setupfunctions.ps1&ci=tip"
 
 . ./aclfunctions.ps1
+$tunnelroot = "c:\tunsys"
 mkdir "$tunnelroot"
 AdminsOnlyWithOthersRX("$tunnelroot")
 mkdir "$tunnelroot\common"
