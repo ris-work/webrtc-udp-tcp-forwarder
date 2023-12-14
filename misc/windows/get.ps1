@@ -16,13 +16,13 @@ curl.exe -o aclfunctions.ps1 "https://vz.al/chromebook/webrtc-udp-tcp-forwarder/
 curl.exe -o setupfunctions.ps1 "https://vz.al/chromebook/webrtc-udp-tcp-forwarder/raw?name=misc/windows/setupfunctions.ps1&ci=tip"
 
 . ./aclfunctions.ps1
-mkdir c:\tunsvc
-AdminsOnlyWithOthersRX("c:\tunsvc")
-mkdir c:\tunsvc\common
-AdminsOnlyWithOthersRX("c:\tunsvc\common")
-cp .\o-l.exe c:\tunsvc\common\o-l.exe
-cp .\a-c.exe c:\tunsvc\common\a-c.exe
-cp .\svcbatch.exe c:\tunsvc\common\svcbatch.exe
-AdminsOnlyWithOthersRX("c:\tunsvc\common\o-l.exe")
-AdminsOnlyWithOthersRX("c:\tunsvc\common\a-c.exe")
-AdminsOnlyWithOthersRX("c:\tunsvc\common\svcbatch.exe")
+mkdir "$tunnelroot"
+AdminsOnlyWithOthersRX("$tunnelroot")
+mkdir "$tunnelroot\common"
+AdminsOnlyWithOthersRX("$tunnelroot\common")
+cp .\o-l.exe "$tunnelroot\common\o-l.exe"
+cp .\a-c.exe "$tunnelroot\common\a-c.exe"
+cp .\svcbatch.exe "$tunnelroot\common\svcbatch.exe"
+AdminsOnlyWithOthersRX("$tunnelroot\common\o-l.exe")
+AdminsOnlyWithOthersRX("$tunnelroot\common\a-c.exe")
+AdminsOnlyWithOthersRX("$tunnelroot\common\svcbatch.exe")

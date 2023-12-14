@@ -14,7 +14,7 @@ Function SetupTunnel{
     $persistpsscript = "
     do {
     Start-Sleep 10
-    wg addconf tun-1 $tunnelroot\$tunnelname\persist\tunnel.conf
+    wg addconf $tunnelname $tunnelroot\$tunnelname\persist\tunnel.conf
     } until (`$DONE)
     "
     $tunbatchscript = "
