@@ -29,6 +29,9 @@ pub struct Config {
     pub PeerPSK: Option<String>,
     pub nsTimeout: Option<u64>, //TODO
     pub TimeoutCountMax: Option<u64>,
+    pub PinnedCores: Option<[usize; 4]>,
+    //[tokio WebRTC receiver -> queue, queue -> tokio WebRTC send,
+    // OS -> queue, queue -> OS]
 }
 #[derive(Deserialize, Clone)]
 pub struct ICEServer {
