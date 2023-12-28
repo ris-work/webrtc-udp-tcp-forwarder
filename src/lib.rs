@@ -133,7 +133,7 @@ pub mod AlignedMessage {
 pub mod Pinning {
     pub fn Try(maybe_cpus: Option<[usize; 4]>, index: usize) {
         if let Some(cpus) = maybe_cpus {
-            core_affinity::set_for_current(core_affinity::CoreId{id: cpus[index]});
+            let _ = core_affinity::set_for_current(core_affinity::CoreId { id: cpus[index] });
         }
     }
 }

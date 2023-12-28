@@ -44,6 +44,7 @@ use std::thread::JoinHandle;
 use std::time;
 use tokio::runtime::Builder;
 use tokio::runtime::Runtime;
+//TOKIO UNSTABLE use tokio::runtime::UnhandledPanic;
 
 #[cfg(windows)]
 use uds_windows::{UnixListener, UnixStream};
@@ -66,6 +67,7 @@ use webrtc_udp_forwarder::hmac::{ConstructAuthenticatedMessage, HashAuthenticate
 use webrtc_udp_forwarder::message::{CheckAndReturn, ConstructMessage, TimedMessage};
 use webrtc_udp_forwarder::AlignedMessage::AlignedMessage;
 use webrtc_udp_forwarder::Config;
+use webrtc_udp_forwarder::Pinning;
 
 use websocket::header::{Authorization, Basic, Bearer, Headers};
 use websocket::OwnedMessage::Text;
@@ -301,6 +303,10 @@ async fn configure_send_receive_udp(
     let d1 = Arc::clone(&RTCDC);
     let mut ClonedSocketRecv = OtherSocket.try_clone().expect("Unable to clone the TCP socket. :(");
     let mut ClonedSocketSend = OtherSocket.try_clone().expect("Unable to clone the TCP socket. :(");
+    Pinning::Try(config.PinnedCores, 0);
+    let config2 = config.clone();
+    let config3 = config.clone();
+    let config4 = config.clone();
 
     RTCPC.on_data_channel(Box::new(move |d: Arc<RTCDataChannel>| {
         let (OtherSocketSendQueue_tx, OtherSocketSendQueue_rx): (Sender<AlignedMessage>, Receiver<AlignedMessage>) = bounded::<AlignedMessage>(128);
@@ -356,6 +362,7 @@ async fn configure_send_receive_udp(
                             .name("UDP SQ -> UDP".to_string())
                             .stack_size(THREAD_STACK_SIZE)
                             .spawn(move || {
+                                Pinning::Try(config4.PinnedCores, 3);
                                 let no_data_count_max: u64 = config.TimeoutCountMax.unwrap_or(3 as u64);
                                 let mut no_data_counter: u64 = 0;
                                 loop {
@@ -427,6 +434,7 @@ async fn configure_send_receive_udp(
                                 .name("OS->DC".to_string())
                                 .stack_size(THREAD_STACK_SIZE)
                                 .spawn(move || {
+                                    Pinning::Try(config3.PinnedCores, 2);
                                     log::info! {"Spawned thread: UDP -> WRTC SQ."};
                                     let (mut ClonedSocketRecv) = (ClonedSocketRecv.try_clone().expect(""));
                                     let no_data_count_max: u64 = config.TimeoutCountMax.unwrap_or(3 as u64);
@@ -476,7 +484,13 @@ async fn configure_send_receive_udp(
                                 })
                                 .expect("Unable to spawn thread: UDP recv => WRTC SQ.");
                             Threads.lock().push(udp_to_wrtc_sq);
-                            let rt = Builder::new_multi_thread().worker_threads(2).thread_name("TOKIO: OS->DC").build().unwrap();
+                            let rt = Builder::new_multi_thread()
+                                .worker_threads(2)
+                                // TOKIO UNSTABLE .unhandled_panic(UnhandledPanic::ShutdownRuntime)
+                                .thread_name("TOKIO: OS->DC")
+                                .on_thread_start(move || Pinning::Try(config2.PinnedCores, 1))
+                                .build()
+                                .unwrap();
                             let d1 = d1.clone();
                             info! {"WRTC SQ -> WRTC"};
 
@@ -735,7 +749,13 @@ fn main() {
     info!("Configuration: type: {}", config.Type);
     if (config.WebRTCMode == "Accept") {
         //let rt = Runtime::new().unwrap();
-        let rt = Builder::new_multi_thread().worker_threads(2).enable_all().thread_name("TOKIO: main").build().unwrap();
+        let rt = Builder::new_multi_thread()
+            .worker_threads(2)
+            .enable_all()
+            //TOKIO UNSTABLE .unhandled_panic(UnhandledPanic::ShutdownRuntime)
+            .thread_name("TOKIO: main")
+            .build()
+            .unwrap();
 
         let offerBase64TextTrimmed = read_offer(config.clone());
         info! {"Read offer: {}", offerBase64TextTrimmed};
