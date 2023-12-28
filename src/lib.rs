@@ -8,6 +8,7 @@
 #![allow(non_upper_case_globals)]
 use chrono::naive::NaiveDateTime;
 use chrono::Utc;
+use core_affinity;
 use serde::Deserialize;
 pub const PKT_SIZE: u16 = 2046;
 #[derive(Deserialize, Clone)]
@@ -126,5 +127,13 @@ pub mod AlignedMessage {
     pub struct AlignedMessage {
         pub size: usize,
         pub data: Vec<u8>,
+    }
+}
+
+pub mod Pinning {
+    pub fn Try(maybe_cpus: Option<[usize; 4]>, index: usize) {
+        if let Some(cpus) = maybe_cpus {
+            core_affinity::set_for_current(core_affinity::CoreId{id: cpus[index]});
+        }
     }
 }

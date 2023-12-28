@@ -369,7 +369,7 @@ async fn configure_send_receive_udp(
 
         Box::pin(async move {})
     }));
-    
+
     thread::Builder::new()
         .stack_size(THREAD_STACK_SIZE)
         .name("OS->DC".to_string())
