@@ -64,6 +64,7 @@ use webrtc_udp_forwarder::hmac::{ConstructAuthenticatedMessage, HashAuthenticate
 use webrtc_udp_forwarder::message::{CheckAndReturn, ConstructMessage, TimedMessage};
 use webrtc_udp_forwarder::AlignedMessage::AlignedMessage;
 use webrtc_udp_forwarder::Config;
+use webrtc_udp_forwarder::Pinning;
 
 use websocket::header::{Authorization, Basic, Bearer, Headers};
 use websocket::OwnedMessage::Text;
@@ -262,6 +263,11 @@ async fn configure_send_receive_udp(
     let Done_rx_3 = Done_rx.clone();
     let cb_done_tx2 = cb_done_tx.clone();
     let done_tx2 = done_tx.clone();
+
+    let config2 = config.clone();
+    let config3 = config.clone();
+    let config4 = config.clone();
+
     RTCDC.on_open(Box::new(move || {
         info!("Data channel '{}'-'{}' open.", d1.label(), d1.id());
         let d2 = Arc::clone(&d1);
@@ -271,11 +277,17 @@ async fn configure_send_receive_udp(
             .name("OS->DC".to_string())
             .spawn(move || {
                 info! {"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
-                let rt = Builder::new_multi_thread().worker_threads(2).thread_name("TOKIO: OS->DC").build().unwrap();
+                let rt = Builder::new_multi_thread()
+                    .worker_threads(2)
+                    .on_thread_start(move || Pinning::Try(config2.PinnedCores, 1))
+                    .thread_name("TOKIO: OS->DC")
+                    .build()
+                    .unwrap();
                 thread::Builder::new()
                     .stack_size(THREAD_STACK_SIZE)
                     .name("OS->DC".to_string())
                     .spawn({
+                        Pinning::Try(config3.PinnedCores, 2);
                         let Done_rx = Done_rx.clone();
                         let no_data_count_max: u64 = config.TimeoutCountMax.unwrap_or(3 as u64);
                         let mut no_data_counter: u64 = 0;
@@ -374,6 +386,7 @@ async fn configure_send_receive_udp(
         .stack_size(THREAD_STACK_SIZE)
         .name("OS->DC".to_string())
         .spawn(move || {
+            Pinning::Try(config4.PinnedCores, 3);
             let no_data_count_max: u64 = config.TimeoutCountMax.unwrap_or(3 as u64);
             let mut no_data_counter: u64 = 0;
             loop {
@@ -599,7 +612,14 @@ fn main() {
     info!("Configuration: type: {}", config.Type);
     if (config.WebRTCMode == "Offer") {
         //let rt = Runtime::new().unwrap();
-        let rt = Builder::new_multi_thread().worker_threads(2).enable_all().thread_name("TOKIO: main").build().unwrap();
+        let config1 = config.clone();
+        let rt = Builder::new_multi_thread()
+            .worker_threads(2)
+            .enable_all()
+            .on_thread_start(move || Pinning::Try(config1.PinnedCores, 0))
+            .thread_name("TOKIO: main")
+            .build()
+            .unwrap();
         let (mut data_channel, mut peer_connection, local_description, done_rx, done_tx, cb_done_rx, cb_done_tx) =
             rt.block_on(create_WebRTC_offer(&config)).expect("Failed creating a WebRTC Data Channel.");
         let offerBase64TextTrimmed = write_offer_and_read_answer(local_description, config.clone());

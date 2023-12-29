@@ -747,12 +747,14 @@ fn main() {
     info! {"{}", TOML_file_contents};
     let config: Config = toml::from_str(&TOML_file_contents).unwrap();
     info!("Configuration: type: {}", config.Type);
+    let config1 = config.clone();
     if (config.WebRTCMode == "Accept") {
         //let rt = Runtime::new().unwrap();
         let rt = Builder::new_multi_thread()
             .worker_threads(2)
             .enable_all()
             //TOKIO UNSTABLE .unhandled_panic(UnhandledPanic::ShutdownRuntime)
+            .on_thread_start(move || Pinning::Try(config1.PinnedCores, 0))
             .thread_name("TOKIO: main")
             .build()
             .unwrap();
