@@ -485,8 +485,9 @@ async fn configure_send_receive_udp(
                                 .expect("Unable to spawn thread: UDP recv => WRTC SQ.");
                             Threads.lock().push(udp_to_wrtc_sq);
                             let rt = Builder::new_multi_thread()
-                                .worker_threads(2)
+                                .worker_threads(1)
                                 // TOKIO UNSTABLE .unhandled_panic(UnhandledPanic::ShutdownRuntime)
+                                .thread_stack_size(THREAD_STACK_SIZE)
                                 .thread_name("TOKIO: OS->DC")
                                 .on_thread_start(move || Pinning::Try(config2.PinnedCores, 1))
                                 .build()
@@ -752,6 +753,7 @@ fn main() {
         //let rt = Runtime::new().unwrap();
         let rt = Builder::new_multi_thread()
             .worker_threads(2)
+            .thread_stack_size(THREAD_STACK_SIZE)
             .enable_all()
             //TOKIO UNSTABLE .unhandled_panic(UnhandledPanic::ShutdownRuntime)
             .on_thread_start(move || Pinning::Try(config1.PinnedCores, 0))

@@ -278,7 +278,8 @@ async fn configure_send_receive_udp(
             .spawn(move || {
                 info! {"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
                 let rt = Builder::new_multi_thread()
-                    .worker_threads(2)
+                    .worker_threads(1)
+                    .thread_stack_size(THREAD_STACK_SIZE)
                     .on_thread_start(move || Pinning::Try(config2.PinnedCores, 1))
                     .thread_name("TOKIO: OS->DC")
                     .build()
@@ -616,6 +617,7 @@ fn main() {
         let rt = Builder::new_multi_thread()
             .worker_threads(2)
             .enable_all()
+            .thread_stack_size(THREAD_STACK_SIZE)
             .on_thread_start(move || Pinning::Try(config1.PinnedCores, 0))
             .thread_name("TOKIO: main")
             .build()
