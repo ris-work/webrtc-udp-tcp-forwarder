@@ -752,7 +752,7 @@ fn main() {
     if (config.WebRTCMode == "Accept") {
         //let rt = Runtime::new().unwrap();
         let rt = Builder::new_multi_thread()
-            .worker_threads(2)
+            .worker_threads(1)
             .thread_stack_size(THREAD_STACK_SIZE)
             .enable_all()
             //TOKIO UNSTABLE .unhandled_panic(UnhandledPanic::ShutdownRuntime)

@@ -615,7 +615,7 @@ fn main() {
         //let rt = Runtime::new().unwrap();
         let config1 = config.clone();
         let rt = Builder::new_multi_thread()
-            .worker_threads(2)
+            .worker_threads(1)
             .enable_all()
             .thread_stack_size(THREAD_STACK_SIZE)
             .on_thread_start(move || Pinning::Try(config1.PinnedCores, 0))
