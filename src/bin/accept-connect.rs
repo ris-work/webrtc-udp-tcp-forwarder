@@ -358,74 +358,75 @@ async fn configure_send_receive_udp(
                         let d = d1.clone();
                         let done_tx2 = done_tx.clone();
                         let cb_done_tx2 = cb_done_tx.clone();
-                        let udp_sq_to_udp = thread::Builder::new()
-                            .name("UDP SQ -> UDP".to_string())
-                            .stack_size(THREAD_STACK_SIZE)
-                            .spawn(move || {
-                                Pinning::Try(config4.PinnedCores, 3);
-                                let no_data_count_max: u64 = config.TimeoutCountMax.unwrap_or(3 as u64);
-                                let mut no_data_counter: u64 = 0;
-                                loop {
-                                    debug! {"Blocking on dequeueing UDP send queue. Queue size: {}.", OtherSocketSendQueue_rx.len()};
-                                    let recv_attempt = OtherSocketSendQueue_rx.recv_timeout(time::Duration::from_secs(1));
-                                    debug! {"Block on UDP send queue dequeue is over"};
-                                    match (recv_attempt) {
-                                        Ok(msg) => {
-                                            let msg = msg.data;
-                                            no_data_counter = 0;
-                                            let (mut ClonedSocketSend) = (ClonedSocketSend.try_clone().expect(""));
-                                            log::debug! {"Message from the UDP send queue: {msg:?}"};
-                                            match (ClonedSocketSend.send(&msg)) {
-                                                Ok(amt) => {
-                                                    debug! {"DC->OS: Written {} bytes.", amt};
-                                                    //ClonedSocketSend.flush().expect("Unable to flush the stream.");
-                                                }
-                                                #[cold]
-                                                Err(E) => {
-                                                    warn!("OtherSocket: Unable to write data.");
-                                                    OtherSocketReady.store(false, Ordering::Relaxed);
-                                                    cb_done_tx2.try_send(true);
-                                                    done_tx2.try_send(());
-                                                    block_on(d.close());
-                                                }
+                        let cu_udp_sq_to_udp = move || {
+                            Pinning::Try(config4.PinnedCores, 3);
+                            let no_data_count_max: u64 = config.TimeoutCountMax.unwrap_or(3 as u64);
+                            let mut no_data_counter: u64 = 0;
+                            loop {
+                                debug! {"Blocking on dequeueing UDP send queue. Queue size: {}.", OtherSocketSendQueue_rx.len()};
+                                let recv_attempt = OtherSocketSendQueue_rx.recv_timeout(time::Duration::from_secs(1));
+                                debug! {"Block on UDP send queue dequeue is over"};
+                                match (recv_attempt) {
+                                    Ok(msg) => {
+                                        let msg = msg.data;
+                                        no_data_counter = 0;
+                                        let (mut ClonedSocketSend) = (ClonedSocketSend.try_clone().expect(""));
+                                        log::debug! {"Message from the UDP send queue: {msg:?}"};
+                                        match (ClonedSocketSend.send(&msg)) {
+                                            Ok(amt) => {
+                                                debug! {"DC->OS: Written {} bytes.", amt};
+                                                //ClonedSocketSend.flush().expect("Unable to flush the stream.");
                                             }
-                                        }
-                                        Err(RecvTimeoutError) => {
-                                            no_data_counter = no_data_counter + 1;
-                                            if (no_data_counter > no_data_count_max) {
-                                                let mut i = 0;
-                                                while (i < 4) {
-                                                    cb_done_tx2.try_send(true);
-                                                    done_tx2.try_send(());
-                                                    i += 1;
-                                                }
-                                                info! {"Quitting due to inactivity... (No data channel message has been received.)"};
-                                                break;
-                                            }
-                                            if (Done_rx_3.try_recv() == Ok(true)) {
-                                                break;
+                                            #[cold]
+                                            Err(E) => {
+                                                warn!("OtherSocket: Unable to write data.");
+                                                OtherSocketReady.store(false, Ordering::Relaxed);
+                                                cb_done_tx2.try_send(true);
+                                                done_tx2.try_send(());
+                                                block_on(d.close());
                                             }
                                         }
                                     }
-
-                                    //if (CAN_RECV.load(Ordering::Relaxed)) {
-
-                                    /*}
-                                    //#[cold]
-                                    else {
-                                        if (OtherSocketSendBuf.lock().len() + msg.len() > MaxOtherSocketSendBufSize) {
-                                            warn! {"Buffer FULL: {} + {} > {}",
-                                            OtherSocketSendBuf.lock().len(),
-                                            msg.len(),
-                                            MaxOtherSocketSendBufSize
-                                            };
-                                        } else {
-                                            debug! {"OtherSocket not ready yet!"};
-                                            OtherSocketSendBuf.lock().extend_from_slice(&msg);
+                                    Err(RecvTimeoutError) => {
+                                        no_data_counter = no_data_counter + 1;
+                                        if (no_data_counter > no_data_count_max) {
+                                            let mut i = 0;
+                                            while (i < 4) {
+                                                cb_done_tx2.try_send(true);
+                                                done_tx2.try_send(());
+                                                i += 1;
+                                            }
+                                            info! {"Quitting due to inactivity... (No data channel message has been received.)"};
+                                            break;
                                         }
-                                    }*/
+                                        if (Done_rx_3.try_recv() == Ok(true)) {
+                                            break;
+                                        }
+                                    }
                                 }
-                            })
+
+                                //if (CAN_RECV.load(Ordering::Relaxed)) {
+
+                                /*}
+                                //#[cold]
+                                else {
+                                    if (OtherSocketSendBuf.lock().len() + msg.len() > MaxOtherSocketSendBufSize) {
+                                        warn! {"Buffer FULL: {} + {} > {}",
+                                        OtherSocketSendBuf.lock().len(),
+                                        msg.len(),
+                                        MaxOtherSocketSendBufSize
+                                        };
+                                    } else {
+                                        debug! {"OtherSocket not ready yet!"};
+                                        OtherSocketSendBuf.lock().extend_from_slice(&msg);
+                                    }
+                                }*/
+                            }
+                        };
+                        let udp_sq_to_udp = thread::Builder::new()
+                            .name("UDP SQ -> UDP".to_string())
+                            .stack_size(THREAD_STACK_SIZE)
+                            .spawn(cu_udp_sq_to_udp)
                             .expect("Unable to spawn: UDP SQ -> UDP");
                         Threads.lock().push(udp_sq_to_udp);
                         let cu_udp_to_wrtc_sq = move || {
