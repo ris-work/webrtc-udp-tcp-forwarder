@@ -478,14 +478,14 @@ async fn configure_send_receive_udp(
                                 }
                             }
                         };
+                        let udp_to_wrtc_sq = thread::Builder::new()
+                            .name("OS->DC".to_string())
+                            .stack_size(THREAD_STACK_SIZE)
+                            .spawn(cu_udp_to_wrtc_sq)
+                            .expect("Unable to spawn thread: UDP recv => WRTC SQ.");
+                        Threads.lock().push(udp_to_wrtc_sq);
                         let cu_wrtc_sq_to_wrtc = move || {
                             info! {"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
-                            let udp_to_wrtc_sq = thread::Builder::new()
-                                .name("OS->DC".to_string())
-                                .stack_size(THREAD_STACK_SIZE)
-                                .spawn(cu_udp_to_wrtc_sq)
-                                .expect("Unable to spawn thread: UDP recv => WRTC SQ.");
-                            Threads.lock().push(udp_to_wrtc_sq);
                             let rt = Builder::new_multi_thread()
                                 .worker_threads(1)
                                 // TOKIO UNSTABLE .unhandled_panic(UnhandledPanic::ShutdownRuntime)
