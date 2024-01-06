@@ -358,132 +358,134 @@ async fn configure_send_receive_udp(
                         let d = d1.clone();
                         let done_tx2 = done_tx.clone();
                         let cb_done_tx2 = cb_done_tx.clone();
-                        let udp_sq_to_udp = thread::Builder::new()
-                            .name("UDP SQ -> UDP".to_string())
-                            .stack_size(THREAD_STACK_SIZE)
-                            .spawn(move || {
-                                Pinning::Try(config4.PinnedCores, 3);
-                                let no_data_count_max: u64 = config.TimeoutCountMax.unwrap_or(3 as u64);
-                                let mut no_data_counter: u64 = 0;
-                                loop {
-                                    debug! {"Blocking on dequeueing UDP send queue. Queue size: {}.", OtherSocketSendQueue_rx.len()};
-                                    let recv_attempt = OtherSocketSendQueue_rx.recv_timeout(time::Duration::from_secs(1));
-                                    debug! {"Block on UDP send queue dequeue is over"};
-                                    match (recv_attempt) {
-                                        Ok(msg) => {
-                                            let msg = msg.data;
-                                            no_data_counter = 0;
-                                            let (mut ClonedSocketSend) = (ClonedSocketSend.try_clone().expect(""));
-                                            log::debug! {"Message from the UDP send queue: {msg:?}"};
-                                            match (ClonedSocketSend.send(&msg)) {
-                                                Ok(amt) => {
-                                                    debug! {"DC->OS: Written {} bytes.", amt};
-                                                    //ClonedSocketSend.flush().expect("Unable to flush the stream.");
-                                                }
-                                                #[cold]
-                                                Err(E) => {
-                                                    warn!("OtherSocket: Unable to write data.");
-                                                    OtherSocketReady.store(false, Ordering::Relaxed);
-                                                    cb_done_tx2.try_send(true);
-                                                    done_tx2.try_send(());
-                                                    block_on(d.close());
-                                                }
+                        let cu_udp_sq_to_udp = move || {
+                            Pinning::Try(config4.PinnedCores, 3);
+                            let no_data_count_max: u64 = config.TimeoutCountMax.unwrap_or(3 as u64);
+                            let mut no_data_counter: u64 = 0;
+                            loop {
+                                debug! {"Blocking on dequeueing UDP send queue. Queue size: {}.", OtherSocketSendQueue_rx.len()};
+                                let recv_attempt = OtherSocketSendQueue_rx.recv_timeout(time::Duration::from_secs(1));
+                                debug! {"Block on UDP send queue dequeue is over"};
+                                match (recv_attempt) {
+                                    Ok(msg) => {
+                                        let msg = msg.data;
+                                        no_data_counter = 0;
+                                        let (mut ClonedSocketSend) = (ClonedSocketSend.try_clone().expect(""));
+                                        log::debug! {"Message from the UDP send queue: {msg:?}"};
+                                        match (ClonedSocketSend.send(&msg)) {
+                                            Ok(amt) => {
+                                                debug! {"DC->OS: Written {} bytes.", amt};
+                                                //ClonedSocketSend.flush().expect("Unable to flush the stream.");
                                             }
-                                        }
-                                        Err(RecvTimeoutError) => {
-                                            no_data_counter = no_data_counter + 1;
-                                            if (no_data_counter > no_data_count_max) {
-                                                let mut i = 0;
-                                                while (i < 4) {
-                                                    cb_done_tx2.try_send(true);
-                                                    done_tx2.try_send(());
-                                                    i += 1;
-                                                }
-                                                info! {"Quitting due to inactivity... (No data channel message has been received.)"};
-                                                break;
-                                            }
-                                            if (Done_rx_3.try_recv() == Ok(true)) {
-                                                break;
+                                            #[cold]
+                                            Err(E) => {
+                                                warn!("OtherSocket: Unable to write data.");
+                                                OtherSocketReady.store(false, Ordering::Relaxed);
+                                                cb_done_tx2.try_send(true);
+                                                done_tx2.try_send(());
+                                                block_on(d.close());
                                             }
                                         }
                                     }
-
-                                    //if (CAN_RECV.load(Ordering::Relaxed)) {
-
-                                    /*}
-                                    //#[cold]
-                                    else {
-                                        if (OtherSocketSendBuf.lock().len() + msg.len() > MaxOtherSocketSendBufSize) {
-                                            warn! {"Buffer FULL: {} + {} > {}",
-                                            OtherSocketSendBuf.lock().len(),
-                                            msg.len(),
-                                            MaxOtherSocketSendBufSize
-                                            };
-                                        } else {
-                                            debug! {"OtherSocket not ready yet!"};
-                                            OtherSocketSendBuf.lock().extend_from_slice(&msg);
-                                        }
-                                    }*/
-                                }
-                            })
-                            .expect("Unable to spawn: UDP SQ -> UDP");
-                        Threads.lock().push(udp_sq_to_udp);
-                        let wrtc_sq_to_wrtc = thread::Builder::new().name("OS->DC".to_string()).stack_size(THREAD_STACK_SIZE).spawn(move || {
-                            info! {"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
-                            let udp_to_wrtc_sq = thread::Builder::new()
-                                .name("OS->DC".to_string())
-                                .stack_size(THREAD_STACK_SIZE)
-                                .spawn(move || {
-                                    Pinning::Try(config3.PinnedCores, 2);
-                                    log::info! {"Spawned thread: UDP -> WRTC SQ."};
-                                    let (mut ClonedSocketRecv) = (ClonedSocketRecv.try_clone().expect(""));
-                                    let no_data_count_max: u64 = config.TimeoutCountMax.unwrap_or(3 as u64);
-                                    let mut no_data_counter: u64 = 0;
-                                    loop {
+                                    Err(RecvTimeoutError) => {
+                                        no_data_counter = no_data_counter + 1;
                                         if (no_data_counter > no_data_count_max) {
                                             let mut i = 0;
                                             while (i < 4) {
-                                                cb_done_tx.try_send(true);
-                                                done_tx.try_send(());
+                                                cb_done_tx2.try_send(true);
+                                                done_tx2.try_send(());
                                                 i += 1;
                                             }
-                                            info! {"Quitting due to inactivity... (No datagram has been received.)"};
+                                            info! {"Quitting due to inactivity... (No data channel message has been received.)"};
                                             break;
                                         }
-                                        let mut buf = [0; PKT_SIZE];
-                                        if (Done_rx.try_recv() == Ok(true)) {
+                                        if (Done_rx_3.try_recv() == Ok(true)) {
                                             break;
-                                        }
-                                        match (ClonedSocketRecv.recv(&mut buf)) {
-                                            Ok(amt) => {
-                                                trace! {"{:?}", &buf[0..amt]};
-                                                debug! {"Enqueued..."};
-                                                no_data_counter = 0;
-                                                let _ = WebRTCSendQueue_tx.try_send(AlignedMessage { size: amt, data: buf.into() });
-                                            }
-                                            Err(E) => match (E.kind()) {
-                                                std::io::ErrorKind::WouldBlock => {
-                                                    no_data_counter += 1;
-                                                    debug!("Unable to read or save to the buffer: {:?}", E);
-                                                    debug! {"Restarting the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
-                                                }
-                                                std::io::ErrorKind::TimedOut => {
-                                                    no_data_counter += 1;
-                                                    debug!("Unable to read or save to the buffer: {:?}", E);
-                                                    debug! {"Restarting the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
-                                                }
-                                                _ => {
-                                                    warn!("Unable to read or save to the buffer: {:?}", E);
-                                                    OtherSocketReady.store(false, Ordering::Relaxed);
-                                                    info! {"Ending the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
-                                                    break;
-                                                }
-                                            },
                                         }
                                     }
-                                })
-                                .expect("Unable to spawn thread: UDP recv => WRTC SQ.");
-                            Threads.lock().push(udp_to_wrtc_sq);
+                                }
+
+                                //if (CAN_RECV.load(Ordering::Relaxed)) {
+
+                                /*}
+                                //#[cold]
+                                else {
+                                    if (OtherSocketSendBuf.lock().len() + msg.len() > MaxOtherSocketSendBufSize) {
+                                        warn! {"Buffer FULL: {} + {} > {}",
+                                        OtherSocketSendBuf.lock().len(),
+                                        msg.len(),
+                                        MaxOtherSocketSendBufSize
+                                        };
+                                    } else {
+                                        debug! {"OtherSocket not ready yet!"};
+                                        OtherSocketSendBuf.lock().extend_from_slice(&msg);
+                                    }
+                                }*/
+                            }
+                        };
+                        let udp_sq_to_udp = thread::Builder::new()
+                            .name("UDP SQ -> UDP".to_string())
+                            .stack_size(THREAD_STACK_SIZE)
+                            .spawn(cu_udp_sq_to_udp)
+                            .expect("Unable to spawn: UDP SQ -> UDP");
+                        Threads.lock().push(udp_sq_to_udp);
+                        let cu_udp_to_wrtc_sq = move || {
+                            Pinning::Try(config3.PinnedCores, 2);
+                            log::info! {"Spawned thread: UDP -> WRTC SQ."};
+                            let (mut ClonedSocketRecv) = (ClonedSocketRecv.try_clone().expect(""));
+                            let no_data_count_max: u64 = config.TimeoutCountMax.unwrap_or(3 as u64);
+                            let mut no_data_counter: u64 = 0;
+                            loop {
+                                if (no_data_counter > no_data_count_max) {
+                                    let mut i = 0;
+                                    while (i < 4) {
+                                        cb_done_tx.try_send(true);
+                                        done_tx.try_send(());
+                                        i += 1;
+                                    }
+                                    info! {"Quitting due to inactivity... (No datagram has been received.)"};
+                                    break;
+                                }
+                                let mut buf = [0; PKT_SIZE];
+                                if (Done_rx.try_recv() == Ok(true)) {
+                                    break;
+                                }
+                                match (ClonedSocketRecv.recv(&mut buf)) {
+                                    Ok(amt) => {
+                                        trace! {"{:?}", &buf[0..amt]};
+                                        debug! {"Enqueued..."};
+                                        no_data_counter = 0;
+                                        let _ = WebRTCSendQueue_tx.try_send(AlignedMessage { size: amt, data: buf.into() });
+                                    }
+                                    Err(E) => match (E.kind()) {
+                                        std::io::ErrorKind::WouldBlock => {
+                                            no_data_counter += 1;
+                                            debug!("Unable to read or save to the buffer: {:?}", E);
+                                            debug! {"Restarting the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
+                                        }
+                                        std::io::ErrorKind::TimedOut => {
+                                            no_data_counter += 1;
+                                            debug!("Unable to read or save to the buffer: {:?}", E);
+                                            debug! {"Restarting the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
+                                        }
+                                        _ => {
+                                            warn!("Unable to read or save to the buffer: {:?}", E);
+                                            OtherSocketReady.store(false, Ordering::Relaxed);
+                                            info! {"Ending the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
+                                            break;
+                                        }
+                                    },
+                                }
+                            }
+                        };
+                        let udp_to_wrtc_sq = thread::Builder::new()
+                            .name("OS->DC".to_string())
+                            .stack_size(THREAD_STACK_SIZE)
+                            .spawn(cu_udp_to_wrtc_sq)
+                            .expect("Unable to spawn thread: UDP recv => WRTC SQ.");
+                        Threads.lock().push(udp_to_wrtc_sq);
+                        let cu_wrtc_sq_to_wrtc = move || {
+                            info! {"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
                             let rt = Builder::new_multi_thread()
                                 .worker_threads(1)
                                 // TOKIO UNSTABLE .unhandled_panic(UnhandledPanic::ShutdownRuntime)
@@ -521,7 +523,8 @@ async fn configure_send_receive_udp(
                                     break;
                                 }
                             }
-                        });
+                        };
+                        let wrtc_sq_to_wrtc = thread::Builder::new().name("OS->DC".to_string()).stack_size(THREAD_STACK_SIZE).spawn(cu_wrtc_sq_to_wrtc);
                         match (wrtc_sq_to_wrtc) {
                             Ok(JH) => Threads.lock().push(JH),
                             Err(E) => {
