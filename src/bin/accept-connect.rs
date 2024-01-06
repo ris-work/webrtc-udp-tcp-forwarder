@@ -428,60 +428,61 @@ async fn configure_send_receive_udp(
                             })
                             .expect("Unable to spawn: UDP SQ -> UDP");
                         Threads.lock().push(udp_sq_to_udp);
-                        let wrtc_sq_to_wrtc = thread::Builder::new().name("OS->DC".to_string()).stack_size(THREAD_STACK_SIZE).spawn(move || {
+                        let cu_udp_to_wrtc_sq = move || {
+                            Pinning::Try(config3.PinnedCores, 2);
+                            log::info! {"Spawned thread: UDP -> WRTC SQ."};
+                            let (mut ClonedSocketRecv) = (ClonedSocketRecv.try_clone().expect(""));
+                            let no_data_count_max: u64 = config.TimeoutCountMax.unwrap_or(3 as u64);
+                            let mut no_data_counter: u64 = 0;
+                            loop {
+                                if (no_data_counter > no_data_count_max) {
+                                    let mut i = 0;
+                                    while (i < 4) {
+                                        cb_done_tx.try_send(true);
+                                        done_tx.try_send(());
+                                        i += 1;
+                                    }
+                                    info! {"Quitting due to inactivity... (No datagram has been received.)"};
+                                    break;
+                                }
+                                let mut buf = [0; PKT_SIZE];
+                                if (Done_rx.try_recv() == Ok(true)) {
+                                    break;
+                                }
+                                match (ClonedSocketRecv.recv(&mut buf)) {
+                                    Ok(amt) => {
+                                        trace! {"{:?}", &buf[0..amt]};
+                                        debug! {"Enqueued..."};
+                                        no_data_counter = 0;
+                                        let _ = WebRTCSendQueue_tx.try_send(AlignedMessage { size: amt, data: buf.into() });
+                                    }
+                                    Err(E) => match (E.kind()) {
+                                        std::io::ErrorKind::WouldBlock => {
+                                            no_data_counter += 1;
+                                            debug!("Unable to read or save to the buffer: {:?}", E);
+                                            debug! {"Restarting the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
+                                        }
+                                        std::io::ErrorKind::TimedOut => {
+                                            no_data_counter += 1;
+                                            debug!("Unable to read or save to the buffer: {:?}", E);
+                                            debug! {"Restarting the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
+                                        }
+                                        _ => {
+                                            warn!("Unable to read or save to the buffer: {:?}", E);
+                                            OtherSocketReady.store(false, Ordering::Relaxed);
+                                            info! {"Ending the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
+                                            break;
+                                        }
+                                    },
+                                }
+                            }
+                        };
+                        let cu_wrtc_sq_to_wrtc = move || {
                             info! {"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
                             let udp_to_wrtc_sq = thread::Builder::new()
                                 .name("OS->DC".to_string())
                                 .stack_size(THREAD_STACK_SIZE)
-                                .spawn(move || {
-                                    Pinning::Try(config3.PinnedCores, 2);
-                                    log::info! {"Spawned thread: UDP -> WRTC SQ."};
-                                    let (mut ClonedSocketRecv) = (ClonedSocketRecv.try_clone().expect(""));
-                                    let no_data_count_max: u64 = config.TimeoutCountMax.unwrap_or(3 as u64);
-                                    let mut no_data_counter: u64 = 0;
-                                    loop {
-                                        if (no_data_counter > no_data_count_max) {
-                                            let mut i = 0;
-                                            while (i < 4) {
-                                                cb_done_tx.try_send(true);
-                                                done_tx.try_send(());
-                                                i += 1;
-                                            }
-                                            info! {"Quitting due to inactivity... (No datagram has been received.)"};
-                                            break;
-                                        }
-                                        let mut buf = [0; PKT_SIZE];
-                                        if (Done_rx.try_recv() == Ok(true)) {
-                                            break;
-                                        }
-                                        match (ClonedSocketRecv.recv(&mut buf)) {
-                                            Ok(amt) => {
-                                                trace! {"{:?}", &buf[0..amt]};
-                                                debug! {"Enqueued..."};
-                                                no_data_counter = 0;
-                                                let _ = WebRTCSendQueue_tx.try_send(AlignedMessage { size: amt, data: buf.into() });
-                                            }
-                                            Err(E) => match (E.kind()) {
-                                                std::io::ErrorKind::WouldBlock => {
-                                                    no_data_counter += 1;
-                                                    debug!("Unable to read or save to the buffer: {:?}", E);
-                                                    debug! {"Restarting the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
-                                                }
-                                                std::io::ErrorKind::TimedOut => {
-                                                    no_data_counter += 1;
-                                                    debug!("Unable to read or save to the buffer: {:?}", E);
-                                                    debug! {"Restarting the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
-                                                }
-                                                _ => {
-                                                    warn!("Unable to read or save to the buffer: {:?}", E);
-                                                    OtherSocketReady.store(false, Ordering::Relaxed);
-                                                    info! {"Ending the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
-                                                    break;
-                                                }
-                                            },
-                                        }
-                                    }
-                                })
+                                .spawn(cu_udp_to_wrtc_sq)
                                 .expect("Unable to spawn thread: UDP recv => WRTC SQ.");
                             Threads.lock().push(udp_to_wrtc_sq);
                             let rt = Builder::new_multi_thread()
@@ -521,7 +522,8 @@ async fn configure_send_receive_udp(
                                     break;
                                 }
                             }
-                        });
+                        };
+                        let wrtc_sq_to_wrtc = thread::Builder::new().name("OS->DC".to_string()).stack_size(THREAD_STACK_SIZE).spawn(cu_wrtc_sq_to_wrtc);
                         match (wrtc_sq_to_wrtc) {
                             Ok(JH) => Threads.lock().push(JH),
                             Err(E) => {
