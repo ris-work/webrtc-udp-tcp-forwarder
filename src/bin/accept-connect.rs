@@ -359,6 +359,7 @@ async fn configure_send_receive_udp(
                         let done_tx2 = done_tx.clone();
                         let cb_done_tx2 = cb_done_tx.clone();
                         let cu_udp_sq_to_udp = move || {
+                            info!{"UDP SQ -> UDP started."};
                             Pinning::Try(config4.PinnedCores, 3);
                             let no_data_count_max: u64 = config.TimeoutCountMax.unwrap_or(3 as u64);
                             let mut no_data_counter: u64 = 0;
@@ -422,7 +423,9 @@ async fn configure_send_receive_udp(
                                     }
                                 }*/
                             }
+                            info!{"Exiting UDP SQ -> UDP concurrency unit (gracefully)"};
                         };
+                        info!{"Spawning: UDP SQ -> UDP"};
                         let udp_sq_to_udp = thread::Builder::new()
                             .name("UDP SQ -> UDP".to_string())
                             .stack_size(THREAD_STACK_SIZE)
@@ -485,7 +488,7 @@ async fn configure_send_receive_udp(
                             .expect("Unable to spawn thread: UDP recv => WRTC SQ.");
                         Threads.lock().push(udp_to_wrtc_sq);
                         let cu_wrtc_sq_to_wrtc = move || {
-                            info! {"Spawned the thread: OtherSocket (read) => DataChannel (write)"};
+                            info! {"Spawned the thread: WRTC SQ (read) => DataChannel (write)"};
                             let rt = Builder::new_multi_thread()
                                 .worker_threads(1)
                                 // TOKIO UNSTABLE .unhandled_panic(UnhandledPanic::ShutdownRuntime)
