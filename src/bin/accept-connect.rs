@@ -480,6 +480,7 @@ async fn configure_send_receive_udp(
                                     },
                                 }
                             }
+                            info!{"[UDP -> WRTC SQ] Exiting thread (gracefully)..."};
                         };
                         let udp_to_wrtc_sq = thread::Builder::new()
                             .name("OS->DC".to_string())
@@ -526,6 +527,7 @@ async fn configure_send_receive_udp(
                                     break;
                                 }
                             }
+                            info!{"[WRTC SQ -> WRTC] Exiting thread (gracefully)..."};
                         };
                         let wrtc_sq_to_wrtc = thread::Builder::new().name("OS->DC".to_string()).stack_size(THREAD_STACK_SIZE).spawn(cu_wrtc_sq_to_wrtc);
                         match (wrtc_sq_to_wrtc) {
@@ -556,7 +558,7 @@ async fn configure_send_receive_udp(
 
     debug! {"Successfully registered the on_message handle"};
     done_rx.recv().await;
-    debug! {"Closing!"};
+    debug! {"[tokio initial] + [WRTC -> UDP SQ] Closing!"};
     RTCDC.close().await.expect("Error closing the connection");
 
     /* Ok(*/
