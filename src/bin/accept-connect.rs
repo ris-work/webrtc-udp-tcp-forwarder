@@ -558,7 +558,7 @@ async fn configure_send_receive_udp(
 
     debug! {"Successfully registered the on_message handle"};
     done_rx.recv().await;
-    debug! {"[tokio initial] + [WRTC -> UDP SQ] Closing!"};
+    info! {"[tokio initial] + [WRTC -> UDP SQ] Closing!"};
     RTCDC.close().await.expect("Error closing the connection");
 
     /* Ok(*/

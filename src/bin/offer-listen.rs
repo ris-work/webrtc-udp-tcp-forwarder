@@ -318,8 +318,8 @@ async fn configure_send_receive_udp(
                         }
                     },
                 }
-            }
-            info{"[UDP -> WRTC SQ] Exiting concurrency unit (gracefully)..."};
+            };
+            info!{"[UDP -> WRTC SQ] Exiting concurrency unit (gracefully)..."};
         };
         let udp_to_wrtc_sq = thread::Builder::new()
             .stack_size(THREAD_STACK_SIZE)
@@ -365,7 +365,7 @@ async fn configure_send_receive_udp(
                     }
                 }
             }
-            info{"[WRTC SQ -> WRTC] Exiting concurrency unit (gracefully)..."};
+            info!{"[WRTC SQ -> WRTC] Exiting concurrency unit (gracefully)..."};
         };
         let wrtc_sq_to_wrtc = thread::Builder::new()
             .stack_size(THREAD_STACK_SIZE)
@@ -434,7 +434,7 @@ async fn configure_send_receive_udp(
                 }
             }
         }
-        info{"[UDP SQ -> UDP] Exiting concurrency unit (gracefully)..."};
+        info!{"[UDP SQ -> UDP] Exiting concurrency unit (gracefully)..."};
     };
     thread::Builder::new()
         .stack_size(THREAD_STACK_SIZE)
