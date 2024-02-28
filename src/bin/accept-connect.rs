@@ -540,7 +540,7 @@ async fn configure_send_receive_udp(
                     }
                 }));
                 // Register text message handling
-                d2.on_message(Box::new({
+                d2.on_message(move || {Box::new({
                     let d = d2.clone();
                     move |msg: DataChannelMessage| {
                         let msg = msg.data.to_vec();
@@ -551,7 +551,7 @@ async fn configure_send_receive_udp(
                         debug! {"UDP send queue enqueue block is over."};
                         Box::pin(async {})
                     }
-                }));
+                })});
             }
         })
     }));
