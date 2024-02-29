@@ -303,12 +303,12 @@ async fn configure_send_receive_udp(
                     }
                     Err(E) => match (E.kind()) {
                         std::io::ErrorKind::WouldBlock => {
-                            debug!("Unable to read or save to the buffer: {:?}", E);
-                            debug! {"Restarting the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
+                            trace!("Unable to read or save to the buffer: {:?}", E);
+                            trace! {"Restarting the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
                         }
                         std::io::ErrorKind::TimedOut => {
-                            debug!("Unable to read or save to the buffer: {:?}", E);
-                            debug! {"Restarting the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
+                            trace!("Unable to read or save to the buffer: {:?}", E);
+                            trace! {"Restarting the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
                         }
                         _ => {
                             warn!("Unable to read or save to the buffer: {:?}", E);
