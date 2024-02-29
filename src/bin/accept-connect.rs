@@ -332,6 +332,10 @@ async fn configure_send_receive_udp(
                 let d_label2 = d_label.clone();
                 let d_id2 = d_id;
                 let (mut ClonedSocketRecv, mut ClonedSocketSend) = (ClonedSocketRecv.try_clone().expect(""), ClonedSocketSend.try_clone().expect(""));
+                d.on_close(Box::new(move || {
+                    info! {"[tokio initial] + [WRTC -> UDP SQ] DC closed."};
+                    Box::pin(async {})
+                }));
                 d.on_open(Box::new({
                     let d1 = d1.clone();
                     let Done_rx_2 = Done_rx.clone();
@@ -359,7 +363,7 @@ async fn configure_send_receive_udp(
                         let done_tx2 = done_tx.clone();
                         let cb_done_tx2 = cb_done_tx.clone();
                         let cu_udp_sq_to_udp = move || {
-                            info!{"UDP SQ -> UDP started."};
+                            info! {"UDP SQ -> UDP started."};
                             Pinning::Try(config4.PinnedCores, 3);
                             let no_data_count_max: u64 = config.TimeoutCountMax.unwrap_or(3 as u64);
                             let mut no_data_counter: u64 = 0;
@@ -423,9 +427,9 @@ async fn configure_send_receive_udp(
                                     }
                                 }*/
                             }
-                            info!{"Exiting UDP SQ -> UDP concurrency unit (gracefully)"};
+                            info! {"Exiting UDP SQ -> UDP concurrency unit (gracefully)"};
                         };
-                        info!{"Spawning: UDP SQ -> UDP"};
+                        info! {"Spawning: UDP SQ -> UDP"};
                         let udp_sq_to_udp = thread::Builder::new()
                             .name("UDP SQ -> UDP".to_string())
                             .stack_size(THREAD_STACK_SIZE)
@@ -480,7 +484,7 @@ async fn configure_send_receive_udp(
                                     },
                                 }
                             }
-                            info!{"[UDP -> WRTC SQ] Exiting thread (gracefully)..."};
+                            info! {"[UDP -> WRTC SQ] Exiting thread (gracefully)..."};
                         };
                         let udp_to_wrtc_sq = thread::Builder::new()
                             .name("OS->DC".to_string())
@@ -527,7 +531,7 @@ async fn configure_send_receive_udp(
                                     break;
                                 }
                             }
-                            info!{"[WRTC SQ -> WRTC] Exiting thread (gracefully)..."};
+                            info! {"[WRTC SQ -> WRTC] Exiting thread (gracefully)..."};
                         };
                         let wrtc_sq_to_wrtc = thread::Builder::new().name("OS->DC".to_string()).stack_size(THREAD_STACK_SIZE).spawn(cu_wrtc_sq_to_wrtc);
                         match (wrtc_sq_to_wrtc) {
@@ -540,8 +544,8 @@ async fn configure_send_receive_udp(
                     }
                 }));
                 // Register text message handling
-                d2.on_message(move || {Box::new({
-                    let d = d2.clone();
+                d.on_message(Box::new({
+                    //let d = d2.clone();
                     move |msg: DataChannelMessage| {
                         let msg = msg.data.to_vec();
                         trace!("Message from DataChannel '{d_label}': '{msg:?}'");
@@ -551,7 +555,7 @@ async fn configure_send_receive_udp(
                         debug! {"UDP send queue enqueue block is over."};
                         Box::pin(async {})
                     }
-                })});
+                }));
             }
         })
     }));
