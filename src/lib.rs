@@ -33,6 +33,7 @@ pub struct Config {
     pub PinnedCores: Option<[usize; 4]>,
     //[tokio WebRTC receiver -> queue, queue -> tokio WebRTC send,
     // OS -> queue, queue -> OS]
+    pub ICEListenAddressPort: Option<String>,
 }
 #[derive(Deserialize, Clone)]
 pub struct ICEServer {

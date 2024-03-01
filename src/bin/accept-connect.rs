@@ -42,6 +42,7 @@ use std::sync::Arc;
 use std::thread;
 use std::thread::JoinHandle;
 use std::time;
+use tokio::net::UdpSocket as OtherUdpSocket;
 use tokio::runtime::Builder;
 use tokio::runtime::Runtime;
 //TOKIO UNSTABLE use tokio::runtime::UnhandledPanic;
@@ -50,6 +51,9 @@ use tokio::runtime::Runtime;
 use uds_windows::{UnixListener, UnixStream};
 use webrtc::api::interceptor_registry::register_default_interceptors;
 use webrtc::api::media_engine::MediaEngine;
+use webrtc::api::setting_engine::SettingEngine;
+use webrtc::ice::udp_mux::{UDPMuxDefault, UDPMuxParams};
+use webrtc::ice::udp_network::{UDPNetwork};
 use webrtc::api::APIBuilder;
 use webrtc::data_channel::data_channel_init::RTCDataChannelInit;
 use webrtc::data_channel::data_channel_message::DataChannelMessage;
@@ -144,7 +148,11 @@ async fn accept_WebRTC_offer(
     registry = register_default_interceptors(registry, &mut m).expect("Could not register the interceptor!");
 
     // Create the API object with the MediaEngine
-    let api = APIBuilder::new().with_media_engine(m).with_interceptor_registry(registry).build();
+    let mut s = SettingEngine::default();
+    if let Some(AddressPort) = config.clone().ICEListenAddressPort {
+        s.set_udp_network(UDPNetwork::Muxed(UDPMuxDefault::new(UDPMuxParams::new(tokio::net::UdpSocket::bind(AddressPort).await.unwrap()))));
+    }
+    let api = APIBuilder::new().with_media_engine(m).with_setting_engine(s).with_interceptor_registry(registry).build();
 
     // Prepare the configuration
     let mut ice_servers: Vec<RTCIceServer> = vec![];
