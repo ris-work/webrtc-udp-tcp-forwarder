@@ -39,22 +39,22 @@ use std::sync::atomic::{AtomicBool, AtomicU64};
 use std::sync::Arc;
 use std::thread;
 use std::time;
+use tokio::net::UdpSocket as OtherUdpSocket;
 use tokio::runtime::Builder;
 use tokio::runtime::Runtime;
 use tokio::sync::Semaphore;
-use tokio::net::UdpSocket as OtherUdpSocket;
 
 #[cfg(windows)]
 use uds_windows::{UnixListener, UnixStream};
 use webrtc::api::interceptor_registry::register_default_interceptors;
 use webrtc::api::media_engine::MediaEngine;
 use webrtc::api::setting_engine::SettingEngine;
-use webrtc::ice::udp_mux::{UDPMuxDefault, UDPMuxParams};
-use webrtc::ice::udp_network::{UDPNetwork};
 use webrtc::api::APIBuilder;
 use webrtc::data_channel::data_channel_init::RTCDataChannelInit;
 use webrtc::data_channel::data_channel_message::DataChannelMessage;
 use webrtc::data_channel::RTCDataChannel;
+use webrtc::ice::udp_mux::{UDPMuxDefault, UDPMuxParams};
+use webrtc::ice::udp_network::UDPNetwork;
 use webrtc::ice_transport::ice_credential_type::RTCIceCredentialType;
 use webrtc::ice_transport::ice_server::RTCIceServer;
 use webrtc::interceptor::registry::Registry;
