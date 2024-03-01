@@ -748,6 +748,7 @@ fn main() {
         #[cfg(unix)]
         {
             println! {"Built on: {}", run_command_str!("uname", "-a")};
+            println! {"Built at: {}", run_command_str!("date", "-Ins")};
         }
         println! {"Version info: {}", run_command_str!("fossil", "timeline", "-n", "+1")};
         println! {"MTU: {}", PKT_SIZE};
