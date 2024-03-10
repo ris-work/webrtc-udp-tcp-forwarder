@@ -1,0 +1,14 @@
+{
+  "dependencies": {
+    "bufferutil": "^4.0.8",
+    "js-crypto-hmac": "^1.0.7",
+    "node-datachannel": "^0.5.3",
+    "toml": "^3.0.0",
+    "wrtc": "^0.4.7",
+    "ws": "^8.16.0"
+  },
+  "optionalDependencies": {
+    "bufferutil": "^4.0.8"
+  },
+  "type": "module"
+}
