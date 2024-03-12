@@ -42,14 +42,7 @@ for (const serverList in conf.ICEServers) {
 	let transformedServerList = {};
 	for(const key in conf.ICEServers[serverList]){
 		Object.defineProperty(transformedServerList, key.toLowerCase(), {value: conf.ICEServers[serverList][key], enumerable: true});
-		//console.log(conf.ICEServers[serverList][key]);
-		//console.log(key);
-		//console.log(transformedServerList);
 	}
-	//console.log("to:")
-	//console.dir(transformedServerList)
-	//console.log("from:")
-	//console.dir(conf.ICEServers[serverList])
 	transformedICEServers.push(transformedServerList);
 }
 const RTCConfig = {iceServers: transformedICEServers}
