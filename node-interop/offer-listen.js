@@ -49,15 +49,28 @@ const RTCConfig = {iceServers: transformedICEServers}
 console.log(JSON.stringify(RTCConfig))
 
 let pc_state_change = (x) => console.dir(x)
+let pc_ice_error = (x) => console.dir(x)
+let pc_ice_gathering_change = (x) => console.dir(x)
+let pc_ice_candidate = (x) => {console.dir(x); if(x.candidate==null) console.log(pc.localDescription)}
+let pc_negotiation_needed = (x) => pc.createOffer().then(offerReady)
+
+let offerReady = (x) => {console.dir(x); pc.setLocalDescription(x);}
 
 let dc_open = (x) => console.dir(x)
 let dc_close = (x) => console.dir(x)
 let incoming_dc_message = (e) => console.dir(e)
 
-let pc = new wrtc.RTCPeerConnection();
+let pc = new wrtc.RTCPeerConnection(RTCConfig);
 pc.addEventListener('connectionstatechange', pc_state_change);
+pc.addEventListener('icegatheringerror', pc_ice_error);
+pc.addEventListener('icegatheringstatechange', pc_ice_gathering_change);
+pc.addEventListener('icecandidate', pc_ice_candidate);
 
 let dc = pc.createDataChannel('data');
 dc.addEventListener('message', incoming_dc_message);
 dc.addEventListener('open', dc_open);
 dc.addEventListener('close', dc_close);
+
+
+pc.addEventListener('negotiationneeded', pc_negotiation_needed);
+setTimeout(() => console.log("Gathered so far: " + JSON.stringify(pc.localDescription)), 5000)
