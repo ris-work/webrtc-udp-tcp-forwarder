@@ -9,5 +9,8 @@
   "optionalDependencies": {
     "bufferutil": "^4.0.8"
   },
-  "type": "module"
+  "type": "module",
+  "devDependencies": {
+    "prettier": "2.1.2"
+  }
 }
