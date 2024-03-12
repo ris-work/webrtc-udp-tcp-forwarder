@@ -43,6 +43,6 @@ export class hashAuthenticatedMessage{
 		console.log(message8);
 		console.log(hash8);
 		if(result===false) throw new Error(`MAC Error, expected: ${hash}, got something else`);
-		else return result;
+		else return message;
 	}
 }
