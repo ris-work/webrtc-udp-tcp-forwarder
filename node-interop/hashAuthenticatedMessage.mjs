@@ -20,6 +20,7 @@ export class hashAuthenticatedMessage {
 			this.MAC += this.MAC8[i].toString(16).padStart(2, 0);
 		}
 		console.log(this.MAC8);
+		delete this.MAC8;
 		return this.MAC;
 	}
 	static async verifyAndReturn(message, key, hash) {
@@ -39,9 +40,6 @@ export class hashAuthenticatedMessage {
 		let hash8 = new Uint8Array(hash8tmp);
 		encoder.encodeInto(key, key8);
 		let result = await hmac.verify(key8, message8, hash8, hashAlgo);
-		console.log(key8);
-		console.log(message8);
-		console.log(hash8);
 		if (result === false)
 			throw new Error(`MAC Error, expected: ${hash}, got something else`);
 		else return message;

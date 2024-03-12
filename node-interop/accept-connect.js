@@ -119,7 +119,7 @@ dc.addEventListener('close', dc_close);
 	//setTimeout(() => doneGeneratingOffer(JSON.stringify(pc.localDescription)), 5000)
 }
 
-function doneGeneratingOffer(offer) {
+function doneGeneratingANswer(offer) {
 	let timed = new timedMessage(offer);
 	let serializedTimed = JSON.stringify(timed);
 	let hmacMessage = new hashAuthenticatedMessage(serializedTimed, conf.PeerPSK);
