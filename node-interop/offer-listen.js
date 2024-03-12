@@ -74,3 +74,15 @@ dc.addEventListener('close', dc_close);
 
 pc.addEventListener('negotiationneeded', pc_negotiation_needed);
 setTimeout(() => console.log("Gathered so far: " + JSON.stringify(pc.localDescription)), 5000)
+setTimeout(() => doneGeneratingOffer(JSON.stringify(pc.localDescription)), 5000)
+
+
+function doneGeneratingOffer(offer){
+	let timed = new timedMessage(offer);
+	let serializedTimed = (JSON.stringify(timed));
+	let hmacMessage = new hashAuthenticatedMessage(serializedTimed, conf.PeerPSK);
+	hmacMessage.compute().then(() => sendOffer(hmacMessage))
+}
+function sendOffer(hmacMessage){
+	console.log(hmacMessage)
+}
