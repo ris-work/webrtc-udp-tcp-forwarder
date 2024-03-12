@@ -6,9 +6,10 @@ import wrtc from 'wrtc'
 import * as dgram from 'dgram'
 import * as net from 'net'
 
+console.assert(conf.WebRTCMode == "Offer");
 console.assert(conf.PublishType == "wss");
 
-const selftest=true
+const selftest=false
 if(selftest){
 let am = new hashAuthenticatedMessage('hello', 'hello');
 am.compute().then(console.log);
@@ -46,12 +47,12 @@ for (const serverList in conf.ICEServers) {
 	transformedICEServers.push(transformedServerList);
 }
 const RTCConfig = {iceServers: transformedICEServers}
-console.log(JSON.stringify(RTCConfig))
+if (selftest) console.log(JSON.stringify(RTCConfig))
 
 let pc_state_change = (x) => console.dir(x)
 let pc_ice_error = (x) => console.dir(x)
 let pc_ice_gathering_change = (x) => console.dir(x)
-let pc_ice_candidate = (x) => {console.dir(x); if(x.candidate==null) console.log(pc.localDescription)}
+let pc_ice_candidate = (x) => {if(selftest) console.dir(x); if(x.candidate==null) console.log(pc.localDescription)}
 let pc_negotiation_needed = (x) => pc.createOffer().then(offerReady)
 
 let offerReady = (x) => {console.dir(x); pc.setLocalDescription(x);}
@@ -73,7 +74,7 @@ dc.addEventListener('close', dc_close);
 
 
 pc.addEventListener('negotiationneeded', pc_negotiation_needed);
-setTimeout(() => console.log("Gathered so far: " + JSON.stringify(pc.localDescription)), 5000)
+if (selftest) setTimeout(() => console.log("Gathered so far: " + JSON.stringify(pc.localDescription)), 5000)
 setTimeout(() => doneGeneratingOffer(JSON.stringify(pc.localDescription)), 5000)
 
 
@@ -85,4 +86,5 @@ function doneGeneratingOffer(offer){
 }
 function sendOffer(hmacMessage){
 	console.log(hmacMessage)
+	sigSocket.send(JSON.stringify(hmacMessage));
 }
