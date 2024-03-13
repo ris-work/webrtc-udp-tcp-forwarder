@@ -13,6 +13,9 @@ console.assert(conf.PublishType == "ws");
 let connected = false;
 let answerUnvalidated;
 
+let to_dc = (x) => {};
+let to_os = (x) => {};
+
 const selftest = false;
 if (selftest) {
 	let am = new hashAuthenticatedMessage("hello", "hello");
@@ -51,7 +54,12 @@ if (net.isIPv6(conf.Address)) {
 }
 let addrPortPair = `${conf.Address}:${conf.Port}`;
 console.log(`Should listen on: ${addrPortPair}`);
-otherSocket.on("message", (msg, rinfo) => console.log(rinfo));
+otherSocket.on("message", (msg, rinfo) => {
+	console.log(rinfo);
+	console.log(JSON.stringify(msg.buffer));
+	console.log(typeof msg.buffer);
+	to_dc(msg.buffer);
+});
 otherSocket.on("listening", () =>
 	console.log(`Listening on: ${JSON.stringify(otherSocket.address())}`)
 );
@@ -94,17 +102,18 @@ let offerReady = (x) => {
 
 let dc_open = () => {
 	console.log("DC open");
+	to_dc = (x) => dc.send(x);
 };
 let dc_close = () => {
 	console.log("DC closed");
 	setTimeout(process.exit(0), 2000);
 };
-let dc_inc = () => {
-	console.log("DC incoming");
+let dc_inc = (e) => {
+	console.log(`DC incoming: ${JSON.stringify(e.data)}`);
 };
-let incoming_dc_message = (e) => console.dir(e);
 
 let pc = new wrtc.RTCPeerConnection(RTCConfig);
+let dc;
 let gotAnswer;
 function proceedToWebRTC() {
 	pc.addEventListener("connectionstatechange", pc_state_change);
@@ -112,11 +121,12 @@ function proceedToWebRTC() {
 	pc.addEventListener("icegatheringstatechange", pc_ice_gathering_change);
 	pc.addEventListener("icecandidate", pc_ice_candidate);
 
-	let dc = pc.createDataChannel("data");
-	dc.addEventListener("message", incoming_dc_message);
+	dc = pc.createDataChannel("data");
+	dc.addEventListener("message", dc_inc);
 	dc.addEventListener("open", dc_open);
 	dc.addEventListener("close", dc_close);
-	dc.binaryType = "blob";
+	//dc.binaryType = "blob";
+	dc.binaryType = "arraybuffer";
 
 	pc.addEventListener("negotiationneeded", pc_negotiation_needed);
 	if (selftest)

@@ -13,6 +13,9 @@ console.assert(conf.PublishType == "ws");
 let offerUnvalidated;
 let connected = false;
 
+let to_dc = (x) => {};
+let to_os = (x) => {};
+
 const selftest = true;
 if (selftest) {
 	let am = new hashAuthenticatedMessage("hello", "hello");
@@ -89,24 +92,29 @@ let answerReady = (x) => {
 	console.dir(x);
 };
 
-let incoming_dc_message = (e) => console.dir(e);
 let pc_on_dc = function (e) {
 	console.log("DataChannel event");
 	dc = e.channel;
-	dc.binaryType = "blob";
+	//dc.binaryType = "blob";
+	dc.binaryType = "arraybuffer";
 	dc.addEventListener("open", dc_open);
 	dc.addEventListener("close", dc_close);
 	dc.addEventListener("message", dc_inc);
 };
 let dc_open = () => {
 	console.log("DC open");
+	to_dc = (x) => dc.send(x);
 };
 let dc_close = () => {
 	console.log("DC closed");
 	setTimeout(process.exit(0), 2000);
 };
-let dc_inc = () => {
-	console.log("DC incoming");
+let dc_inc = (e) => {
+	console.log(
+		`DC incoming: ${e.data} ${
+			e.data.byteLength
+		} ${typeof e.data} ${JSON.stringify(e)}`
+	);
 };
 
 let pc, dc;
