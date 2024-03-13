@@ -34,6 +34,7 @@ sigSocket.addEventListener("message", (e) => {
 	gotAnswer();
 });
 sigSocket.addEventListener("close", (e) => {
+	console.warn("websocket: closed");
 	if (!connected) process.exit(1);
 });
 sigSocket.addEventListener("open", (e) => {
@@ -70,7 +71,14 @@ for (const serverList in conf.ICEServers) {
 const RTCConfig = { iceServers: transformedICEServers };
 if (selftest) console.log(JSON.stringify(RTCConfig));
 
-let pc_state_change = (x) => console.dir(x);
+let pc_state_change = (x) => {
+	console.log(
+		"Peer connection state: " + JSON.stringify(x) + " " + pc.connectionState
+	);
+	if (pc.connectionState == "connected") {
+		connected = true;
+	}
+};
 let pc_ice_error = (x) => console.dir(x);
 let pc_ice_gathering_change = (x) => console.dir(x);
 let pc_ice_candidate = (x) => {
@@ -84,8 +92,16 @@ let offerReady = (x) => {
 	pc.setLocalDescription(x);
 };
 
-let dc_open = (x) => console.dir(x);
-let dc_close = (x) => console.dir(x);
+let dc_open = () => {
+	console.log("DC open");
+};
+let dc_close = () => {
+	console.log("DC closed");
+	setTimeout(process.exit(0), 2000);
+};
+let dc_inc = () => {
+	console.log("DC incoming");
+};
 let incoming_dc_message = (e) => console.dir(e);
 
 let pc = new wrtc.RTCPeerConnection(RTCConfig);
@@ -100,6 +116,7 @@ function proceedToWebRTC() {
 	dc.addEventListener("message", incoming_dc_message);
 	dc.addEventListener("open", dc_open);
 	dc.addEventListener("close", dc_close);
+	dc.binaryType = "blob";
 
 	pc.addEventListener("negotiationneeded", pc_negotiation_needed);
 	if (selftest)

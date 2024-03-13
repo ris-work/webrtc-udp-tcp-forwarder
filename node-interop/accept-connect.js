@@ -29,6 +29,7 @@ let wsurl = `wss://${conf.PublishAuthUser}:${conf.PublishAuthPass}@${EndpointURL
 console.log(wsurl);
 let sigSocket = new WebSocket(wsurl);
 sigSocket.addEventListener("close", (e) => {
+	console.warn("Websocket: closed");
 	if (!connected) process.exit(1);
 });
 sigSocket.addEventListener("open", (e) => {
@@ -70,7 +71,12 @@ for (const serverList in conf.ICEServers) {
 const RTCConfig = { iceServers: transformedICEServers };
 if (selftest) console.log(JSON.stringify(RTCConfig));
 
-let pc_state_change = (x) => console.dir(x);
+let pc_state_change = (x) => {
+	console.log(
+		"Peer conenction state: " + JSON.stringify(x) + " " + pc.connectionState
+	);
+	if (pc.connectionState == "connected") connected = true;
+};
 let pc_ice_error = (x) => console.dir(x);
 let pc_ice_gathering_change = (x) => console.dir(x);
 let pc_ice_candidate = (x) => {
@@ -83,9 +89,25 @@ let answerReady = (x) => {
 	console.dir(x);
 };
 
-let dc_open = (x) => console.dir(x);
-let dc_close = (x) => console.dir(x);
 let incoming_dc_message = (e) => console.dir(e);
+let pc_on_dc = function (e) {
+	console.log("DataChannel event");
+	dc = e.channel;
+	dc.binaryType = "blob";
+	dc.addEventListener("open", dc_open);
+	dc.addEventListener("close", dc_close);
+	dc.addEventListener("message", dc_inc);
+};
+let dc_open = () => {
+	console.log("DC open");
+};
+let dc_close = () => {
+	console.log("DC closed");
+	setTimeout(process.exit(0), 2000);
+};
+let dc_inc = () => {
+	console.log("DC incoming");
+};
 
 let pc, dc;
 let gotOffer;
@@ -108,6 +130,7 @@ function proceedToWebRTC() {
 		pc.addEventListener("icegatheringerror", pc_ice_error);
 		pc.addEventListener("icegatheringstatechange", pc_ice_gathering_change);
 		pc.addEventListener("icecandidate", pc_ice_candidate);
+		pc.addEventListener("datachannel", pc_on_dc);
 
 		/*dc = pc.createDataChannel('data');
 dc.addEventListener('message', incoming_dc_message);

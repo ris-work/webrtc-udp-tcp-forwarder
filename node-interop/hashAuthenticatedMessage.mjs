@@ -21,6 +21,7 @@ export class hashAuthenticatedMessage {
 		}
 		console.log(this.MAC8);
 		delete this.MAC8;
+		delete this.Message8;
 		return this.MAC;
 	}
 	static async verifyAndReturn(message, key, hash) {
