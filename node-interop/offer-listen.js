@@ -13,8 +13,16 @@ console.assert(conf.PublishType == "ws");
 let connected = false;
 let answerUnvalidated;
 
-let to_dc = (x) => {};
-let to_os = (x) => {};
+let to_dc = (x) => {
+	to_dc_queue.push(x);
+};
+let to_os = (x) => {
+	to_os_queue.push(x);
+};
+let to_dc_queue = [];
+let to_os_queue = [];
+
+let os_connected = false;
 
 const selftest = false;
 if (selftest) {
@@ -58,7 +66,17 @@ otherSocket.on("message", (msg, rinfo) => {
 	console.log(rinfo);
 	console.log(JSON.stringify(msg.buffer));
 	console.log(typeof msg.buffer);
+	if (!os_connected) {
+		os_connected = true;
+		otherSocket.connect(rinfo.port, rinfo.address);
+	}
 	to_dc(msg.buffer);
+});
+otherSocket.on("connect", () => {
+	console.log(`to_os_queue: ${to_os_queue.length}`);
+	console.log("oS connected.");
+	to_os = (x) => otherSocket.send(x);
+	/* flush */
 });
 otherSocket.on("listening", () =>
 	console.log(`Listening on: ${JSON.stringify(otherSocket.address())}`)
@@ -102,14 +120,18 @@ let offerReady = (x) => {
 
 let dc_open = () => {
 	console.log("DC open");
+	console.log(`to_dc_queue: ${to_dc_queue.length}`);
 	to_dc = (x) => dc.send(x);
+	/* flush */
 };
 let dc_close = () => {
 	console.log("DC closed");
 	setTimeout(process.exit(0), 2000);
 };
 let dc_inc = (e) => {
-	console.log(`DC incoming: ${JSON.stringify(e.data)}`);
+	if (selftest)
+		console.log(`DC incoming: ${JSON.stringify(e.data.byteLength)}`);
+	to_os(Buffer.from(e.data));
 };
 
 let pc = new wrtc.RTCPeerConnection(RTCConfig);

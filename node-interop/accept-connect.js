@@ -13,8 +13,14 @@ console.assert(conf.PublishType == "ws");
 let offerUnvalidated;
 let connected = false;
 
-let to_dc = (x) => {};
-let to_os = (x) => {};
+let to_dc = (x) => {
+	to_dc_queue.push(x);
+};
+let to_os = (x) => {
+	to_os_queue.push(x);
+};
+let to_dc_queue = [];
+let to_os_queue = [];
 
 const selftest = true;
 if (selftest) {
@@ -54,11 +60,20 @@ if (net.isIPv6(conf.Address)) {
 }
 let addrPortPair = `${conf.Address}:${conf.Port}`;
 console.log(`Should listen on: ${addrPortPair}`);
-otherSocket.on("message", (msg, rinfo) => console.log(rinfo));
+otherSocket.on("message", (msg, rinfo) => {
+	if (selftest) console.log(rinfo);
+	to_dc(msg.buffer);
+});
 otherSocket.on("listening", () =>
 	console.log(`Listening on: ${JSON.stringify(otherSocket.address())}`)
 );
-otherSocket.bind(conf.Port, conf.Address);
+otherSocket.on("connect", () => {
+	console.log(`to_os_queue: ${to_os_queue.length}`);
+	console.log("oS connected.");
+	to_os = (x) => otherSocket.send(x);
+	/* flush */
+});
+otherSocket.connect(conf.Port, conf.Address);
 
 let transformedICEServers = [];
 for (const serverList in conf.ICEServers) {
@@ -104,17 +119,20 @@ let pc_on_dc = function (e) {
 let dc_open = () => {
 	console.log("DC open");
 	to_dc = (x) => dc.send(x);
+	/* flush */
 };
 let dc_close = () => {
 	console.log("DC closed");
 	setTimeout(process.exit(0), 2000);
 };
 let dc_inc = (e) => {
-	console.log(
-		`DC incoming: ${e.data} ${
-			e.data.byteLength
-		} ${typeof e.data} ${JSON.stringify(e)}`
-	);
+	if (selftest)
+		console.log(
+			`DC incoming: ${e.data} ${
+				e.data.byteLength
+			} ${typeof e.data} ${JSON.stringify(e)}`
+		);
+	to_os(Buffer.from(e.data));
 };
 
 let pc, dc;
