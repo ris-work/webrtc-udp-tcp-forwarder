@@ -81,6 +81,7 @@ otherSocket.on("connect", () => {
 	console.log("oS connected.");
 	to_os = (x) => otherSocket.send(x);
 	/* flush */
+	to_os_queue.forEach((v) => to_os(v));
 });
 otherSocket.on("listening", () =>
 	console.log(`Listening on: ${JSON.stringify(otherSocket.address())}`)
@@ -129,6 +130,7 @@ let dc_open = () => {
 		if (dc.bufferedAmount < MAX_BUF) dc.send(x);
 	};
 	/* flush */
+	to_dc_queue.forEach((v) => to_dc(v));
 };
 let dc_close = () => {
 	console.log("DC closed");
