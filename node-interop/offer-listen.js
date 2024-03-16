@@ -24,6 +24,8 @@ let to_os_queue = [];
 
 let os_connected = false;
 
+let MAX_BUF = 1024 * 1024;
+
 const selftest = false;
 if (selftest) {
 	let am = new hashAuthenticatedMessage("hello", "hello");
@@ -63,9 +65,11 @@ if (net.isIPv6(conf.Address)) {
 let addrPortPair = `${conf.Address}:${conf.Port}`;
 console.log(`Should listen on: ${addrPortPair}`);
 otherSocket.on("message", (msg, rinfo) => {
-	console.log(rinfo);
-	console.log(JSON.stringify(msg.buffer));
-	console.log(typeof msg.buffer);
+	if (selftest) {
+		console.log(rinfo);
+		console.log(JSON.stringify(msg.buffer));
+		console.log(typeof msg.buffer);
+	}
 	if (!os_connected) {
 		os_connected = true;
 		otherSocket.connect(rinfo.port, rinfo.address);
@@ -121,7 +125,9 @@ let offerReady = (x) => {
 let dc_open = () => {
 	console.log("DC open");
 	console.log(`to_dc_queue: ${to_dc_queue.length}`);
-	to_dc = (x) => dc.send(x);
+	to_dc = (x) => {
+		dc.bufferedAmount < MAX_BUF ? dc.send(x) : 0;
+	};
 	/* flush */
 };
 let dc_close = () => {
@@ -143,7 +149,11 @@ function proceedToWebRTC() {
 	pc.addEventListener("icegatheringstatechange", pc_ice_gathering_change);
 	pc.addEventListener("icecandidate", pc_ice_candidate);
 
-	dc = pc.createDataChannel("data");
+	dc = pc.createDataChannel("data", {
+		ordered: false,
+		maxPacketLifetime: 0,
+		maxRetransmts: 0,
+	});
 	dc.addEventListener("message", dc_inc);
 	dc.addEventListener("open", dc_open);
 	dc.addEventListener("close", dc_close);

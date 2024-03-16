@@ -22,7 +22,9 @@ let to_os = (x) => {
 let to_dc_queue = [];
 let to_os_queue = [];
 
-const selftest = true;
+let MAX_BUF = 1024 * 1024;
+
+const selftest = false;
 if (selftest) {
 	let am = new hashAuthenticatedMessage("hello", "hello");
 	am.compute().then(console.log);
@@ -118,7 +120,9 @@ let pc_on_dc = function (e) {
 };
 let dc_open = () => {
 	console.log("DC open");
-	to_dc = (x) => dc.send(x);
+	to_dc = (x) => {
+		dc.bufferedAmount < MAX_BUF ? dc.send(x) : 0;
+	};
 	/* flush */
 };
 let dc_close = () => {
