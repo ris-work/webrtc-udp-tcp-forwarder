@@ -121,7 +121,7 @@ let pc_on_dc = function (e) {
 let dc_open = () => {
 	console.log("DC open");
 	to_dc = (x) => {
-		dc.bufferedAmount < MAX_BUF ? dc.send(x) : 0;
+		if (dc.bufferedAmount < MAX_BUF) dc.send(x);
 	};
 	/* flush */
 };

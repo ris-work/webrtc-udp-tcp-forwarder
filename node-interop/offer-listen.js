@@ -126,7 +126,7 @@ let dc_open = () => {
 	console.log("DC open");
 	console.log(`to_dc_queue: ${to_dc_queue.length}`);
 	to_dc = (x) => {
-		dc.bufferedAmount < MAX_BUF ? dc.send(x) : 0;
+		if (dc.bufferedAmount < MAX_BUF) dc.send(x);
 	};
 	/* flush */
 };
