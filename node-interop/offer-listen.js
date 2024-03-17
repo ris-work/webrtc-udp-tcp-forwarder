@@ -154,7 +154,7 @@ function proceedToWebRTC() {
 
 	dc = pc.createDataChannel("data", {
 		ordered: false,
-		maxPacketLifetime: 0,
+		// maxPacketLifetime: 0,
 		maxRetransmts: 0,
 	});
 	dc.addEventListener("message", dc_inc);
