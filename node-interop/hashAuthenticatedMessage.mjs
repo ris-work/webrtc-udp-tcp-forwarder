@@ -6,7 +6,7 @@ export class hashAuthenticatedMessage {
 	MAC8;
 	Message;
 	constructor(message, key) {
-		this.Message = message;
+		this.MessageWithTime = message;
 		this.Message8 = new Uint8Array(message.length);
 		let encoder = new TextEncoder();
 		encoder.encodeInto(message, this.Message8);
@@ -14,7 +14,7 @@ export class hashAuthenticatedMessage {
 		encoder.encodeInto(key, this.#key8);
 	}
 	async compute() {
-		this.MAC8 = await hmac.compute(this.#key8, this.Message, hashAlgo);
+		this.MAC8 = await hmac.compute(this.#key8, this.MessageWithTime, hashAlgo);
 		this.MAC = "";
 		for (let i = 0; i < this.MAC8.length; i++) {
 			this.MAC += this.MAC8[i].toString(16).padStart(2, 0);

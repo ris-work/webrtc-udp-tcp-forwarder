@@ -2,6 +2,7 @@
   "dependencies": {
     "bufferutil": "^4.0.8",
     "js-crypto-hmac": "^1.0.7",
+    "nodejs-base64": "^2.0.0",
     "toml": "^3.0.0",
     "wrtc": "^0.4.7",
     "ws": "^8.16.0"

@@ -6,6 +6,7 @@ import wrtc from "wrtc";
 import * as process from "process";
 import * as dgram from "dgram";
 import * as net from "net";
+import * as b64 from "nodejs-base64";
 
 console.assert(conf.WebRTCMode == "Accept");
 console.assert(conf.PublishType == "ws");
@@ -150,7 +151,7 @@ function proceedToWebRTC() {
 		let oU = JSON.parse(offerUnvalidated);
 		console.log(oU);
 		let hashValidated = await hashAuthenticatedMessage.verifyAndReturn(
-			oU.Message,
+			oU.MessageWithTime,
 			conf.PeerPSK,
 			oU.MAC
 		);
@@ -171,7 +172,7 @@ dc.addEventListener('close', dc_close);
 */
 
 		pc.setRemoteDescription(
-			new wrtc.RTCSessionDescription(JSON.parse(timeValidated))
+			new wrtc.RTCSessionDescription(JSON.parse(b64.base64decode(timeValidated)))
 		);
 		//pc.addEventListener('negotiationneeded', pc_negotiation_needed);
 		//pc.setRemoteDescripotion
@@ -192,7 +193,7 @@ dc.addEventListener('close', dc_close);
 	};
 
 	function doneGeneratingAnswer(answer) {
-		let timed = new timedMessage(answer);
+		let timed = new timedMessage(b64.base64encode(answer));
 		let serializedTimed = JSON.stringify(timed);
 		let hmacMessage = new hashAuthenticatedMessage(
 			serializedTimed,
