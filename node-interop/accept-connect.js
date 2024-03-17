@@ -172,7 +172,9 @@ dc.addEventListener('close', dc_close);
 */
 
 		pc.setRemoteDescription(
-			new wrtc.RTCSessionDescription(JSON.parse(b64.base64decode(timeValidated)))
+			new wrtc.RTCSessionDescription(
+				JSON.parse(b64.base64decode(timeValidated))
+			)
 		);
 		//pc.addEventListener('negotiationneeded', pc_negotiation_needed);
 		//pc.setRemoteDescripotion

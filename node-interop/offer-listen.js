@@ -201,7 +201,9 @@ function proceedToWebRTC() {
 		let timeValidated = timedMessage.checkAndReturn(JSON.parse(hashValidated));
 		console.log({ tV: timeValidated });
 		pc.setRemoteDescription(
-			new wrtc.RTCSessionDescription(JSON.parse(b64.base64decode(timeValidated)))
+			new wrtc.RTCSessionDescription(
+				JSON.parse(b64.base64decode(timeValidated))
+			)
 		);
 	};
 }
