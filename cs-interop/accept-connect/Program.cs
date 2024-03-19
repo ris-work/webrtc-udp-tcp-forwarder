@@ -102,13 +102,28 @@ namespace demo
 				UnmappedMemberHandling = JsonUnmappedMemberHandling.Skip
 			};
 			AuthenticatedMessage authenticatedOffer = JsonSerializer.Deserialize<AuthenticatedMessage>(offerSignedJson, jsonOptions);
-			string timedOfferJson = authenticatedOffer.GetMessage(Encoding.UTF8.GetBytes(peerPSK));
+			byte[] peerPSKBytes = Encoding.UTF8.GetBytes(peerPSK);
+			string timedOfferJson = authenticatedOffer.GetMessage(peerPSKBytes);
 			TimedMessage timedOffer = JsonSerializer.Deserialize<TimedMessage>(timedOfferJson, jsonOptions);
 			string offerBase64 = timedOffer.GetMessage();
 			byte[] offerBytes = Convert.FromBase64String(offerBase64);
 			string offer = Encoding.UTF8.GetString(offerBytes);
 			Console.WriteLine(offer);
+			var pcTask = CreatePeerConnection(offer);
+			pcTask.Wait();
+			(var pc, var answer) = pcTask.Result;
+			Console.WriteLine(answer);
+			byte[] answerBytes = Encoding.UTF8.GetBytes(answer);
+			string answerBase64 = Convert.ToBase64String(answerBytes);
+			TimedMessage timedAnswer = new TimedMessage(answerBase64);
 
+			string timedAnswerJson = JsonSerializer.Serialize(timedAnswer, jsonOptions);
+
+			AuthenticatedMessage signedAnswer = new AuthenticatedMessage(timedAnswerJson, peerPSKBytes);
+
+			string signedAnswerJson = JsonSerializer.Serialize(signedAnswer, jsonOptions);
+			byte[] signedAnswerBytes = Encoding.UTF8.GetBytes(signedAnswerJson);
+			clientSock.SendAsync(signedAnswerBytes, WebSocketMessageType.Text, true, CancellationToken.None).Wait();
 
 
 
@@ -126,14 +141,14 @@ namespace demo
 			exitMre.WaitOne();
 		}
 
-		private async static Task<RTCPeerConnection> CreatePeerConnection(string offer)
+		private async static Task<(RTCPeerConnection, string)> CreatePeerConnection(string offer)
 		{
-			var iceServersArray = (TomlArray)confModel["IceServers"];
+			var iceServersArray = (TomlArray)confModel["ICEServers"];
 			List<RTCIceServer> iceServers = new List<RTCIceServer>();
 			foreach (var iceServerEntry in iceServersArray)
 			{
 				var iceServerTable = (TomlTable)iceServerEntry;
-				if (!(iceServerTable["Username"] == null))
+				if (!(iceServerTable.ContainsKey("Username")))
 				{
 					iceServers.Add(new RTCIceServer
 					{
@@ -152,7 +167,7 @@ namespace demo
 			}
 			RTCConfiguration config = new RTCConfiguration
 			{
-				iceServers = new List<RTCIceServer> { new RTCIceServer { urls = STUN_URL } }
+				iceServers = iceServers
 			};
 			var pc = new RTCPeerConnection(config);
 			pc.ondatachannel += (rdc) =>
@@ -208,7 +223,7 @@ namespace demo
 				};
 			};
 
-			var dc = await pc.createDataChannel("test", null);
+			var dc = await pc.createDataChannel("data", null);
 
 			pc.onconnectionstatechange += (state) =>
 			{
@@ -226,8 +241,17 @@ namespace demo
 			//pc.GetRtpChannel().OnStunMessageReceived += (msg, ep, isRelay) => logger.LogDebug($"STUN {msg.Header.MessageType} received from {ep}.");
 			pc.oniceconnectionstatechange += (state) => logger.LogDebug($"ICE connection state change to {state}.");
 			pc.onsignalingstatechange += () => logger.LogDebug($"Signalling state changed to {pc.signalingState}.");
+			RTCSessionDescriptionInit.TryParse(offer, out var offerS);
+			pc.setRemoteDescription(offerS);
+			string answer="";
+			if(pc.signalingState==RTCSignalingState.have_remote_offer){
+				var answerS = pc.createAnswer();
+				await pc.setLocalDescription(answerS);
+				Console.WriteLine(answerS.toJSON());
+				answer=answerS.toJSON();
+			}
 
-			return pc;
+			return (pc, answer);
 		}
 
 		private static void DoLoadTestIteration(RTCDataChannel dc, uint payloadSize)
