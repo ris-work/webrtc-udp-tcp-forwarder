@@ -11,14 +11,18 @@
 // 12 Sep 2020	Aaron Clauson	Created, Dublin, Ireland.
 // 09 Apr 2021  Aaron Clauson   Updated for new SCTP stack and added crude load
 //                              test capability.
+// 19 Mar 2024	Rishikeshan	Changed it.
 //
 // License: 
+// OSLv3 ONLY (no later)
+// Previous Ancestor License: 
 // BSD 3-Clause "New" or "Revised" License, see included LICENSE.md file.
 //-----------------------------------------------------------------------------
 
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Net.WebSockets;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -28,192 +32,211 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Serilog;
 using Serilog.Extensions.Logging;
+using System.IO;
 using SIPSorcery.Net;
 using SIPSorcery.Sys;
 using WebSocketSharp.Server;
+using Tomlyn;
+using Tomlyn.Model;
 
 namespace demo
 {
-    class Program
-    {
-        private const int WEBSOCKET_PORT = 8081;
-        private const string STUN_URL = "stun:stun.sipsorcery.com";
-        private const int JAVASCRIPT_SHA256_MAX_IN_SIZE = 65535;
-        private const int SHA256_OUTPUT_SIZE = 32;
-        private const int MAX_LOADTEST_COUNT = 100;
+	class Program
+	{
+		private static TomlTable? confModel = null;
+		private const int WEBSOCKET_PORT = 8081;
+		private const string STUN_URL = "stun:stun.sipsorcery.com";
+		private const int JAVASCRIPT_SHA256_MAX_IN_SIZE = 65535;
+		private const int SHA256_OUTPUT_SIZE = 32;
+		private const int MAX_LOADTEST_COUNT = 100;
 
-        private static Microsoft.Extensions.Logging.ILogger logger = NullLogger.Instance;
+		private static Microsoft.Extensions.Logging.ILogger logger = NullLogger.Instance;
 
-        private static uint _loadTestPayloadSize = 0;
-        private static int _loadTestCount = 0;
+		private static uint _loadTestPayloadSize = 0;
+		private static int _loadTestCount = 0;
 
-        static void Main()
-        {
-            Console.WriteLine("WebRTC Get Started Data Channel");
+		static void Main(string[] args)
+		{
+			string config = File.ReadAllText(args[0]);
+			var model = Toml.ToModel(config);
+			confModel = model;
 
-            logger = AddConsoleLogger();
+			Console.WriteLine("WebRTC Get Started Data Channel");
 
-            // Start web socket.
-            Console.WriteLine("Starting web socket server...");
-            var webSocketServer = new WebSocketServer(IPAddress.Any, WEBSOCKET_PORT);
-            webSocketServer.AddWebSocketService<WebRTCWebSocketPeer>("/", (peer) =>
-            {
-                peer.CreatePeerConnection = CreatePeerConnection;
-            });
-            webSocketServer.Start();
+			logger = AddConsoleLogger();
 
-            Console.WriteLine($"Waiting for web socket connections on {webSocketServer.Address}:{webSocketServer.Port}...");
-            Console.WriteLine("Press ctrl-c to exit.");
+			// Start web socket.
+			Console.WriteLine("Starting web socket client...");
+			var clientSock = new ClientWebSocket();
+			string socketPath = String.Join('/', ((string)model["PublishEndpoint"]).Split('/').Skip(2).ToArray());
+			string user = (string)model["PublishAuthUser"];
+			string password = (string)model["PublishAuthPass"];
+			Uri uriWithAuth = new Uri($"wss://{user}:{password}@{socketPath}");
+			clientSock.ConnectAsync(uriWithAuth, CancellationToken.None).Wait();
+			byte[] offerBytes = new byte[]{};
+			clientSock.ReceiveAsync(offerBytes, CancellationToken.None);
 
-            // Ctrl-c will gracefully exit the call at any point.
-            ManualResetEvent exitMre = new ManualResetEvent(false);
-            Console.CancelKeyPress += delegate (object sender, ConsoleCancelEventArgs e)
-            {
-                e.Cancel = true;
-                exitMre.Set();
-            };
 
-            // Wait for a signal saying the call failed, was cancelled with ctrl-c or completed.
-            exitMre.WaitOne();
-        }
 
-        private async static Task<RTCPeerConnection> CreatePeerConnection()
-        {
-            RTCConfiguration config = new RTCConfiguration
-            {
-                iceServers = new List<RTCIceServer> { new RTCIceServer { urls = STUN_URL } }
-            };
-            var pc = new RTCPeerConnection(config);
-            pc.ondatachannel += (rdc) =>
-            {
-                rdc.onopen += () => logger.LogDebug($"Data channel {rdc.label} opened.");
-                rdc.onclose += () => logger.LogDebug($"Data channel {rdc.label} closed.");
-                rdc.onmessage += (datachan, type, data) =>
-                {
-                    switch (type)
-                    {
-                        case DataChannelPayloadProtocols.WebRTC_Binary_Empty:
-                        case DataChannelPayloadProtocols.WebRTC_String_Empty:
-                            logger.LogInformation($"Data channel {datachan.label} empty message type {type}.");
-                            break;
+			var webSocketServer = new WebSocketServer(IPAddress.Any, WEBSOCKET_PORT);
+			webSocketServer.AddWebSocketService<WebRTCWebSocketPeer>("/", (peer) =>
+			{
+				peer.CreatePeerConnection = CreatePeerConnection;
+			});
+			webSocketServer.Start();
 
-                        case DataChannelPayloadProtocols.WebRTC_Binary:
-                            string jsSha256 = DoJavscriptSHA256(data);
-                            logger.LogInformation($"Data channel {datachan.label} received {data.Length} bytes, js mirror sha256 {jsSha256}.");
-                            rdc.send(jsSha256);
+			Console.WriteLine($"Waiting for web socket connections on {webSocketServer.Address}:{webSocketServer.Port}...");
+			Console.WriteLine("Press ctrl-c to exit.");
 
-                            if (_loadTestCount > 0)
-                            {
-                                DoLoadTestIteration(rdc, _loadTestPayloadSize);
-                                _loadTestCount--;
-                            }
+			// Ctrl-c will gracefully exit the call at any point.
+			ManualResetEvent exitMre = new ManualResetEvent(false);
+			Console.CancelKeyPress += delegate (object sender, ConsoleCancelEventArgs e)
+			{
+				e.Cancel = true;
+				exitMre.Set();
+			};
 
-                            break;
+			// Wait for a signal saying the call failed, was cancelled with ctrl-c or completed.
+			exitMre.WaitOne();
+		}
 
-                        case DataChannelPayloadProtocols.WebRTC_String:
-                            var msg = Encoding.UTF8.GetString(data);
-                            logger.LogInformation($"Data channel {datachan.label} message {type} received: {msg}.");
+		private async static Task<RTCPeerConnection> CreatePeerConnection()
+		{
+			RTCConfiguration config = new RTCConfiguration
+			{
+				iceServers = new List<RTCIceServer> { new RTCIceServer { urls = STUN_URL } }
+			};
+			var pc = new RTCPeerConnection(config);
+			pc.ondatachannel += (rdc) =>
+			{
+				rdc.onopen += () => logger.LogDebug($"Data channel {rdc.label} opened.");
+				rdc.onclose += () => logger.LogDebug($"Data channel {rdc.label} closed.");
+				rdc.onmessage += (datachan, type, data) =>
+				{
+					switch (type)
+					{
+						case DataChannelPayloadProtocols.WebRTC_Binary_Empty:
+						case DataChannelPayloadProtocols.WebRTC_String_Empty:
+							logger.LogInformation($"Data channel {datachan.label} empty message type {type}.");
+							break;
 
-                            var loadTestMatch = Regex.Match(msg, @"^\s*(?<sendSize>\d+)\s*x\s*(?<testCount>\d+)");
+						case DataChannelPayloadProtocols.WebRTC_Binary:
+							string jsSha256 = DoJavscriptSHA256(data);
+							logger.LogInformation($"Data channel {datachan.label} received {data.Length} bytes, js mirror sha256 {jsSha256}.");
+							rdc.send(jsSha256);
 
-                            if (loadTestMatch.Success)
-                            {
-                                uint sendSize = uint.Parse(loadTestMatch.Result("${sendSize}"));
-                                _loadTestCount = int.Parse(loadTestMatch.Result("${testCount}"));
-                                _loadTestCount = (_loadTestCount <= 0 || _loadTestCount > MAX_LOADTEST_COUNT) ? MAX_LOADTEST_COUNT : _loadTestCount;
-                                _loadTestPayloadSize = (sendSize > pc.sctp.maxMessageSize) ? pc.sctp.maxMessageSize : sendSize;
+							if (_loadTestCount > 0)
+							{
+								DoLoadTestIteration(rdc, _loadTestPayloadSize);
+								_loadTestCount--;
+							}
 
-                                logger.LogInformation($"Starting data channel binary load test, payload size {sendSize}, test count {_loadTestCount}.");
-                                DoLoadTestIteration(rdc, _loadTestPayloadSize);
-                                _loadTestCount--;
-                            }
-                            else
-                            {
-                                // Do a string echo.
-                                rdc.send($"echo: {msg}");
-                            }
-                            break;
-                    }
-                };
-            };
+							break;
 
-            var dc = await pc.createDataChannel("test", null);
+						case DataChannelPayloadProtocols.WebRTC_String:
+							var msg = Encoding.UTF8.GetString(data);
+							logger.LogInformation($"Data channel {datachan.label} message {type} received: {msg}.");
 
-            pc.onconnectionstatechange += (state) =>
-            {
-                logger.LogDebug($"Peer connection state change to {state}.");
+							var loadTestMatch = Regex.Match(msg, @"^\s*(?<sendSize>\d+)\s*x\s*(?<testCount>\d+)");
 
-                if (state == RTCPeerConnectionState.failed)
-                {
-                    pc.Close("ice disconnection");
-                }
-            };
+							if (loadTestMatch.Success)
+							{
+								uint sendSize = uint.Parse(loadTestMatch.Result("${sendSize}"));
+								_loadTestCount = int.Parse(loadTestMatch.Result("${testCount}"));
+								_loadTestCount = (_loadTestCount <= 0 || _loadTestCount > MAX_LOADTEST_COUNT) ? MAX_LOADTEST_COUNT : _loadTestCount;
+								_loadTestPayloadSize = (sendSize > pc.sctp.maxMessageSize) ? pc.sctp.maxMessageSize : sendSize;
 
-            // Diagnostics.
-            //pc.OnReceiveReport += (re, media, rr) => logger.LogDebug($"RTCP Receive for {media} from {re}\n{rr.GetDebugSummary()}");
-            //pc.OnSendReport += (media, sr) => logger.LogDebug($"RTCP Send for {media}\n{sr.GetDebugSummary()}");
-            //pc.GetRtpChannel().OnStunMessageReceived += (msg, ep, isRelay) => logger.LogDebug($"STUN {msg.Header.MessageType} received from {ep}.");
-            pc.oniceconnectionstatechange += (state) => logger.LogDebug($"ICE connection state change to {state}.");
-            pc.onsignalingstatechange += () => logger.LogDebug($"Signalling state changed to {pc.signalingState}.");
+								logger.LogInformation($"Starting data channel binary load test, payload size {sendSize}, test count {_loadTestCount}.");
+								DoLoadTestIteration(rdc, _loadTestPayloadSize);
+								_loadTestCount--;
+							}
+							else
+							{
+								// Do a string echo.
+								rdc.send($"echo: {msg}");
+							}
+							break;
+					}
+				};
+			};
 
-            return pc;
-        }
+			var dc = await pc.createDataChannel("test", null);
 
-        private static void DoLoadTestIteration(RTCDataChannel dc, uint payloadSize)
-        {
-            var rndBuffer = new byte[payloadSize];
-            Crypto.GetRandomBytes(rndBuffer);
-            logger.LogInformation($"Data channel sending {payloadSize} random bytes, hash {DoJavscriptSHA256(rndBuffer)}.");
-            dc.send(rndBuffer);
-        }
+			pc.onconnectionstatechange += (state) =>
+			{
+				logger.LogDebug($"Peer connection state change to {state}.");
 
-        /// <summary>
-        /// The Javascript hash function only allows a maximum input of 65535 bytes. In order to hash
-        /// larger buffers for testing purposes the buffer is split into 65535 slices and then the hashes
-        /// of each of the slices hashed.
-        /// </summary>
-        /// <param name="buffer">The buffer to perform the Javascript SHA256 hash of hashes on.</param>
-        /// <returns>A hex string of the resultant hash.</returns>
-        private static string DoJavscriptSHA256(byte[] buffer)
-        {
-            int iters = (buffer.Length <= JAVASCRIPT_SHA256_MAX_IN_SIZE) ? 1 : buffer.Length / JAVASCRIPT_SHA256_MAX_IN_SIZE;
-            iters += (buffer.Length > iters * JAVASCRIPT_SHA256_MAX_IN_SIZE) ? 1 : 0;
+				if (state == RTCPeerConnectionState.failed)
+				{
+					pc.Close("ice disconnection");
+				}
+			};
 
-            byte[] hashOfHashes = new byte[iters * SHA256_OUTPUT_SIZE];
+			// Diagnostics.
+			//pc.OnReceiveReport += (re, media, rr) => logger.LogDebug($"RTCP Receive for {media} from {re}\n{rr.GetDebugSummary()}");
+			//pc.OnSendReport += (media, sr) => logger.LogDebug($"RTCP Send for {media}\n{sr.GetDebugSummary()}");
+			//pc.GetRtpChannel().OnStunMessageReceived += (msg, ep, isRelay) => logger.LogDebug($"STUN {msg.Header.MessageType} received from {ep}.");
+			pc.oniceconnectionstatechange += (state) => logger.LogDebug($"ICE connection state change to {state}.");
+			pc.onsignalingstatechange += () => logger.LogDebug($"Signalling state changed to {pc.signalingState}.");
 
-            for (int i = 0; i < iters; i++)
-            {
-                int startPosn = i * JAVASCRIPT_SHA256_MAX_IN_SIZE;
-                int length = JAVASCRIPT_SHA256_MAX_IN_SIZE;
-                length = (startPosn + length > buffer.Length) ? buffer.Length - startPosn : length;
+			return pc;
+		}
 
-                var slice = new ArraySegment<byte>(buffer, startPosn, length);
+		private static void DoLoadTestIteration(RTCDataChannel dc, uint payloadSize)
+		{
+			var rndBuffer = new byte[payloadSize];
+			Crypto.GetRandomBytes(rndBuffer);
+			logger.LogInformation($"Data channel sending {payloadSize} random bytes, hash {DoJavscriptSHA256(rndBuffer)}.");
+			dc.send(rndBuffer);
+		}
 
-                using (var sha256 = SHA256.Create())
-                {
-                    Buffer.BlockCopy(sha256.ComputeHash(slice.ToArray()), 0, hashOfHashes, i * SHA256_OUTPUT_SIZE, SHA256_OUTPUT_SIZE);
-                }
-            }
+		/// <summary>
+		/// The Javascript hash function only allows a maximum input of 65535 bytes. In order to hash
+		/// larger buffers for testing purposes the buffer is split into 65535 slices and then the hashes
+		/// of each of the slices hashed.
+		/// </summary>
+		/// <param name="buffer">The buffer to perform the Javascript SHA256 hash of hashes on.</param>
+		/// <returns>A hex string of the resultant hash.</returns>
+		private static string DoJavscriptSHA256(byte[] buffer)
+		{
+			int iters = (buffer.Length <= JAVASCRIPT_SHA256_MAX_IN_SIZE) ? 1 : buffer.Length / JAVASCRIPT_SHA256_MAX_IN_SIZE;
+			iters += (buffer.Length > iters * JAVASCRIPT_SHA256_MAX_IN_SIZE) ? 1 : 0;
 
-            using (var sha256 = SHA256.Create())
-            {
-                return sha256.ComputeHash(hashOfHashes).HexStr();
-            }
-        }
+			byte[] hashOfHashes = new byte[iters * SHA256_OUTPUT_SIZE];
 
-        /// <summary>
-        /// Adds a console logger. Can be omitted if internal SIPSorcery debug and warning messages are not required.
-        /// </summary>
-        private static Microsoft.Extensions.Logging.ILogger AddConsoleLogger()
-        {
-            var seriLogger = new LoggerConfiguration()
-                .Enrich.FromLogContext()
-                .MinimumLevel.Is(Serilog.Events.LogEventLevel.Debug)
-                .WriteTo.Console()
-                .CreateLogger();
-            var factory = new SerilogLoggerFactory(seriLogger);
-            SIPSorcery.LogFactory.Set(factory);
-            return factory.CreateLogger<Program>();
-        }
-    }
+			for (int i = 0; i < iters; i++)
+			{
+				int startPosn = i * JAVASCRIPT_SHA256_MAX_IN_SIZE;
+				int length = JAVASCRIPT_SHA256_MAX_IN_SIZE;
+				length = (startPosn + length > buffer.Length) ? buffer.Length - startPosn : length;
+
+				var slice = new ArraySegment<byte>(buffer, startPosn, length);
+
+				using (var sha256 = SHA256.Create())
+				{
+					Buffer.BlockCopy(sha256.ComputeHash(slice.ToArray()), 0, hashOfHashes, i * SHA256_OUTPUT_SIZE, SHA256_OUTPUT_SIZE);
+				}
+			}
+
+			using (var sha256 = SHA256.Create())
+			{
+				return sha256.ComputeHash(hashOfHashes).HexStr();
+			}
+		}
+
+		/// <summary>
+		/// Adds a console logger. Can be omitted if internal SIPSorcery debug and warning messages are not required.
+		/// </summary>
+		private static Microsoft.Extensions.Logging.ILogger AddConsoleLogger()
+		{
+			var seriLogger = new LoggerConfiguration()
+				.Enrich.FromLogContext()
+				.MinimumLevel.Is(Serilog.Events.LogEventLevel.Debug)
+				.WriteTo.Console()
+				.CreateLogger();
+			var factory = new SerilogLoggerFactory(seriLogger);
+			SIPSorcery.LogFactory.Set(factory);
+			return factory.CreateLogger<Program>();
+		}
+	}
 }
