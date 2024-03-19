@@ -25,6 +25,7 @@ using System.Net;
 using System.Net.WebSockets;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -38,6 +39,8 @@ using SIPSorcery.Sys;
 using WebSocketSharp.Server;
 using Tomlyn;
 using Tomlyn.Model;
+using Rishi.Kexd;
+using System.Diagnostics.CodeAnalysis;
 
 namespace demo
 {
@@ -55,6 +58,8 @@ namespace demo
 		private static uint _loadTestPayloadSize = 0;
 		private static int _loadTestCount = 0;
 
+		[RequiresUnreferencedCode("Calls System.Text.Json.JsonSerializer.Deserialize<TValue>(String, JsonSerializerOptions)")]
+		[RequiresDynamicCode("Calls System.Text.Json.JsonSerializer.Deserialize<TValue>(String, JsonSerializerOptions)")]
 		static void Main(string[] args)
 		{
 			string config = File.ReadAllText(args[0]);
@@ -71,10 +76,17 @@ namespace demo
 			string socketPath = String.Join('/', ((string)model["PublishEndpoint"]).Split('/').Skip(2).ToArray());
 			string user = (string)model["PublishAuthUser"];
 			string password = (string)model["PublishAuthPass"];
+			string peerPSK = (string)model["PeerPSK"];
 			Uri uriWithAuth = new Uri($"wss://{user}:{password}@{socketPath}");
 			clientSock.ConnectAsync(uriWithAuth, CancellationToken.None).Wait();
-			byte[] offerBytes = new byte[]{};
-			clientSock.ReceiveAsync(offerBytes, CancellationToken.None);
+			byte[] offerBytes = new byte[] { };
+			clientSock.ReceiveAsync(offerBytes, CancellationToken.None).Wait();
+			Console.WriteLine("Got offer string");
+			var offerSignedJson = Encoding.UTF8.GetString(offerBytes);
+			AuthenticatedMessage authenticatedOffer = JsonSerializer.Deserialize<AuthenticatedMessage>(offerSignedJson);
+			string timedOfferJson = authenticatedOffer.GetMessage(Encoding.UTF8.GetBytes(peerPSK));
+			TimedMessage timedOffer = JsonSerializer.Deserialize<TimedMessage>(timedOfferJson);
+			string offer = timedOffer.GetMessage();
 
 
 
@@ -102,6 +114,28 @@ namespace demo
 
 		private async static Task<RTCPeerConnection> CreatePeerConnection()
 		{
+			var iceServersArray = (TomlArray)confModel["IceServers"];
+			List<RTCIceServer> iceServers = new List<RTCIceServer>();
+			foreach (var iceServerEntry in iceServersArray)
+			{
+				var iceServerTable = (TomlTable)iceServerEntry;
+				if (!(iceServerTable["Username"] == null))
+				{
+					iceServers.Add(new RTCIceServer
+					{
+						urls = (string)((TomlArray)iceServerTable["URLs"])[0]
+					});
+				}
+				else
+				{
+					iceServers.Add(new RTCIceServer
+					{
+						urls = (string)((TomlArray)iceServerTable["URLs"])[0],
+						username = (string)iceServerTable["Username"],
+						credential = (string)iceServerTable["Credential"]
+					});
+				}
+			}
 			RTCConfiguration config = new RTCConfiguration
 			{
 				iceServers = new List<RTCIceServer> { new RTCIceServer { urls = STUN_URL } }
