@@ -243,12 +243,13 @@ namespace demo
 			pc.onsignalingstatechange += () => logger.LogDebug($"Signalling state changed to {pc.signalingState}.");
 			RTCSessionDescriptionInit.TryParse(offer, out var offerS);
 			pc.setRemoteDescription(offerS);
-			string answer="";
-			if(pc.signalingState==RTCSignalingState.have_remote_offer){
+			string answer = "";
+			if (pc.signalingState == RTCSignalingState.have_remote_offer)
+			{
 				var answerS = pc.createAnswer();
 				await pc.setLocalDescription(answerS);
 				Console.WriteLine(answerS.toJSON());
-				answer=answerS.toJSON();
+				answer = answerS.toJSON();
 			}
 
 			return (pc, answer);
