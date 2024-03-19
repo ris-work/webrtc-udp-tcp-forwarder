@@ -79,25 +79,21 @@ namespace demo
 			string peerPSK = (string)model["PeerPSK"];
 			Uri uriWithAuth = new Uri($"wss://{user}:{password}@{socketPath}");
 			clientSock.ConnectAsync(uriWithAuth, CancellationToken.None).Wait();
-			byte[] offerBytes = new byte[] { };
-			clientSock.ReceiveAsync(offerBytes, CancellationToken.None).Wait();
+			byte[] offerSignedBytes = new byte[] { };
+			clientSock.ReceiveAsync(offerSignedBytes, CancellationToken.None).Wait();
 			Console.WriteLine("Got offer string");
-			var offerSignedJson = Encoding.UTF8.GetString(offerBytes);
+			var offerSignedJson = Encoding.UTF8.GetString(offerSignedBytes);
 			AuthenticatedMessage authenticatedOffer = JsonSerializer.Deserialize<AuthenticatedMessage>(offerSignedJson);
 			string timedOfferJson = authenticatedOffer.GetMessage(Encoding.UTF8.GetBytes(peerPSK));
 			TimedMessage timedOffer = JsonSerializer.Deserialize<TimedMessage>(timedOfferJson);
-			string offer = timedOffer.GetMessage();
+			string offerBase64 = timedOffer.GetMessage();
+			byte[] offerBytes = Convert.FromBase64String(offerBase64);
+			string offer = Encoding.UTF8.GetString(offerBytes);
+			Console.WriteLine(offer);
 
 
 
-			var webSocketServer = new WebSocketServer(IPAddress.Any, WEBSOCKET_PORT);
-			webSocketServer.AddWebSocketService<WebRTCWebSocketPeer>("/", (peer) =>
-			{
-				peer.CreatePeerConnection = CreatePeerConnection;
-			});
-			webSocketServer.Start();
 
-			Console.WriteLine($"Waiting for web socket connections on {webSocketServer.Address}:{webSocketServer.Port}...");
 			Console.WriteLine("Press ctrl-c to exit.");
 
 			// Ctrl-c will gracefully exit the call at any point.
@@ -112,7 +108,7 @@ namespace demo
 			exitMre.WaitOne();
 		}
 
-		private async static Task<RTCPeerConnection> CreatePeerConnection()
+		private async static Task<RTCPeerConnection> CreatePeerConnection(string offer)
 		{
 			var iceServersArray = (TomlArray)confModel["IceServers"];
 			List<RTCIceServer> iceServers = new List<RTCIceServer>();
