@@ -26,6 +26,7 @@ using System.Net.WebSockets;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -73,19 +74,36 @@ namespace demo
 			// Start web socket.
 			Console.WriteLine("Starting web socket client...");
 			var clientSock = new ClientWebSocket();
-			string socketPath = String.Join('/', ((string)model["PublishEndpoint"]).Split('/').Skip(2).ToArray());
+			//string socketPath = String.Join('/', ((string)model["PublishEndpoint"]).Split('/').Skip(2).ToArray());
+			string socketPathRaw = (string)model["PublishEndpoint"];
 			string user = (string)model["PublishAuthUser"];
 			string password = (string)model["PublishAuthPass"];
 			string peerPSK = (string)model["PeerPSK"];
-			Uri uriWithAuth = new Uri($"wss://{user}:{password}@{socketPath}");
+			//string uriString = $"wss://{user}:{password}@{socketPath}";
+			string uriString = $"{socketPathRaw}";
+			Console.WriteLine(uriString);
+			string creds = $"{user}:{password}";
+			string credsB64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(creds));
+			string authString = $"Basic {credsB64}";
+			Uri uriWithAuth = new Uri(uriString);
+			clientSock.Options.SetRequestHeader("Authorization", authString);
 			clientSock.ConnectAsync(uriWithAuth, CancellationToken.None).Wait();
-			byte[] offerSignedBytes = new byte[] { };
-			clientSock.ReceiveAsync(offerSignedBytes, CancellationToken.None).Wait();
+			byte[] offerSignedBytes = new byte[65536];
+			//ArraySegment<byte> offerSignedBytesSegment = new ArraySegment<byte>(offerSignedBytes);
+			var taskRecv = clientSock.ReceiveAsync(offerSignedBytes, CancellationToken.None);
+			taskRecv.Wait();
+			var result = taskRecv.Result;
 			Console.WriteLine("Got offer string");
-			var offerSignedJson = Encoding.UTF8.GetString(offerSignedBytes);
-			AuthenticatedMessage authenticatedOffer = JsonSerializer.Deserialize<AuthenticatedMessage>(offerSignedJson);
+			var offerSignedJson = Encoding.UTF8.GetString(offerSignedBytes[0..result.Count]);
+			Console.WriteLine(offerSignedJson);
+			var jsonOptions = new JsonSerializerOptions()
+			{
+				IncludeFields = true,
+				UnmappedMemberHandling = JsonUnmappedMemberHandling.Skip
+			};
+			AuthenticatedMessage authenticatedOffer = JsonSerializer.Deserialize<AuthenticatedMessage>(offerSignedJson, jsonOptions);
 			string timedOfferJson = authenticatedOffer.GetMessage(Encoding.UTF8.GetBytes(peerPSK));
-			TimedMessage timedOffer = JsonSerializer.Deserialize<TimedMessage>(timedOfferJson);
+			TimedMessage timedOffer = JsonSerializer.Deserialize<TimedMessage>(timedOfferJson, jsonOptions);
 			string offerBase64 = timedOffer.GetMessage();
 			byte[] offerBytes = Convert.FromBase64String(offerBase64);
 			string offer = Encoding.UTF8.GetString(offerBytes);

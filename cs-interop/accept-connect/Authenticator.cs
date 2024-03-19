@@ -6,15 +6,16 @@ using System.Xml.Serialization;
 namespace Rishi.Kexd;
 public class AuthenticatedMessage
 {
-	[JsonInclude] private string TimedMessage;
-	[JsonInclude] private string MAC;
+	[JsonInclude][JsonRequired] private string MessageWithTime;
+	[JsonInclude][JsonRequired] private string MAC;
 	public byte[] Hash;
-	AuthenticatedMessage(string Message, byte[] AC)
+	public AuthenticatedMessage() { }
+	public AuthenticatedMessage(string Message, byte[] AC)
 	{
-		this.TimedMessage = Message;
+		this.MessageWithTime = Message;
 		using (HMACSHA256 hmac = new HMACSHA256(AC))
 		{
-			byte[] messageBytes = Encoding.UTF8.GetBytes(TimedMessage);
+			byte[] messageBytes = Encoding.UTF8.GetBytes(MessageWithTime);
 			byte[] hash = hmac.ComputeHash(messageBytes);
 			this.Hash = hash;
 			this.MAC = Convert.ToHexString(hash);
@@ -24,11 +25,11 @@ public class AuthenticatedMessage
 	{
 		using (HMACSHA256 hmac = new HMACSHA256(AC))
 		{
-			byte[] messageBytes = Encoding.UTF8.GetBytes(this.TimedMessage);
+			byte[] messageBytes = Encoding.UTF8.GetBytes(this.MessageWithTime);
 			byte[] hash = hmac.ComputeHash(messageBytes);
 			if (String.Compare(this.MAC, Convert.ToHexString(hash), StringComparison.OrdinalIgnoreCase) == 0)
 			{
-				return this.TimedMessage;
+				return this.MessageWithTime;
 			}
 			else
 			{
@@ -40,9 +41,15 @@ public class AuthenticatedMessage
 
 public class TimedMessage
 {
-	[JsonInclude] private string Message;
-	[JsonInclude] private string Timestamp;
-	TimedMessage(string Message)
+	[JsonInclude][JsonRequired] private string Message;
+	[JsonInclude][JsonRequired] private string Timestamp;
+	public TimedMessage() { }
+	/*[JsonConstructor] public TimedMessage(string Message)
+	{
+		this.Message = Message;
+		this.Timestamp = ((Int64)(DateTime.UtcNow - DateTime.UnixEpoch).TotalMicroseconds).ToString();
+	}*/
+	public TimedMessage(string Message)
 	{
 		this.Message = Message;
 		this.Timestamp = ((Int64)(DateTime.UtcNow - DateTime.UnixEpoch).TotalMicroseconds).ToString();
