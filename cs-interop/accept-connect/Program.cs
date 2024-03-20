@@ -23,6 +23,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.WebSockets;
+using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -45,6 +46,8 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace demo
 {
+	public delegate void send(byte[] data);
+
 	class Program
 	{
 		private static TomlTable? confModel = null;
@@ -59,10 +62,24 @@ namespace demo
 		private static uint _loadTestPayloadSize = 0;
 		private static int _loadTestCount = 0;
 
+		static send ToDC;
+		static send ToOS;
+		static Queue<byte[]> ToDCQueue;
+		static Queue<byte[]> ToOSQueue;
+
+
+		static int TimeSinceNoSendOS = 0;
+		static int TimeSinceNoSendDC = 0;
+
 		[RequiresUnreferencedCode("Calls System.Text.Json.JsonSerializer.Deserialize<TValue>(String, JsonSerializerOptions)")]
 		[RequiresDynamicCode("Calls System.Text.Json.JsonSerializer.Deserialize<TValue>(String, JsonSerializerOptions)")]
 		static void Main(string[] args)
 		{
+			ToOSQueue = new Queue<byte[]>(32);
+			ToDCQueue = new Queue<byte[]>(32);
+			ToDC = (byte[] data) => { ToDCQueue.Enqueue(data); };
+			ToOS = (byte[] data) => { ToOSQueue.Enqueue(data); };
+
 			string config = File.ReadAllText(args[0]);
 			var model = Toml.ToModel(config);
 			confModel = model;
@@ -79,6 +96,15 @@ namespace demo
 			string user = (string)model["PublishAuthUser"];
 			string password = (string)model["PublishAuthPass"];
 			string peerPSK = (string)model["PeerPSK"];
+			IPAddress address = IPAddress.Parse((string)model["Address"]);
+			int port = Int32.Parse((string)model["Port"]);
+			UdpClient OS = new UdpClient();
+			OS.Connect(address, port);
+			ToOS = (byte[] data) => { OS.Send(data, data.Length); };
+			while (ToOSQueue.TryDequeue(out var msg))
+			{
+				ToOS(msg);
+			}
 			//string uriString = $"wss://{user}:{password}@{socketPath}";
 			string uriString = $"{socketPathRaw}";
 			Console.WriteLine(uriString);
@@ -172,11 +198,19 @@ namespace demo
 			var pc = new RTCPeerConnection(config);
 			pc.ondatachannel += (rdc) =>
 			{
-				rdc.onopen += () => logger.LogDebug($"Data channel {rdc.label} opened.");
+				rdc.onopen += () =>
+				{
+					logger.LogDebug($"Data channel {rdc.label} opened.");
+					ToDC = (byte[] data) => { rdc.send(data); };
+					while (ToDCQueue.TryDequeue(out var msg))
+					{
+						ToDC(msg);
+					}
+				};
 				rdc.onclose += () => logger.LogDebug($"Data channel {rdc.label} closed.");
 				rdc.onmessage += (datachan, type, data) =>
 				{
-					rdc.send(data);
+					ToOS(data);
 				};
 			};
 
