@@ -124,7 +124,6 @@ namespace demo
 					{
 						byte[] data = OS.Receive(ref e);
 						Program.ToDC(data);
-						Console.WriteLine("UDP");
 					}
 					catch (Exception E)
 					{
@@ -226,27 +225,25 @@ namespace demo
 			var pc = new RTCPeerConnection(config);
 			pc.ondatachannel += (rdc) =>
 			{
-				rdc.onopen = () =>
+				Program.ToDC = (byte[] data) => { rdc.send(data); };
+				Console.WriteLine("ToDC changed");
+				while (ToDCQueue.TryDequeue(out var msg))
 				{
-					Console.WriteLine("ToDC changed");
+					ToDC(msg);
+				}
+				rdc.onopen += () =>
+				{
 					logger.LogDebug($"Data channel {rdc.label} opened.");
-					Console.WriteLine("ToDC changed");
 					Program.ToDC = (byte[] data) => { rdc.send(data); System.Console.WriteLine("ToDC"); };
 					Console.WriteLine("ToDC changed");
 					while (ToDCQueue.TryDequeue(out var msg))
 					{
 						ToDC(msg);
-						Console.WriteLine("ToDC Loop");
 					}
-					Console.WriteLine("ToDC changed");
 				};
 				rdc.onclose += () => logger.LogDebug($"Data channel {rdc.label} closed.");
 				rdc.onmessage += (datachan, type, data) =>
 				{
-					logger.LogDebug($"Data channel {rdc.label} opened.");
-					Console.WriteLine("ToDC changed");
-					Program.ToDC = (byte[] data) => { rdc.send(data); System.Console.WriteLine("ToDC"); };
-					Console.WriteLine("ToDC changed");
 					ToOS(data);
 				};
 			};
