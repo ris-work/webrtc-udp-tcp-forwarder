@@ -48,6 +48,12 @@ namespace demo
 {
 	public delegate void send(byte[] data);
 
+	public struct UdpState
+	{
+		public UdpClient u;
+		public IPEndPoint e;
+	}
+
 	class Program
 	{
 		private static TomlTable? confModel = null;
@@ -98,8 +104,13 @@ namespace demo
 			string peerPSK = (string)model["PeerPSK"];
 			IPAddress address = IPAddress.Parse((string)model["Address"]);
 			int port = Int32.Parse((string)model["Port"]);
+			IPEndPoint e = new IPEndPoint(address, port);
 			UdpClient OS = new UdpClient();
-			OS.Connect(address, port);
+			UdpState s = new UdpState();
+			s.e = e;
+			s.u = OS;
+			OS.Connect(e);
+			OS.BeginReceive(new AsyncCallback(UdpReceiveCallback), s);
 			ToOS = (byte[] data) => { OS.Send(data, data.Length); };
 			while (ToOSQueue.TryDequeue(out var msg))
 			{
@@ -244,6 +255,13 @@ namespace demo
 			}
 
 			return (pc, answer);
+		}
+		public static void UdpReceiveCallback(IAsyncResult ar)
+		{
+			UdpClient u = ((UdpState)(ar.AsyncState)).u;
+			IPEndPoint e = ((UdpState)(ar.AsyncState)).e;
+			byte[] data = u.EndReceive(ar, ref e);
+			ToDC(data);
 		}
 
 
