@@ -76,6 +76,7 @@ namespace demo
 
 		static int TimeSinceNoSendOS = 0;
 		static int TimeSinceNoSendDC = 0;
+		static long TimeoutCountMax = 0;
 
 		[RequiresUnreferencedCode("Calls System.Text.Json.JsonSerializer.Deserialize<TValue>(String, JsonSerializerOptions)")]
 		[RequiresDynamicCode("Calls System.Text.Json.JsonSerializer.Deserialize<TValue>(String, JsonSerializerOptions)")]
@@ -102,6 +103,7 @@ namespace demo
 			string user = (string)model["PublishAuthUser"];
 			string password = (string)model["PublishAuthPass"];
 			string peerPSK = (string)model["PeerPSK"];
+			TimeoutCountMax = ((long)model["TimeoutCountMax"]);
 			IPAddress address = IPAddress.Parse((string)model["Address"]);
 			int port = Int32.Parse((string)model["Port"]);
 			IPEndPoint e = new IPEndPoint(address, port);
@@ -113,7 +115,11 @@ namespace demo
 				s.u = OS;
 				OS.Connect(e);
 				//OS.BeginReceive(new AsyncCallback(UdpReceiveCallback), s);
-				ToOS = (byte[] data) => { OS.Send(data, data.Length); };
+				ToOS = (byte[] data) =>
+				{
+					OS.Send(data, data.Length);
+					TimeSinceNoSendOS = 0;
+				};
 				while (ToOSQueue.TryDequeue(out var msg))
 				{
 					ToOS(msg);
@@ -129,6 +135,21 @@ namespace demo
 					{
 						Console.WriteLine(E);
 						break;
+					}
+				}
+			})).Start();
+			(new Thread(() =>
+			{
+				while (true)
+				{
+					Thread.Sleep(1000);
+					TimeSinceNoSendDC++;
+					TimeSinceNoSendOS++;
+					if ((TimeSinceNoSendDC > TimeoutCountMax) ||
+						(TimeSinceNoSendOS > TimeoutCountMax))
+					{
+						Console.WriteLine("Exiting due to inactivity...");
+						Environment.Exit(0);
 					}
 				}
 			})).Start();
@@ -225,7 +246,11 @@ namespace demo
 			var pc = new RTCPeerConnection(config);
 			pc.ondatachannel += (rdc) =>
 			{
-				Program.ToDC = (byte[] data) => { rdc.send(data); };
+				Program.ToDC = (byte[] data) =>
+				{
+					rdc.send(data);
+					TimeSinceNoSendDC = 0;
+				};
 				Console.WriteLine("ToDC changed");
 				while (ToDCQueue.TryDequeue(out var msg))
 				{
