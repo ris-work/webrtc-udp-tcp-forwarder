@@ -176,50 +176,7 @@ namespace demo
 				rdc.onclose += () => logger.LogDebug($"Data channel {rdc.label} closed.");
 				rdc.onmessage += (datachan, type, data) =>
 				{
-					switch (type)
-					{
-						case DataChannelPayloadProtocols.WebRTC_Binary_Empty:
-						case DataChannelPayloadProtocols.WebRTC_String_Empty:
-							logger.LogInformation($"Data channel {datachan.label} empty message type {type}.");
-							break;
-
-						case DataChannelPayloadProtocols.WebRTC_Binary:
-							string jsSha256 = DoJavscriptSHA256(data);
-							logger.LogInformation($"Data channel {datachan.label} received {data.Length} bytes, js mirror sha256 {jsSha256}.");
-							rdc.send(jsSha256);
-
-							if (_loadTestCount > 0)
-							{
-								DoLoadTestIteration(rdc, _loadTestPayloadSize);
-								_loadTestCount--;
-							}
-
-							break;
-
-						case DataChannelPayloadProtocols.WebRTC_String:
-							var msg = Encoding.UTF8.GetString(data);
-							logger.LogInformation($"Data channel {datachan.label} message {type} received: {msg}.");
-
-							var loadTestMatch = Regex.Match(msg, @"^\s*(?<sendSize>\d+)\s*x\s*(?<testCount>\d+)");
-
-							if (loadTestMatch.Success)
-							{
-								uint sendSize = uint.Parse(loadTestMatch.Result("${sendSize}"));
-								_loadTestCount = int.Parse(loadTestMatch.Result("${testCount}"));
-								_loadTestCount = (_loadTestCount <= 0 || _loadTestCount > MAX_LOADTEST_COUNT) ? MAX_LOADTEST_COUNT : _loadTestCount;
-								_loadTestPayloadSize = (sendSize > pc.sctp.maxMessageSize) ? pc.sctp.maxMessageSize : sendSize;
-
-								logger.LogInformation($"Starting data channel binary load test, payload size {sendSize}, test count {_loadTestCount}.");
-								DoLoadTestIteration(rdc, _loadTestPayloadSize);
-								_loadTestCount--;
-							}
-							else
-							{
-								// Do a string echo.
-								rdc.send($"echo: {msg}");
-							}
-							break;
-					}
+					rdc.send(data);
 				};
 			};
 
@@ -255,47 +212,6 @@ namespace demo
 			return (pc, answer);
 		}
 
-		private static void DoLoadTestIteration(RTCDataChannel dc, uint payloadSize)
-		{
-			var rndBuffer = new byte[payloadSize];
-			Crypto.GetRandomBytes(rndBuffer);
-			logger.LogInformation($"Data channel sending {payloadSize} random bytes, hash {DoJavscriptSHA256(rndBuffer)}.");
-			dc.send(rndBuffer);
-		}
-
-		/// <summary>
-		/// The Javascript hash function only allows a maximum input of 65535 bytes. In order to hash
-		/// larger buffers for testing purposes the buffer is split into 65535 slices and then the hashes
-		/// of each of the slices hashed.
-		/// </summary>
-		/// <param name="buffer">The buffer to perform the Javascript SHA256 hash of hashes on.</param>
-		/// <returns>A hex string of the resultant hash.</returns>
-		private static string DoJavscriptSHA256(byte[] buffer)
-		{
-			int iters = (buffer.Length <= JAVASCRIPT_SHA256_MAX_IN_SIZE) ? 1 : buffer.Length / JAVASCRIPT_SHA256_MAX_IN_SIZE;
-			iters += (buffer.Length > iters * JAVASCRIPT_SHA256_MAX_IN_SIZE) ? 1 : 0;
-
-			byte[] hashOfHashes = new byte[iters * SHA256_OUTPUT_SIZE];
-
-			for (int i = 0; i < iters; i++)
-			{
-				int startPosn = i * JAVASCRIPT_SHA256_MAX_IN_SIZE;
-				int length = JAVASCRIPT_SHA256_MAX_IN_SIZE;
-				length = (startPosn + length > buffer.Length) ? buffer.Length - startPosn : length;
-
-				var slice = new ArraySegment<byte>(buffer, startPosn, length);
-
-				using (var sha256 = SHA256.Create())
-				{
-					Buffer.BlockCopy(sha256.ComputeHash(slice.ToArray()), 0, hashOfHashes, i * SHA256_OUTPUT_SIZE, SHA256_OUTPUT_SIZE);
-				}
-			}
-
-			using (var sha256 = SHA256.Create())
-			{
-				return sha256.ComputeHash(hashOfHashes).HexStr();
-			}
-		}
 
 		/// <summary>
 		/// Adds a console logger. Can be omitted if internal SIPSorcery debug and warning messages are not required.
