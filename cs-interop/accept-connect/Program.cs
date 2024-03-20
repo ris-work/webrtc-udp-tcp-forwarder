@@ -83,7 +83,7 @@ namespace demo
 		{
 			ToOSQueue = new Queue<byte[]>(32);
 			ToDCQueue = new Queue<byte[]>(32);
-			ToDC = (byte[] data) => { ToDCQueue.Enqueue(data); };
+			ToDC = (byte[] data) => { ToDCQueue.Enqueue(data); Console.WriteLine("Queued"); };
 			ToOS = (byte[] data) => { ToOSQueue.Enqueue(data); };
 
 			string config = File.ReadAllText(args[0]);
@@ -105,17 +105,34 @@ namespace demo
 			IPAddress address = IPAddress.Parse((string)model["Address"]);
 			int port = Int32.Parse((string)model["Port"]);
 			IPEndPoint e = new IPEndPoint(address, port);
-			UdpClient OS = new UdpClient();
-			UdpState s = new UdpState();
-			s.e = e;
-			s.u = OS;
-			OS.Connect(e);
-			OS.BeginReceive(new AsyncCallback(UdpReceiveCallback), s);
-			ToOS = (byte[] data) => { OS.Send(data, data.Length); };
-			while (ToOSQueue.TryDequeue(out var msg))
+			(new Thread(() =>
 			{
-				ToOS(msg);
-			}
+				UdpClient OS = new UdpClient();
+				UdpState s = new UdpState();
+				s.e = e;
+				s.u = OS;
+				OS.Connect(e);
+				//OS.BeginReceive(new AsyncCallback(UdpReceiveCallback), s);
+				ToOS = (byte[] data) => { OS.Send(data, data.Length); };
+				while (ToOSQueue.TryDequeue(out var msg))
+				{
+					ToOS(msg);
+				}
+				while (true)
+				{
+					try
+					{
+						byte[] data = OS.Receive(ref e);
+						Program.ToDC(data);
+						Console.WriteLine("UDP");
+					}
+					catch (Exception E)
+					{
+						Console.WriteLine(E);
+						break;
+					}
+				}
+			})).Start();
 			//string uriString = $"wss://{user}:{password}@{socketPath}";
 			string uriString = $"{socketPathRaw}";
 			Console.WriteLine(uriString);
@@ -209,18 +226,27 @@ namespace demo
 			var pc = new RTCPeerConnection(config);
 			pc.ondatachannel += (rdc) =>
 			{
-				rdc.onopen += () =>
+				rdc.onopen = () =>
 				{
+					Console.WriteLine("ToDC changed");
 					logger.LogDebug($"Data channel {rdc.label} opened.");
-					ToDC = (byte[] data) => { rdc.send(data); };
+					Console.WriteLine("ToDC changed");
+					Program.ToDC = (byte[] data) => { rdc.send(data); System.Console.WriteLine("ToDC"); };
+					Console.WriteLine("ToDC changed");
 					while (ToDCQueue.TryDequeue(out var msg))
 					{
 						ToDC(msg);
+						Console.WriteLine("ToDC Loop");
 					}
+					Console.WriteLine("ToDC changed");
 				};
 				rdc.onclose += () => logger.LogDebug($"Data channel {rdc.label} closed.");
 				rdc.onmessage += (datachan, type, data) =>
 				{
+					logger.LogDebug($"Data channel {rdc.label} opened.");
+					Console.WriteLine("ToDC changed");
+					Program.ToDC = (byte[] data) => { rdc.send(data); System.Console.WriteLine("ToDC"); };
+					Console.WriteLine("ToDC changed");
 					ToOS(data);
 				};
 			};
@@ -261,6 +287,7 @@ namespace demo
 			UdpClient u = ((UdpState)(ar.AsyncState)).u;
 			IPEndPoint e = ((UdpState)(ar.AsyncState)).e;
 			byte[] data = u.EndReceive(ar, ref e);
+			System.Console.WriteLine("UDP Received");
 			ToDC(data);
 		}
 
