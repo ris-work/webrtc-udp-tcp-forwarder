@@ -248,6 +248,7 @@ namespace demo
 			{
 				Program.ToDC = (byte[] data) =>
 				{
+						if(rdc.bufferedAmount < 1000000)
 					rdc.send(data);
 					TimeSinceNoSendDC = 0;
 				};
