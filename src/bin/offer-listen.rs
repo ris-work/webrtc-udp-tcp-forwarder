@@ -288,6 +288,7 @@ async fn configure_send_receive_udp(
     }));
 
     RTCDC.on_open(Box::new(move || {
+        let d_label = da.label().to_owned();
         da.on_message(Box::new(move |msg: DataChannelMessage| {
             let msg = msg.data.to_vec();
             trace!("Message from DataChannel '{d_label}': '{msg:?}'");
