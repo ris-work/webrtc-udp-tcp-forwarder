@@ -276,6 +276,13 @@ async fn configure_send_receive_udp(
     let config2 = config.clone();
     let config3 = config.clone();
     let config4 = config.clone();
+    RTCDC.on_message(Box::new(move |msg: DataChannelMessage| {
+        let msg = msg.data.to_vec();
+        trace!("Message from DataChannel '{d_label}': '{msg:?}'");
+        OtherSocketSendQueue_tx.try_send(AlignedMessage { size: 0, data: msg });
+
+        Box::pin(async {})
+    }));
 
     RTCDC.on_open(Box::new(move || {
         info!("Data channel '{}'-'{}' open.", d1.label(), d1.id());
@@ -452,13 +459,13 @@ async fn configure_send_receive_udp(
         .expect("Unable to spawn thread: SQ -> UDP");
     // Register text message handling
     let d_label = RTCDC.label().to_owned();
-    RTCDC.on_message(Box::new(move |msg: DataChannelMessage| {
+    /*RTCDC.on_message(Box::new(move |msg: DataChannelMessage| {
         let msg = msg.data.to_vec();
         trace!("Message from DataChannel '{d_label}': '{msg:?}'");
         OtherSocketSendQueue_tx.try_send(AlignedMessage { size: 0, data: msg });
 
         Box::pin(async {})
-    }));
+    }));*/
     done_rx.recv().await;
     info! {"[tokio initial] + [WRTC -> UDP SQ] Closing!"};
     RTCDC.close().await.expect("Error closing the connection");
