@@ -277,6 +277,8 @@ async fn configure_send_receive_udp(
     let config2 = config.clone();
     let config3 = config.clone();
     let config4 = config.clone();
+
+    let d_label = RTCDC.label().to_owned();
     RTCDC.on_message(Box::new(move |msg: DataChannelMessage| {
         let msg = msg.data.to_vec();
         trace!("Message from DataChannel '{d_label}': '{msg:?}'");
