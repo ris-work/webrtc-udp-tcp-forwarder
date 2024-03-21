@@ -265,6 +265,7 @@ async fn configure_send_receive_udp(
     let (OtherSocketSendQueue_tx, OtherSocketSendQueue_rx): (Sender<AlignedMessage>, Receiver<AlignedMessage>) = bounded::<AlignedMessage>(128);
     let (WebRTCSendQueue_tx, WebRTCSendQueue_rx): (Sender<AlignedMessage>, Receiver<AlignedMessage>) = bounded::<AlignedMessage>(128);
     let d1 = Arc::clone(&RTCDC);
+    let da = Arc::clone(&RTCDC);
     let mut ClonedSocketRecv = OtherSocket.try_clone().expect("Unable to clone the UDP socket. :(");
     let mut ClonedSocketSend = OtherSocket.try_clone().expect("Unable to clone the UDP socket. :(");
     let (OtherSocketSendQueue_tx_c, WebRTCSendQueue_tx_c) = (OtherSocketSendQueue_tx.clone(), WebRTCSendQueue_tx.clone());
@@ -285,6 +286,13 @@ async fn configure_send_receive_udp(
     }));
 
     RTCDC.on_open(Box::new(move || {
+        da.on_message(Box::new(move |msg: DataChannelMessage| {
+            let msg = msg.data.to_vec();
+            trace!("Message from DataChannel '{d_label}': '{msg:?}'");
+            OtherSocketSendQueue_tx.try_send(AlignedMessage { size: 0, data: msg });
+
+            Box::pin(async {})
+        }));
         info!("Data channel '{}'-'{}' open.", d1.label(), d1.id());
         let d2 = Arc::clone(&d1);
         let Done_rx_2 = Done_rx.clone();
