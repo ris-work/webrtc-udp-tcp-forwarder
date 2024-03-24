@@ -56,6 +56,7 @@ namespace demo
 
 	class Program
 	{
+		private static string TrickleICEWorkaround = "";
 		private static TomlTable? confModel = null;
 		private const int WEBSOCKET_PORT = 8081;
 		private const string STUN_URL = "stun:stun.sipsorcery.com";
@@ -308,9 +309,27 @@ namespace demo
 			pc.oniceconnectionstatechange += (state) => logger.LogDebug($"ICE connection state change to {state}, {pc.currentLocalDescription.sdp.RawString()}.");
 			pc.onicegatheringstatechange += (state) =>
 			{
-				if (state == RTCIceGatheringState.complete) logger.LogDebug($"ICE connection state change to {state}, {pc.localDescription.sdp}.");
+				if (state == RTCIceGatheringState.complete)
+				{
+					logger.LogDebug($"ICE connection state change to {state}, {pc.localDescription.sdp}.");
+					//pc.localDescription.Sdp += TrickleICEWorkaround;
+					//pc.localDescription.sdp.ICECandidates.Add(c);
+					logger.LogDebug($"ICE connection state change to {state}, {pc.localDescription.sdp}.");
+				}
 			};
-			pc.onicecandidate += (c) => { pc.addLocalIceCandidate(c); Console.WriteLine(c); };
+			pc.onicecandidate += (c) =>
+			{
+				TrickleICEWorkaround += "\r\na=candidate:{c}";
+				pc.addLocalIceCandidate(c);
+				Console.WriteLine(c);
+				if (pc.localDescription != null)
+				{
+					if (pc.localDescription.sdp.IceCandidates == null)
+						pc.localDescription.sdp.IceCandidates = new List<String>();
+					if (c != null)
+						pc.localDescription.sdp.IceCandidates.Add(c.ToString());
+				}
+			};
 			pc.onsignalingstatechange += () => logger.LogDebug($"Signalling state changed to {pc.signalingState}.");
 			//RTCSessionDescriptionInit.TryParse(offer, out var offerS);
 			//pc.setRemoteDescription(offerS);
