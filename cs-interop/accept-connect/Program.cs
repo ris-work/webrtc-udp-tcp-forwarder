@@ -248,8 +248,8 @@ namespace demo
 			{
 				Program.ToDC = (byte[] data) =>
 				{
-						if(rdc.bufferedAmount < 1000000)
-					rdc.send(data);
+					if (rdc.bufferedAmount < 1000000)
+						rdc.send(data);
 					TimeSinceNoSendDC = 0;
 				};
 				Console.WriteLine("ToDC changed");
@@ -311,8 +311,14 @@ namespace demo
 			{
 				var answerS = pc.createAnswer();
 				await pc.setLocalDescription(answerS);
-				Console.WriteLine(answerS.toJSON());
-				answer = answerS.toJSON();
+				await Task.Delay(1000);
+				answer = JsonSerializer.Serialize(new
+				{
+					type = "answer",
+					sdp = pc.localDescription.sdp.ToString()
+				});
+				Console.WriteLine(answer);
+				//answer = answerS.toJSON();
 			}
 
 			return (pc, answer);

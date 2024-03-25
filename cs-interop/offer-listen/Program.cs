@@ -338,8 +338,14 @@ namespace demo
 			{*/
 			var offerS = pc.createOffer(null);
 			await pc.setLocalDescription(offerS);
-			Console.WriteLine(offerS.toJSON());
-			offer = offerS.toJSON();
+			await Task.Delay(1000);
+			offer = JsonSerializer.Serialize(new
+			{
+				type = "offer",
+				sdp = pc.localDescription.sdp.ToString()
+			});
+			Console.WriteLine(offer);
+			//offer = offerS.toJSON();
 			//}
 
 			return (pc, offer);
