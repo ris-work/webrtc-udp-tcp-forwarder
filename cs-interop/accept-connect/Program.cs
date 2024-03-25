@@ -291,6 +291,18 @@ namespace demo
 			//pc.OnSendReport += (media, sr) => logger.LogDebug($"RTCP Send for {media}\n{sr.GetDebugSummary()}");
 			//pc.GetRtpChannel().OnStunMessageReceived += (msg, ep, isRelay) => logger.LogDebug($"STUN {msg.Header.MessageType} received from {ep}.");
 			pc.oniceconnectionstatechange += (state) => logger.LogDebug($"ICE connection state change to {state}.");
+			pc.onicecandidate += (c) =>
+			{
+				pc.addLocalIceCandidate(c);
+				Console.WriteLine(c);
+				if (pc.localDescription != null)
+				{
+					if (pc.localDescription.sdp.IceCandidates == null)
+						pc.localDescription.sdp.IceCandidates = new List<String>();
+					if (c != null)
+						pc.localDescription.sdp.IceCandidates.Add(c.ToString());
+				}
+			};
 			pc.onsignalingstatechange += () => logger.LogDebug($"Signalling state changed to {pc.signalingState}.");
 			RTCSessionDescriptionInit.TryParse(offer, out var offerS);
 			pc.setRemoteDescription(offerS);
