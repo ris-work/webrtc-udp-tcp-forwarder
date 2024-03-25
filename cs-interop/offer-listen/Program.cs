@@ -108,13 +108,17 @@ namespace demo
 			IPAddress address = IPAddress.Parse((string)model["Address"]);
 			int port = Int32.Parse((string)model["Port"]);
 			IPEndPoint e = new IPEndPoint(address, port);
+			IPEndPoint r = new IPEndPoint(IPAddress.Any, 0);
 			(new Thread(() =>
 			{
-				UdpClient OS = new UdpClient();
+				UdpClient OS = new UdpClient(e);
 				UdpState s = new UdpState();
 				s.e = e;
 				s.u = OS;
-				OS.Connect(e);
+				//OS.Connect(e);
+				byte[] data = OS.Receive(ref r);
+				Program.ToDC(data);
+				OS.Connect(r);
 				//OS.BeginReceive(new AsyncCallback(UdpReceiveCallback), s);
 				ToOS = (byte[] data) =>
 				{
@@ -129,7 +133,7 @@ namespace demo
 				{
 					try
 					{
-						byte[] data = OS.Receive(ref e);
+						data = OS.Receive(ref r);
 						Program.ToDC(data);
 					}
 					catch (Exception E)
@@ -312,7 +316,8 @@ namespace demo
 				logger.LogDebug($"Data channel {rdc.label} opened.");
 				Program.ToDC = (byte[] data) =>
 				{
-					rdc.send(data);
+					if (rdc.bufferedAmount < 4000000)
+						rdc.send(data);
 					TimeSinceNoSendDC = 0;
 					System.Console.WriteLine("ToDC");
 				};
