@@ -154,15 +154,15 @@ namespace demo
 					}
 				}
 			})).Start();
-            var jsonOptions = new JsonSerializerOptions()
-            {
-                IncludeFields = true,
-                UnmappedMemberHandling = JsonUnmappedMemberHandling.Skip
-            };
-            //string uriString = $"wss://{user}:{password}@{socketPath}";
-            string uriString = $"{socketPathRaw}";
-            byte[] peerPSKBytes = Encoding.UTF8.GetBytes(peerPSK);
-            Console.WriteLine(uriString);
+			var jsonOptions = new JsonSerializerOptions()
+			{
+				IncludeFields = true,
+				UnmappedMemberHandling = JsonUnmappedMemberHandling.Skip
+			};
+			//string uriString = $"wss://{user}:{password}@{socketPath}";
+			string uriString = $"{socketPathRaw}";
+			byte[] peerPSKBytes = Encoding.UTF8.GetBytes(peerPSK);
+			Console.WriteLine(uriString);
 			string creds = $"{user}:{password}";
 			string credsB64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(creds));
 			string authString = $"Basic {credsB64}";
@@ -177,39 +177,39 @@ namespace demo
 			Console.WriteLine("offer");
 			Console.WriteLine(offer);
 
-            
-            byte[] offerBytes = Encoding.UTF8.GetBytes(offer);
-            string offerBase64 = Convert.ToBase64String(offerBytes);
-            TimedMessage timedOffer = new TimedMessage(offerBase64);
 
-            string timedOfferJson = JsonSerializer.Serialize(timedOffer, jsonOptions);
+			byte[] offerBytes = Encoding.UTF8.GetBytes(offer);
+			string offerBase64 = Convert.ToBase64String(offerBytes);
+			TimedMessage timedOffer = new TimedMessage(offerBase64);
 
-            AuthenticatedMessage signedOffer = new AuthenticatedMessage(timedOfferJson, peerPSKBytes);
+			string timedOfferJson = JsonSerializer.Serialize(timedOffer, jsonOptions);
 
-            string signedOfferJson = JsonSerializer.Serialize(signedOffer, jsonOptions);
-            byte[] signedOfferBytes = Encoding.UTF8.GetBytes(signedOfferJson);
-            clientSock.SendAsync(signedOfferBytes, WebSocketMessageType.Text, true, CancellationToken.None).Wait();
-            var taskRecv = clientSock.ReceiveAsync(answerSignedBytes, CancellationToken.None);
-            taskRecv.Wait();
-            var result = taskRecv.Result;
-            Console.WriteLine("Got answer string");
-            var answerSignedJson = Encoding.UTF8.GetString(answerSignedBytes[0..result.Count]);
-            Console.WriteLine(answerSignedJson);
-            
-            AuthenticatedMessage authenticatedAnswer = JsonSerializer.Deserialize<AuthenticatedMessage>(answerSignedJson, jsonOptions);
-            
-            string timedAnswerJson = authenticatedAnswer.GetMessage(peerPSKBytes);
-            TimedMessage timedAnswer = JsonSerializer.Deserialize<TimedMessage>(timedAnswerJson, jsonOptions);
-            string answerBase64 = timedAnswer.GetMessage();
-            byte[] answerBytes = Convert.FromBase64String(answerBase64);
-            string answer = Encoding.UTF8.GetString(answerBytes);
-            Console.WriteLine(answer);
+			AuthenticatedMessage signedOffer = new AuthenticatedMessage(timedOfferJson, peerPSKBytes);
 
-            RTCSessionDescriptionInit.TryParse(answer, out var answerS);
-            pc.setRemoteDescription(answerS);
+			string signedOfferJson = JsonSerializer.Serialize(signedOffer, jsonOptions);
+			byte[] signedOfferBytes = Encoding.UTF8.GetBytes(signedOfferJson);
+			clientSock.SendAsync(signedOfferBytes, WebSocketMessageType.Text, true, CancellationToken.None).Wait();
+			var taskRecv = clientSock.ReceiveAsync(answerSignedBytes, CancellationToken.None);
+			taskRecv.Wait();
+			var result = taskRecv.Result;
+			Console.WriteLine("Got answer string");
+			var answerSignedJson = Encoding.UTF8.GetString(answerSignedBytes[0..result.Count]);
+			Console.WriteLine(answerSignedJson);
+
+			AuthenticatedMessage authenticatedAnswer = JsonSerializer.Deserialize<AuthenticatedMessage>(answerSignedJson, jsonOptions);
+
+			string timedAnswerJson = authenticatedAnswer.GetMessage(peerPSKBytes);
+			TimedMessage timedAnswer = JsonSerializer.Deserialize<TimedMessage>(timedAnswerJson, jsonOptions);
+			string answerBase64 = timedAnswer.GetMessage();
+			byte[] answerBytes = Convert.FromBase64String(answerBase64);
+			string answer = Encoding.UTF8.GetString(answerBytes);
+			Console.WriteLine(answer);
+
+			RTCSessionDescriptionInit.TryParse(answer, out var answerS);
+			pc.setRemoteDescription(answerS);
 
 
-            /*
+			/*
 			var taskRecv = clientSock.ReceiveAsync(offerSignedBytes, CancellationToken.None);
 			taskRecv.Wait();
 			var result = taskRecv.Result;
@@ -248,7 +248,7 @@ namespace demo
 
 
 
-            Console.WriteLine("Press ctrl-c to exit.");
+			Console.WriteLine("Press ctrl-c to exit.");
 
 			// Ctrl-c will gracefully exit the call at any point.
 			ManualResetEvent exitMre = new ManualResetEvent(false);
