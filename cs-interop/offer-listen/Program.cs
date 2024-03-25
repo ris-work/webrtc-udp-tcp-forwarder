@@ -205,6 +205,9 @@ namespace demo
             string answer = Encoding.UTF8.GetString(answerBytes);
             Console.WriteLine(answer);
 
+            RTCSessionDescriptionInit.TryParse(answer, out var answerS);
+            pc.setRemoteDescription(answerS);
+
 
             /*
 			var taskRecv = clientSock.ReceiveAsync(offerSignedBytes, CancellationToken.None);
