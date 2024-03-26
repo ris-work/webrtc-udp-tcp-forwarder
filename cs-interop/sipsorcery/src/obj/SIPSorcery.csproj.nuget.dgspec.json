@@ -1,0 +1,422 @@
+{
+  "format": 1,
+  "restore": {
+    "/root/interop/webrtc-udp-tcp-forwarder/cs-interop/sipsorcery/src/SIPSorcery.csproj": {}
+  },
+  "projects": {
+    "/root/interop/webrtc-udp-tcp-forwarder/cs-interop/sipsorcery/src/SIPSorcery.csproj": {
+      "version": "6.2.1",
+      "restore": {
+        "projectUniqueName": "/root/interop/webrtc-udp-tcp-forwarder/cs-interop/sipsorcery/src/SIPSorcery.csproj",
+        "projectName": "SIPSorcery",
+        "projectPath": "/root/interop/webrtc-udp-tcp-forwarder/cs-interop/sipsorcery/src/SIPSorcery.csproj",
+        "packagesPath": "/root/.nuget/packages/",
+        "outputPath": "/root/interop/webrtc-udp-tcp-forwarder/cs-interop/sipsorcery/src/obj/",
+        "projectStyle": "PackageReference",
+        "crossTargeting": true,
+        "configFilePaths": [
+          "/root/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net461",
+          "net5.0",
+          "net6.0",
+          "net8.0",
+          "netcoreapp3.1",
+          "netstandard2.0",
+          "netstandard2.1"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "netcoreapp3.1": {
+            "targetAlias": "netcoreapp3.1",
+            "projectReferences": {}
+          },
+          "net5.0": {
+            "targetAlias": "net5.0",
+            "projectReferences": {}
+          },
+          "net6.0": {
+            "targetAlias": "net6.0",
+            "projectReferences": {}
+          },
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {}
+          },
+          "net461": {
+            "targetAlias": "net461",
+            "projectReferences": {}
+          },
+          "netstandard2.0": {
+            "targetAlias": "netstandard2.0",
+            "projectReferences": {}
+          },
+          "netstandard2.1": {
+            "targetAlias": "netstandard2.1",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "netcoreapp3.1": {
+          "targetAlias": "netcoreapp3.1",
+          "dependencies": {
+            "DnsClient": {
+              "target": "Package",
+              "version": "[1.7.0, )"
+            },
+            "Microsoft.SourceLink.GitHub": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[8.0.0, )"
+            },
+            "Portable.BouncyCastle": {
+              "target": "Package",
+              "version": "[1.9.0, )"
+            },
+            "SIPSorcery.WebSocketSharp": {
+              "target": "Package",
+              "version": "[0.0.1, )"
+            },
+            "SIPSorceryMedia.Abstractions": {
+              "target": "Package",
+              "version": "[1.2.1, )"
+            },
+            "System.Net.WebSockets.Client": {
+              "target": "Package",
+              "version": "[4.3.2, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "downloadDependencies": [
+            {
+              "name": "Microsoft.AspNetCore.App.Ref",
+              "version": "[3.1.10, 3.1.10]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Ref",
+              "version": "[3.1.0, 3.1.0]"
+            }
+          ],
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/dotnet/sdk/8.0.100/RuntimeIdentifierGraph.json"
+        },
+        "net5.0": {
+          "targetAlias": "net5.0",
+          "dependencies": {
+            "DnsClient": {
+              "target": "Package",
+              "version": "[1.7.0, )"
+            },
+            "Microsoft.SourceLink.GitHub": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[8.0.0, )"
+            },
+            "Portable.BouncyCastle": {
+              "target": "Package",
+              "version": "[1.9.0, )"
+            },
+            "SIPSorcery.WebSocketSharp": {
+              "target": "Package",
+              "version": "[0.0.1, )"
+            },
+            "SIPSorceryMedia.Abstractions": {
+              "target": "Package",
+              "version": "[1.2.1, )"
+            },
+            "System.Net.WebSockets.Client": {
+              "target": "Package",
+              "version": "[4.3.2, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "downloadDependencies": [
+            {
+              "name": "Microsoft.AspNetCore.App.Ref",
+              "version": "[5.0.0, 5.0.0]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Ref",
+              "version": "[5.0.0, 5.0.0]"
+            }
+          ],
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/dotnet/sdk/8.0.100/RuntimeIdentifierGraph.json"
+        },
+        "net6.0": {
+          "targetAlias": "net6.0",
+          "dependencies": {
+            "DnsClient": {
+              "target": "Package",
+              "version": "[1.7.0, )"
+            },
+            "Microsoft.SourceLink.GitHub": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[8.0.0, )"
+            },
+            "Portable.BouncyCastle": {
+              "target": "Package",
+              "version": "[1.9.0, )"
+            },
+            "SIPSorcery.WebSocketSharp": {
+              "target": "Package",
+              "version": "[0.0.1, )"
+            },
+            "SIPSorceryMedia.Abstractions": {
+              "target": "Package",
+              "version": "[1.2.1, )"
+            },
+            "System.Net.WebSockets.Client": {
+              "target": "Package",
+              "version": "[4.3.2, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "downloadDependencies": [
+            {
+              "name": "Microsoft.AspNetCore.App.Ref",
+              "version": "[6.0.25, 6.0.25]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Ref",
+              "version": "[6.0.25, 6.0.25]"
+            }
+          ],
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/dotnet/sdk/8.0.100/RuntimeIdentifierGraph.json"
+        },
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "dependencies": {
+            "DnsClient": {
+              "target": "Package",
+              "version": "[1.7.0, )"
+            },
+            "Microsoft.SourceLink.GitHub": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[8.0.0, )"
+            },
+            "Portable.BouncyCastle": {
+              "target": "Package",
+              "version": "[1.9.0, )"
+            },
+            "SIPSorcery.WebSocketSharp": {
+              "target": "Package",
+              "version": "[0.0.1, )"
+            },
+            "SIPSorceryMedia.Abstractions": {
+              "target": "Package",
+              "version": "[1.2.1, )"
+            },
+            "System.Net.WebSockets.Client": {
+              "target": "Package",
+              "version": "[4.3.2, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/dotnet/sdk/8.0.100/PortableRuntimeIdentifierGraph.json"
+        },
+        "net461": {
+          "targetAlias": "net461",
+          "dependencies": {
+            "DnsClient": {
+              "target": "Package",
+              "version": "[1.7.0, )"
+            },
+            "Microsoft.NETFramework.ReferenceAssemblies": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[1.0.3, )",
+              "autoReferenced": true
+            },
+            "Microsoft.SourceLink.GitHub": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[8.0.0, )"
+            },
+            "Portable.BouncyCastle": {
+              "target": "Package",
+              "version": "[1.9.0, )"
+            },
+            "SIPSorcery.WebSocketSharp": {
+              "target": "Package",
+              "version": "[0.0.1, )"
+            },
+            "SIPSorceryMedia.Abstractions": {
+              "target": "Package",
+              "version": "[1.2.1, )"
+            },
+            "System.Net.WebSockets.Client": {
+              "target": "Package",
+              "version": "[4.3.2, )"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/dotnet/sdk/8.0.100/RuntimeIdentifierGraph.json"
+        },
+        "netstandard2.0": {
+          "targetAlias": "netstandard2.0",
+          "dependencies": {
+            "DnsClient": {
+              "target": "Package",
+              "version": "[1.7.0, )"
+            },
+            "Microsoft.SourceLink.GitHub": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[8.0.0, )"
+            },
+            "NETStandard.Library": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[2.0.3, )",
+              "autoReferenced": true
+            },
+            "Portable.BouncyCastle": {
+              "target": "Package",
+              "version": "[1.9.0, )"
+            },
+            "SIPSorcery.WebSocketSharp": {
+              "target": "Package",
+              "version": "[0.0.1, )"
+            },
+            "SIPSorceryMedia.Abstractions": {
+              "target": "Package",
+              "version": "[1.2.1, )"
+            },
+            "System.Net.WebSockets.Client": {
+              "target": "Package",
+              "version": "[4.3.2, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "runtimeIdentifierGraphPath": "/dotnet/sdk/8.0.100/RuntimeIdentifierGraph.json"
+        },
+        "netstandard2.1": {
+          "targetAlias": "netstandard2.1",
+          "dependencies": {
+            "DnsClient": {
+              "target": "Package",
+              "version": "[1.7.0, )"
+            },
+            "Microsoft.SourceLink.GitHub": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[8.0.0, )"
+            },
+            "Portable.BouncyCastle": {
+              "target": "Package",
+              "version": "[1.9.0, )"
+            },
+            "SIPSorcery.WebSocketSharp": {
+              "target": "Package",
+              "version": "[0.0.1, )"
+            },
+            "SIPSorceryMedia.Abstractions": {
+              "target": "Package",
+              "version": "[1.2.1, )"
+            },
+            "System.Net.WebSockets.Client": {
+              "target": "Package",
+              "version": "[4.3.2, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "NETStandard.Library": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/dotnet/sdk/8.0.100/RuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}

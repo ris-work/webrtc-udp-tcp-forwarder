@@ -1,0 +1,13 @@
+/root/interop/webrtc-udp-tcp-forwarder/cs-interop/sipsorcery/src/bin/Debug/net8.0/SIPSorcery.deps.json
+/root/interop/webrtc-udp-tcp-forwarder/cs-interop/sipsorcery/src/bin/Debug/net8.0/SIPSorcery.dll
+/root/interop/webrtc-udp-tcp-forwarder/cs-interop/sipsorcery/src/bin/Debug/net8.0/SIPSorcery.pdb
+/root/interop/webrtc-udp-tcp-forwarder/cs-interop/sipsorcery/src/obj/Debug/net8.0/SIPSorcery.csproj.AssemblyReference.cache
+/root/interop/webrtc-udp-tcp-forwarder/cs-interop/sipsorcery/src/obj/Debug/net8.0/SIPSorcery.GeneratedMSBuildEditorConfig.editorconfig
+/root/interop/webrtc-udp-tcp-forwarder/cs-interop/sipsorcery/src/obj/Debug/net8.0/SIPSorcery.AssemblyInfoInputs.cache
+/root/interop/webrtc-udp-tcp-forwarder/cs-interop/sipsorcery/src/obj/Debug/net8.0/SIPSorcery.AssemblyInfo.cs
+/root/interop/webrtc-udp-tcp-forwarder/cs-interop/sipsorcery/src/obj/Debug/net8.0/SIPSorcery.csproj.CoreCompileInputs.cache
+/root/interop/webrtc-udp-tcp-forwarder/cs-interop/sipsorcery/src/obj/Debug/net8.0/SIPSorcery.sourcelink.json
+/root/interop/webrtc-udp-tcp-forwarder/cs-interop/sipsorcery/src/obj/Debug/net8.0/SIPSorcery.dll
+/root/interop/webrtc-udp-tcp-forwarder/cs-interop/sipsorcery/src/obj/Debug/net8.0/refint/SIPSorcery.dll
+/root/interop/webrtc-udp-tcp-forwarder/cs-interop/sipsorcery/src/obj/Debug/net8.0/SIPSorcery.pdb
+/root/interop/webrtc-udp-tcp-forwarder/cs-interop/sipsorcery/src/obj/Debug/net8.0/ref/SIPSorcery.dll
