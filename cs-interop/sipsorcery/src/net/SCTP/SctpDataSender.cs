@@ -38,7 +38,7 @@ namespace SIPSorcery.Net
         /// Used to limit the number of packets that are sent at any one time, i.e. when 
         /// the transmit timer fires do not send more than this many packets.
         /// </summary>
-        public const int MAX_BURST = 4;
+        public const int MAX_BURST = 16;
 
         /// <summary>
         /// Milliseconds to wait between bursts if no SACK chunks are received in the interim.
@@ -211,7 +211,7 @@ namespace SIPSorcery.Net
                 unchecked
                 {
                     uint maxTSNDistance = SctpDataReceiver.GetDistance(_cumulativeAckTSN, TSN);
-                    bool processGapReports = true;
+                    bool processGapReports = false;
                     uint cumAckTSNBeforeSackProcessing = _cumulativeAckTSN;
 
                     if (_unconfirmedChunks.TryGetValue(sack.CumulativeTsnAck, out var result))
@@ -350,6 +350,7 @@ namespace SIPSorcery.Net
                     _sendQueue.Enqueue(dataChunk);
 
                     TSN = (TSN == UInt32.MaxValue) ? 0 : TSN + 1;
+                    _cumulativeAckTSN = TSN;
                 }
 
                 _senderMre.Set();
@@ -396,7 +397,8 @@ namespace SIPSorcery.Net
             // For each incoming SACK, miss indications are incremented only for missing TSNs prior to the highest TSN newly acknowledged in the SACK.
             uint highestTsnNewlyAcknowledged = lastAckTSN;
 
-            unchecked {
+            unchecked
+            {
 
                 // Parse the gap report to identify missing chunks that have now been acknowledged in the gap report
                 foreach (var block in sackGapBlocks)
@@ -581,7 +583,7 @@ namespace SIPSorcery.Net
 
                         _sendDataChunk(chunk);
                         chunksSent++;
-                        
+
                         if (!_inRetransmitMode)
                         {
                             logger.LogTrace($"SCTP sender entering retransmit mode.");
@@ -615,7 +617,7 @@ namespace SIPSorcery.Net
                         logger.LogTrace($"SCTP sending data chunk for TSN {dataChunk.TSN}, data length {dataChunk.UserData.Length}, " +
                             $"flags {dataChunk.ChunkFlags:X2}, send count {dataChunk.SendCount}.");
 
-                        _unconfirmedChunks.TryAdd(dataChunk.TSN, dataChunk);
+                        //_unconfirmedChunks.TryAdd(dataChunk.TSN, dataChunk);
                         _sendDataChunk(dataChunk);
                         chunksSent++;
                     }
@@ -639,6 +641,7 @@ namespace SIPSorcery.Net
         /// </summary>
         private int GetSendWaitMilliseconds()
         {
+            return 0;
             if (_sendQueue.Count > 0 || _missingChunks.Count > 0)
             {
                 if (_receiverWindow > 0 && _congestionWindow > _outstandingBytes)
