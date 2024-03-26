@@ -2,7 +2,8 @@ import { conf } from "./conf.mjs";
 import { timedMessage } from "./timedMessage.mjs";
 import { hashAuthenticatedMessage } from "./hashAuthenticatedMessage.mjs";
 import { WebSocket } from "ws";
-import wrtc from "wrtc";
+//import {nodeDatachannelPolyfill as wrtc} from "node-datachannel/polyfill";
+import nodeDatachannelPolyfill from "node-datachannel/polyfill";
 import * as dgram from "dgram";
 import * as process from "process";
 import * as net from "net";
@@ -11,6 +12,7 @@ import * as b64 from "nodejs-base64";
 console.assert(conf.WebRTCMode == "Offer");
 console.assert(conf.PublishType == "ws");
 
+const wrtc=nodeDatachannelPolyfill;
 let connected = false;
 let answerUnvalidated;
 
