@@ -12,7 +12,7 @@ import * as b64 from "nodejs-base64";
 console.assert(conf.WebRTCMode == "Offer");
 console.assert(conf.PublishType == "ws");
 
-const wrtc=nodeDatachannelPolyfill;
+const wrtc = nodeDatachannelPolyfill;
 let connected = false;
 let answerUnvalidated;
 
