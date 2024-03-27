@@ -40,7 +40,7 @@ namespace SIPSorcery.Net
         /// The (U)nordered bit, if set to true, indicates that this is an
         /// unordered DATA chunk.
         /// </summary>
-        public bool Unordered { get; set; } = false;
+        public bool Unordered { get; set; } = true;
 
         /// <summary>
         /// The (B)eginning fragment bit, if set, indicates the first fragment
@@ -120,7 +120,7 @@ namespace SIPSorcery.Net
                 throw new ArgumentNullException("data", "The SctpDataChunk data parameter cannot be empty.");
             }
 
-            Unordered = isUnordered;
+            Unordered = true;
             Begining = isBegining;
             Ending = isEnd;
             TSN = tsn;

@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections;
 using System.Linq;
 using System.Text;
 using Microsoft.Extensions.Logging;
@@ -79,7 +80,7 @@ namespace SIPSorcery.Net
         /// The window size is the maximum number of entries that can be recorded in the 
         /// <see cref="_receivedChunks"/> dictionary.
         /// </summary>
-        private const ushort WINDOW_SIZE_MINIMUM = 100;
+        private const ushort WINDOW_SIZE_MINIMUM = 1000;
 
         /// <summary>
         /// The maximum number of out of order frames that will be queued per stream ID.
@@ -89,7 +90,7 @@ namespace SIPSorcery.Net
         /// <summary>
         /// The maximum size of an SCTP fragmented message.
         /// </summary>
-        private const int MAX_FRAME_SIZE = 262144;
+        private const int MAX_FRAME_SIZE = 3000;
 
         private static ILogger logger = LogFactory.CreateLogger<SctpDataReceiver>();
 
@@ -201,7 +202,7 @@ namespace SIPSorcery.Net
         /// or order. For unordered chunks the list will always have a single entry.</returns>
         public List<SctpDataFrame> OnDataChunk(SctpDataChunk dataChunk)
         {
-            var sortedFrames = new List<SctpDataFrame>();
+            var sortedFrames = new List<SctpDataFrame>(2048);
             var frame = SctpDataFrame.Empty;
 
             if (_inOrderReceiveCount == 0 &&
@@ -211,7 +212,7 @@ namespace SIPSorcery.Net
                     $"TSN when the initial TSN was {_initialTSN} and a " +
                     $"window size of {_windowSize}, ignoring.");
             }
-            else if (_inOrderReceiveCount > 0 &&
+            else if (false && _inOrderReceiveCount > 0 &&
                 GetDistance(_lastInOrderTSN, dataChunk.TSN) > _windowSize)
             {
                 logger.LogWarning($"SCTP data receiver received a data chunk with a {dataChunk.TSN} " +
@@ -260,11 +261,13 @@ namespace SIPSorcery.Net
                         {
                             // Stream is nearing capacity, only chunks that advance _lastInOrderTSN can be accepted. 
                             logger.LogWarning($"Stream {dataChunk.StreamID} is at buffer capacity. Rejected out-of-order data chunk TSN {dataChunk.TSN}.");
+                            //_forwardTSN.Add(dataChunk.TSN, 1);
+							_lastInOrderTSN = dataChunk.TSN;
                             processFrame = false;
                         }
                         else
                         {
-                            _forwardTSN.Add(dataChunk.TSN, 1);
+                            //_forwardTSN.Add(dataChunk.TSN, 1);
                         }
                     }
                 }
@@ -272,11 +275,11 @@ namespace SIPSorcery.Net
                 if (processFrame)
                 {
                     // Now go about processing the data chunk.
-                    if (dataChunk.Begining && dataChunk.Ending)
+                    if (true || dataChunk.Begining && dataChunk.Ending)
                     {
                         // Single packet chunk.
                         frame = new SctpDataFrame(
-                            dataChunk.Unordered,
+                            true,
                             dataChunk.StreamID,
                             dataChunk.StreamSeqNum,
                             dataChunk.PPID,
@@ -285,13 +288,13 @@ namespace SIPSorcery.Net
                     else
                     {
                         // This is a data chunk fragment.
-                        _fragmentedChunks.Add(dataChunk.TSN, dataChunk);
-                        (var begin, var end) = GetChunkBeginAndEnd(_fragmentedChunks, dataChunk.TSN);
+                        //_fragmentedChunks.Add(dataChunk.TSN, dataChunk);
+                        /*(var begin, var end) = GetChunkBeginAndEnd(_fragmentedChunks, dataChunk.TSN);
 
                         if (begin != null && end != null)
                         {
                             frame = GetFragmentedChunk(_fragmentedChunks, begin.Value, end.Value);
-                        }
+                        }*/
                     }
                 }
             }
@@ -316,7 +319,7 @@ namespace SIPSorcery.Net
             {
                 if (!frame.IsEmpty())
                 {
-                    sortedFrames.Add(frame);
+                    if (sortedFrames.Count < 2000) sortedFrames.Add(frame);
                 }
 
                 return sortedFrames;
@@ -438,12 +441,14 @@ namespace SIPSorcery.Net
                 else
                 {
                     // Stream seqnum is out of order.
+					sortedFrames.Add(frame);
+
                     if (!_streamOutOfOrderFrames.ContainsKey(frame.StreamID))
                     {
-                        _streamOutOfOrderFrames[frame.StreamID] = new Dictionary<ushort, SctpDataFrame>();
+                        //_streamOutOfOrderFrames[frame.StreamID] = new Dictionary<ushort, SctpDataFrame>();
                     }
 
-                    _streamOutOfOrderFrames[frame.StreamID].Add(frame.StreamSeqNum, frame);
+                    //_streamOutOfOrderFrames[frame.StreamID].Add(frame.StreamSeqNum, frame);
                 }
 
                 return sortedFrames;
