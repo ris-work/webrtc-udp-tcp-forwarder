@@ -332,7 +332,7 @@ namespace demo
 			rdc.onclose += () => logger.LogDebug($"Data channel {rdc.label} closed.");
 			rdc.onmessage += (datachan, type, data) =>
 			{
-				ToOS(data);
+				ToOS(data.ToArray());
 			};
 
 			//var dc = await pc.createDataChannel("data", null);
