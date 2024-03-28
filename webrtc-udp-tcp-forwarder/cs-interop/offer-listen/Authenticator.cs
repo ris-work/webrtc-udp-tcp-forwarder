@@ -87,9 +87,10 @@ public class TimeVerificationFailed : Exception
 	public TimeVerificationFailed(string message, Exception inner) : base(message, inner) { }
 }
 
-
+[JsonSourceGenerationOptions(GenerationMode = JsonSourceGenerationMode.Serialization)]
 [JsonSerializable(typeof(AuthenticatedMessage))]
-internal partial class AMC: JsonSerializerContext {}
+internal partial class AMC : JsonSerializerContext { }
 
+[JsonSourceGenerationOptions(GenerationMode = JsonSourceGenerationMode.Serialization)]
 [JsonSerializable(typeof(TimedMessage))]
-internal partial class TMC: JsonSerializerContext {}
+internal partial class TMC : JsonSerializerContext { }

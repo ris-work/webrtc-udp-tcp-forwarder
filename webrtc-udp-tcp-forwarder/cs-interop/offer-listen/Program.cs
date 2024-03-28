@@ -159,12 +159,19 @@ namespace demo
 					}
 				}
 			})).Start();
-			var jsonOptions = new JsonSerializerOptions()
+			var jsonOptionsT = new JsonSerializerOptions()
 			{
+				TypeInfoResolver = TMC.Default,
 				IncludeFields = true,
 				UnmappedMemberHandling = JsonUnmappedMemberHandling.Skip
 			};
 			//string uriString = $"wss://{user}:{password}@{socketPath}";
+			var jsonOptionsA = new JsonSerializerOptions()
+			{
+				TypeInfoResolver = AMC.Default,
+				IncludeFields = true,
+				UnmappedMemberHandling = JsonUnmappedMemberHandling.Skip
+			};
 			string uriString = $"{socketPathRaw}";
 			byte[] peerPSKBytes = Encoding.UTF8.GetBytes(peerPSK);
 			Console.WriteLine(uriString);
@@ -187,11 +194,11 @@ namespace demo
 			string offerBase64 = Convert.ToBase64String(offerBytes);
 			TimedMessage timedOffer = new TimedMessage(offerBase64);
 
-			string timedOfferJson = JsonSerializer.Serialize(timedOffer, jsonOptions);
+			string timedOfferJson = JsonSerializer.Serialize(timedOffer, typeof(TimedMessage), jsonOptionsT);
 
 			AuthenticatedMessage signedOffer = new AuthenticatedMessage(timedOfferJson, peerPSKBytes);
 
-			string signedOfferJson = JsonSerializer.Serialize(signedOffer, jsonOptions);
+			string signedOfferJson = JsonSerializer.Serialize(signedOffer, typeof(AuthenticatedMessage), jsonOptionsA);
 			byte[] signedOfferBytes = Encoding.UTF8.GetBytes(signedOfferJson);
 			clientSock.SendAsync(signedOfferBytes, WebSocketMessageType.Text, true, CancellationToken.None).Wait();
 			var taskRecv = clientSock.ReceiveAsync(answerSignedBytes, CancellationToken.None);
@@ -201,10 +208,10 @@ namespace demo
 			var answerSignedJson = Encoding.UTF8.GetString(answerSignedBytes[0..result.Count]);
 			Console.WriteLine(answerSignedJson);
 
-			AuthenticatedMessage authenticatedAnswer = JsonSerializer.Deserialize<AuthenticatedMessage>(answerSignedJson, jsonOptions);
+			AuthenticatedMessage authenticatedAnswer = JsonSerializer.Deserialize<AuthenticatedMessage>(answerSignedJson, jsonOptionsA);
 
 			string timedAnswerJson = authenticatedAnswer.GetMessage(peerPSKBytes);
-			TimedMessage timedAnswer = JsonSerializer.Deserialize<TimedMessage>(timedAnswerJson, jsonOptions);
+			TimedMessage timedAnswer = JsonSerializer.Deserialize<TimedMessage>(timedAnswerJson, jsonOptionsT);
 			string answerBase64 = timedAnswer.GetMessage();
 			byte[] answerBytes = Convert.FromBase64String(answerBase64);
 			string answer = Encoding.UTF8.GetString(answerBytes);
@@ -267,6 +274,7 @@ namespace demo
 			exitMre.WaitOne();
 		}
 
+		[RequiresUnreferencedCode("Calls System.Text.Json.JsonSerializer.Serialize<TValue>(TValue, JsonSerializerOptions)")]
 		private async static Task<(RTCPeerConnection, string)> CreatePeerConnection()
 		{
 			var iceServersArray = (TomlArray)confModel["ICEServers"];
