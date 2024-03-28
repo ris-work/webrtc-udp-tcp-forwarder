@@ -114,8 +114,8 @@ namespace SIPSorcery.Net
                 VerificationTag = verificationTag
             };
 
-            Chunks = new List<SctpChunk>();
-            UnrecognisedChunks = new List<byte[]>();
+            Chunks = new List<SctpChunk>(4096);
+            UnrecognisedChunks = new List<byte[]>(4096);
         }
 
         /// <summary>
@@ -175,8 +175,8 @@ namespace SIPSorcery.Net
         /// <returns>The lsit of parsed chunks and a list of unrecognised chunks that were not de-serialised.</returns>
         private static (List<SctpChunk> chunks, List<byte[]> unrecognisedChunks) ParseChunks(byte[] buffer, int offset, int length)
         {
-            List<SctpChunk> chunks = new List<SctpChunk>();
-            List<byte[]> unrecognisedChunks = new List<byte[]>();
+            List<SctpChunk> chunks = new List<SctpChunk>(4096);
+            List<byte[]> unrecognisedChunks = new List<byte[]>(4096);
 
             int posn = offset + SctpHeader.SCTP_HEADER_LENGTH;
 
@@ -189,7 +189,8 @@ namespace SIPSorcery.Net
                 if (Enum.IsDefined(typeof(SctpChunkType), chunkType))
                 {
                     var chunk = SctpChunk.Parse(buffer, posn);
-                    chunks.Add(chunk);
+                    if(chunks.Count < 4095) chunks.Add(chunk);
+					//logger.LogWarning("Chunk added");
                 }
                 else
                 {
@@ -200,11 +201,15 @@ namespace SIPSorcery.Net
                             break;
                         case SctpUnrecognisedChunkActions.StopAndReport:
                             stop = true;
+							//logger.LogWarning("uChunk");
+							if(unrecognisedChunks.Count<4095)
                             unrecognisedChunks.Add(SctpChunk.CopyUnrecognisedChunk(buffer, posn));
                             break;
                         case SctpUnrecognisedChunkActions.Skip:
                             break;
                         case SctpUnrecognisedChunkActions.SkipAndReport:
+							//logger.LogWarning("uChunk");
+							if(unrecognisedChunks.Count<4095)
                             unrecognisedChunks.Add(SctpChunk.CopyUnrecognisedChunk(buffer, posn));
                             break;
                     }

@@ -148,6 +148,7 @@ namespace demo
 				while (true)
 				{
 					Thread.Sleep(1000);
+					GC.Collect();
 					TimeSinceNoSendDC++;
 					TimeSinceNoSendOS++;
 					if ((TimeSinceNoSendDC > TimeoutCountMax) ||
