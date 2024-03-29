@@ -33,7 +33,7 @@ namespace SIPSorcery.Net
     /// </summary>
     public class SctpUdpTransport : SctpTransport
     {
-        public const ushort DEFAULT_UDP_MTU = 1300;
+        public const ushort DEFAULT_UDP_MTU = 1400;
 
         private static ILogger logger = SIPSorcery.LogFactory.CreateLogger<SctpUdpTransport>();
 

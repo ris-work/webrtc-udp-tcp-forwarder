@@ -39,7 +39,7 @@ namespace SIPSorcery.Net
     public class RTCPeerSctpAssociation : SctpAssociation
     {
         // TODO: Add MTU path discovery.
-        public const ushort DEFAULT_DTLS_MTU = 1200;
+        public const ushort DEFAULT_DTLS_MTU = 1340;
 
         private static readonly ILogger logger = Log.Logger;
 
