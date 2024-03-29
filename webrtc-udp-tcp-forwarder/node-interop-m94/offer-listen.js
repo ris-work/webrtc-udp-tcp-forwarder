@@ -80,7 +80,7 @@ otherSocket.on("message", (msg, rinfo) => {
 otherSocket.on("connect", () => {
 	console.log(`to_os_queue: ${to_os_queue.length}`);
 	console.log("oS connected.");
-		TSLOSS = 0;
+	TSLOSS = 0;
 	to_os = (x) => otherSocket.send(x);
 	/* flush */
 	to_os_queue.forEach((v) => to_os(v));
@@ -129,7 +129,7 @@ let dc_open = () => {
 	console.log("DC open");
 	console.log(`to_dc_queue: ${to_dc_queue.length}`);
 	to_dc = (x) => {
-			TSLDCS=0;
+		TSLDCS = 0;
 		if (dc.bufferedAmount < MAX_BUF) dc.send(x);
 	};
 	/* flush */
@@ -210,13 +210,14 @@ function proceedToWebRTC() {
 	};
 }
 
-
 let TSLDCS = 0; // Time since last DC send
 let TSLOSS = 0;
 
-setInterval(function(){
-		TSLDCS++;
-		TSLOSS++;
-		if(TSLDCS >= conf.TimeoutCountMax || TSLOSS >= conf.TimeoutCountMax) {process.exit(0);
-		console.log("Exiting due to inactivity...")}
+setInterval(function () {
+	TSLDCS++;
+	TSLOSS++;
+	if (TSLDCS >= conf.TimeoutCountMax || TSLOSS >= conf.TimeoutCountMax) {
+		console.log("Exiting due to inactivity...");
+		process.exit(0);
+	}
 }, 1000);
