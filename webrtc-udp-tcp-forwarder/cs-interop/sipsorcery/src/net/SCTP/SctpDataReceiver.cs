@@ -92,17 +92,17 @@ namespace SIPSorcery.Net
         /// The window size is the maximum number of entries that can be recorded in the 
         /// <see cref="_receivedChunks"/> dictionary.
         /// </summary>
-        private const ushort WINDOW_SIZE_MINIMUM = 100;
+        private const ushort WINDOW_SIZE_MINIMUM = 200;
 
         /// <summary>
         /// The maximum number of out of order frames that will be queued per stream ID.
         /// </summary>
-        private const int MAXIMUM_OUTOFORDER_FRAMES = 25;
+        private const int MAXIMUM_OUTOFORDER_FRAMES = 2;
 
         /// <summary>
         /// The maximum size of an SCTP fragmented message.
         /// </summary>
-        private const int MAX_FRAME_SIZE = 262144;
+        private const int MAX_FRAME_SIZE = 3000;
 
         private static ILogger logger = LogFactory.CreateLogger<SctpDataReceiver>();
 

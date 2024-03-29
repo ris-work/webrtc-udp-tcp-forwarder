@@ -38,7 +38,7 @@ namespace SIPSorcery.Net
         /// Used to limit the number of packets that are sent at any one time, i.e. when 
         /// the transmit timer fires do not send more than this many packets.
         /// </summary>
-        public const int MAX_BURST = 4;
+        public const int MAX_BURST = 8;
 
         /// <summary>
         /// Milliseconds to wait between bursts if no SACK chunks are received in the interim.
@@ -60,7 +60,7 @@ namespace SIPSorcery.Net
         /// <summary>
         /// The maximum value for the Retransmission timeout.
         /// </summary>
-        public const int RTO_MAX_SECONDS = 60;
+        public const int RTO_MAX_SECONDS = 2;
 
         private static ILogger logger = LogFactory.CreateLogger<SctpDataSender>();
 
@@ -129,7 +129,7 @@ namespace SIPSorcery.Net
         /// <summary>
         /// A count of the bytes currently in-flight to the remote peer.
         /// </summary>
-        internal int _outstandingBytes => _unconfirmedChunks.Sum(x => x.Value.UserDataLength);
+        internal int _outstandingBytes => _unconfirmedChunks.Count * 1400;
 
         /// <summary>
         /// The TSN that the remote peer has acknowledged. Only ever accessed inside <see cref="GotSack(SctpChunkView)"/>
@@ -163,7 +163,8 @@ namespace SIPSorcery.Net
         /// <summary>
         /// The total size (in bytes) of queued user data that will be sent to the peer.
         /// </summary>
-        public ulong BufferedAmount => (ulong)_sendQueue.Sum(x => x.UserDataLength);
+        //public ulong BufferedAmount => (ulong)_sendQueue.Sum(x => x.UserDataLength);
+        public ulong BufferedAmount => (ulong)_sendQueue.Count * 1400;
 
         int tsn;
         /// <summary>
