@@ -92,17 +92,17 @@ namespace SIPSorcery.Net
         /// The window size is the maximum number of entries that can be recorded in the 
         /// <see cref="_receivedChunks"/> dictionary.
         /// </summary>
-        private const ushort WINDOW_SIZE_MINIMUM = 100;
+        private const ushort WINDOW_SIZE_MINIMUM = 400;
 
         /// <summary>
         /// The maximum number of out of order frames that will be queued per stream ID.
         /// </summary>
-        private const int MAXIMUM_OUTOFORDER_FRAMES = 25;
+        private const int MAXIMUM_OUTOFORDER_FRAMES = 0;
 
         /// <summary>
         /// The maximum size of an SCTP fragmented message.
         /// </summary>
-        private const int MAX_FRAME_SIZE = 262144;
+        private const int MAX_FRAME_SIZE = 26214;
 
         private static ILogger logger = LogFactory.CreateLogger<SctpDataReceiver>();
 
@@ -188,7 +188,7 @@ namespace SIPSorcery.Net
             _initialTSN = initialTSN;
 
             mtu = mtu != 0 ? mtu : SctpUdpTransport.DEFAULT_UDP_MTU;
-            _windowSize = (ushort)(_receiveWindow / mtu);
+            _windowSize = (ushort)((_receiveWindow / mtu) * 2);
             _windowSize = (_windowSize < WINDOW_SIZE_MINIMUM) ? WINDOW_SIZE_MINIMUM : _windowSize;
 
             logger.LogDebug($"SCTP windows size for data receiver set at {_windowSize}.");
@@ -222,7 +222,7 @@ namespace SIPSorcery.Net
             var sortedFrames = new List<SctpDataFrame>();
             var frame = SctpDataFrame.Empty;
 
-            if (_inOrderReceiveCount == 0 &&
+            if (false && _inOrderReceiveCount == 0 &&
                 GetDistance(_initialTSN, dataChunk.TSN) > _windowSize)
             {
                 logger.LogWarning("SCTP data receiver received a data chunk with a {TSN} " +
@@ -230,7 +230,7 @@ namespace SIPSorcery.Net
                     "window size of {Size}, ignoring.",
                     dataChunk.TSN, _initialTSN, _windowSize);
             }
-            else if (_inOrderReceiveCount > 0 &&
+            else if (false && _inOrderReceiveCount > 0 &&
                 GetDistance(_lastInOrderTSN, dataChunk.TSN) > _windowSize)
             {
                 logger.LogWarning("SCTP data receiver received a data chunk with a {TSN} " +
@@ -238,7 +238,7 @@ namespace SIPSorcery.Net
                     "window size of {Size}, ignoring.",
                     dataChunk.TSN, _lastInOrderTSN + 1, _windowSize);
             }
-            else if (_inOrderReceiveCount > 0 &&
+            else if (false && _inOrderReceiveCount > 0 &&
                 !IsNewer(_lastInOrderTSN, dataChunk.TSN))
             {
                 logger.LogWarning("SCTP data receiver received an old data chunk with {TSN} " +
@@ -399,7 +399,7 @@ namespace SIPSorcery.Net
                         else if (tsn != prev + 1)
                         {
                             ushort end = (ushort)(prev - tsnAck);
-                            gaps.Add(new SctpTsnGapBlock { Start = start.Value, End = end });
+                            //gaps.Add(new SctpTsnGapBlock { Start = start.Value, End = end });
                             start = (ushort)(tsn - tsnAck);
                             prev = tsn;
                         }
@@ -409,7 +409,7 @@ namespace SIPSorcery.Net
                         }
                     }
 
-                    gaps.Add(new SctpTsnGapBlock { Start = start.Value, End = (ushort)(prev - tsnAck) });
+                    //gaps.Add(new SctpTsnGapBlock { Start = start.Value, End = (ushort)(prev - tsnAck) });
                 }
             }
 

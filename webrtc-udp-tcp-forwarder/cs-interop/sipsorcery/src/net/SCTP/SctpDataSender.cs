@@ -142,7 +142,7 @@ namespace SIPSorcery.Net
         /// </summary>
         private Dictionary<ushort, ushort> _streamSeqnums = new Dictionary<ushort, ushort>();
 
-        public int MaxSendQueueCount => 128;
+        public int MaxSendQueueCount => 512;
 #warning this must be rewritten to use BlockingQueue
         /// <summary>
         /// Queue to hold SCTP frames that are waiting to be sent to the remote peer.
@@ -163,7 +163,8 @@ namespace SIPSorcery.Net
         /// <summary>
         /// The total size (in bytes) of queued user data that will be sent to the peer.
         /// </summary>
-        public ulong BufferedAmount => (ulong)_sendQueue.Sum(x => x.UserDataLength);
+        // public ulong BufferedAmount => (ulong)_sendQueue.Sum(x => x.UserDataLength);
+        public ulong BufferedAmount => (ulong)_sendQueue.Count * 1400;
 
         int tsn;
         /// <summary>
@@ -504,7 +505,7 @@ namespace SIPSorcery.Net
                                 // rfc 7.2.4: When the third consecutive miss indication is received for a TSN(s), the data sender shall do the following...
                                 if (missCount + 1 == 3)
                                 {
-                                    if (_inFastRecoveryMode.TryTurnOn()) // RFC4960 7.2.4 (2)
+                                    if (false && _inFastRecoveryMode.TryTurnOn()) // RFC4960 7.2.4 (2)
                                     {
                                         // mark the highest outstanding TSN as the Fast Recovery exit point
                                         var last = SctpTsnGapBlock.Read(sackGapBlocks.Slice(sackGapBlocks.Length - SctpSackChunk.GAP_REPORT_LENGTH));
@@ -513,7 +514,7 @@ namespace SIPSorcery.Net
                                         logger.LogDebug($"SCTP sender entering fast recovery mode due to missing TSN {missingTSN}. Fast recovery exit point {_fastRecoveryExitPoint}.");
                                         // RFC4960 7.2.3
                                         _slowStartThreshold = (uint)Math.Max(_congestionWindow / 2, 4 * _defaultMTU);
-                                        _congestionWindow = _slowStartThreshold;
+                                        _congestionWindow = _slowStartThreshold * 2;
                                     }
                                 }
                             }
@@ -649,13 +650,13 @@ namespace SIPSorcery.Net
                             _slowStartThreshold = (uint)Math.Max(_congestionWindow / 2, 4 * _defaultMTU);
                             // did not clarify, but I believe entering retransmit mode is NOT the same
                             // as T3-rtx timer expiring. Will just use regular halving formula here.
-                            _congestionWindow = _slowStartThreshold;
+                            _congestionWindow = _slowStartThreshold * 2;
 
                             // For the destination address for which the timer expires, set RTO <- RTO * 2("back off the timer")
                             // RFC4960 6.3.3 E2
                             if (_hasRoundTripTime)
                             {
-                                _rto = Math.Min(_rtoMaximumMilliseconds, _rto * 2);
+                                _rto = Math.Min(_rtoMaximumMilliseconds, _rto * 1.1);
                             }
                         }
                     }

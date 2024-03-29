@@ -328,7 +328,7 @@ namespace demo
 					if (rdc.bufferedAmount < 4000000)
 						rdc.send(data);
 					TimeSinceNoSendDC = 0;
-					System.Console.WriteLine("ToDC");
+					//System.Console.WriteLine("ToDC");
 				};
 				Console.WriteLine("ToDC changed");
 				while (ToDCQueue.TryDequeue(out var msg))
