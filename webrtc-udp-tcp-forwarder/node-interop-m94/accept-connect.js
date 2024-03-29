@@ -73,7 +73,10 @@ otherSocket.on("listening", () =>
 otherSocket.on("connect", () => {
 	console.log(`to_os_queue: ${to_os_queue.length}`);
 	console.log("oS connected.");
-	to_os = (x) => otherSocket.send(x);
+	to_os = (x) => {
+		TSLOSS = 0;
+		otherSocket.send(x);
+	};
 	/* flush */
 	to_os_queue.forEach((v) => to_os(v));
 });
@@ -123,6 +126,7 @@ let pc_on_dc = function (e) {
 let dc_open = () => {
 	console.log("DC open");
 	to_dc = (x) => {
+		TSLDCS = 0;
 		if (dc.bufferedAmount < MAX_BUF) dc.send(x);
 	};
 	/* flush */
@@ -208,3 +212,15 @@ dc.addEventListener('close', dc_close);
 		sigSocket.send(JSON.stringify(hmacMessage));
 	}
 }
+
+let TSLDCS = 0; // Time since last DC send
+let TSLOSS = 0;
+
+setInterval(function () {
+	TSLDCS++;
+	TSLOSS++;
+	if (TSLDCS >= conf.TimeoutCountMax || TSLOSS >= conf.TimeoutCountMax) {
+		console.log("Exiting due to inactivity...");
+		process.exit(0);
+	}
+}, 1000);
