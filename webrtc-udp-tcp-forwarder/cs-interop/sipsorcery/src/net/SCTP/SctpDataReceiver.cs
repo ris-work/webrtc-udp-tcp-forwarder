@@ -102,7 +102,7 @@ namespace SIPSorcery.Net
         /// <summary>
         /// The maximum size of an SCTP fragmented message.
         /// </summary>
-        private const int MAX_FRAME_SIZE = 3000;
+        private const int MAX_FRAME_SIZE = 262144;
 
         private static ILogger logger = LogFactory.CreateLogger<SctpDataReceiver>();
 
@@ -276,7 +276,7 @@ namespace SIPSorcery.Net
                     }
                     else
                     {
-                        if (!dataChunk.Unordered &&
+                        if (false && !dataChunk.Unordered &&
                             _streamOutOfOrderFrames.TryGetValue(dataChunk.StreamID, out var outOfOrder) &&
                             outOfOrder.Count >= MAXIMUM_OUTOFORDER_FRAMES)
                         {
