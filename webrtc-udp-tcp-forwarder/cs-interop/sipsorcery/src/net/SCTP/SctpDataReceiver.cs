@@ -463,12 +463,12 @@ namespace SIPSorcery.Net
                 else
                 {
                     // Stream seqnum is out of order.
-                    if (!_streamOutOfOrderFrames.ContainsKey(frame.StreamID))
+                    /* if (!_streamOutOfOrderFrames.ContainsKey(frame.StreamID))
                     {
                         _streamOutOfOrderFrames[frame.StreamID] = new Dictionary<ushort, SctpDataFrame>();
-                    }
+                    }*/
 
-                    _streamOutOfOrderFrames[frame.StreamID].Add(frame.StreamSeqNum, frame);
+                    sortedFrames.Add(frame);
                 }
 
                 return sortedFrames;
