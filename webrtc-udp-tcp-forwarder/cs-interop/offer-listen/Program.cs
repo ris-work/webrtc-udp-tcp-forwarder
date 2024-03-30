@@ -200,6 +200,7 @@ namespace demo
 
 			string signedOfferJson = JsonSerializer.Serialize(signedOffer, typeof(AuthenticatedMessage), jsonOptionsA);
 			byte[] signedOfferBytes = Encoding.UTF8.GetBytes(signedOfferJson);
+			Console.WriteLine(signedOfferJson);
 			clientSock.SendAsync(signedOfferBytes, WebSocketMessageType.Text, true, CancellationToken.None).Wait();
 			var taskRecv = clientSock.ReceiveAsync(answerSignedBytes, CancellationToken.None);
 			taskRecv.Wait();
@@ -392,11 +393,11 @@ namespace demo
 			var offerS = pc.createOffer(null);
 			await pc.setLocalDescription(offerS);
 			await Task.Delay(1000);
-			offer = JsonSerializer.Serialize(new
+			offer = JsonSerializer.Serialize(new MungedSDP()
 			{
 				type = "offer",
 				sdp = pc.localDescription.sdp.ToString()
-			});
+			}, MSDPC.Default.MungedSDP);
 			Console.WriteLine(offer);
 			//offer = offerS.toJSON();
 			//}
