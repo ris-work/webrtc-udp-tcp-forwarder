@@ -6,8 +6,10 @@ using System.Xml.Serialization;
 namespace Rishi.Kexd;
 public class AuthenticatedMessage
 {
-	[JsonInclude][JsonRequired] private string MessageWithTime;
-	[JsonInclude][JsonRequired] private string MAC;
+	//[JsonInclude][JsonRequired] private string MessageWithTime;
+	[JsonInclude][JsonRequired] public string MessageWithTime;
+	//[JsonInclude][JsonRequired] private string MAC;
+	[JsonInclude][JsonRequired] public string MAC;
 	public byte[] Hash;
 	public AuthenticatedMessage() { }
 	public AuthenticatedMessage(string Message, byte[] AC)
@@ -41,8 +43,10 @@ public class AuthenticatedMessage
 
 public class TimedMessage
 {
-	[JsonInclude][JsonRequired] private string Message;
-	[JsonInclude][JsonRequired] private string Timestamp;
+	//[JsonInclude][JsonRequired] private string Message;
+	[JsonInclude][JsonRequired] public string Message;
+	//[JsonInclude][JsonRequired] private string Timestamp;
+	[JsonInclude][JsonRequired] public string Timestamp;
 	public TimedMessage() { }
 	/*[JsonConstructor] public TimedMessage(string Message)
 	{
@@ -82,3 +86,11 @@ public class TimeVerificationFailed : Exception
 	public TimeVerificationFailed(string message) : base(message) { }
 	public TimeVerificationFailed(string message, Exception inner) : base(message, inner) { }
 }
+
+[JsonSourceGenerationOptions(GenerationMode = JsonSourceGenerationMode.Metadata)]
+[JsonSerializable(typeof(AuthenticatedMessage))]
+internal partial class AMC : JsonSerializerContext { }
+
+[JsonSourceGenerationOptions(GenerationMode = JsonSourceGenerationMode.Metadata)]
+[JsonSerializable(typeof(TimedMessage))]
+internal partial class TMC : JsonSerializerContext { }

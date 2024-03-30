@@ -170,15 +170,23 @@ namespace demo
 			Console.WriteLine("Got offer string");
 			var offerSignedJson = Encoding.UTF8.GetString(offerSignedBytes[0..result.Count]);
 			Console.WriteLine(offerSignedJson);
-			var jsonOptions = new JsonSerializerOptions()
+			var jsonOptionsT = new JsonSerializerOptions()
 			{
+				TypeInfoResolver = TMC.Default,
 				IncludeFields = true,
 				UnmappedMemberHandling = JsonUnmappedMemberHandling.Skip
 			};
-			AuthenticatedMessage authenticatedOffer = JsonSerializer.Deserialize<AuthenticatedMessage>(offerSignedJson, jsonOptions);
+			//string uriString = $"wss://{user}:{password}@{socketPath}";
+			var jsonOptionsA = new JsonSerializerOptions()
+			{
+				TypeInfoResolver = AMC.Default,
+				IncludeFields = true,
+				UnmappedMemberHandling = JsonUnmappedMemberHandling.Skip
+			};
+			AuthenticatedMessage authenticatedOffer = JsonSerializer.Deserialize<AuthenticatedMessage>(offerSignedJson, jsonOptionsA);
 			byte[] peerPSKBytes = Encoding.UTF8.GetBytes(peerPSK);
 			string timedOfferJson = authenticatedOffer.GetMessage(peerPSKBytes);
-			TimedMessage timedOffer = JsonSerializer.Deserialize<TimedMessage>(timedOfferJson, jsonOptions);
+			TimedMessage timedOffer = JsonSerializer.Deserialize<TimedMessage>(timedOfferJson, jsonOptionsT);
 			string offerBase64 = timedOffer.GetMessage();
 			byte[] offerBytes = Convert.FromBase64String(offerBase64);
 			string offer = Encoding.UTF8.GetString(offerBytes);
@@ -191,11 +199,11 @@ namespace demo
 			string answerBase64 = Convert.ToBase64String(answerBytes);
 			TimedMessage timedAnswer = new TimedMessage(answerBase64);
 
-			string timedAnswerJson = JsonSerializer.Serialize(timedAnswer, jsonOptions);
+			string timedAnswerJson = JsonSerializer.Serialize(timedAnswer, jsonOptionsT);
 
 			AuthenticatedMessage signedAnswer = new AuthenticatedMessage(timedAnswerJson, peerPSKBytes);
 
-			string signedAnswerJson = JsonSerializer.Serialize(signedAnswer, jsonOptions);
+			string signedAnswerJson = JsonSerializer.Serialize(signedAnswer, jsonOptionsA);
 			byte[] signedAnswerBytes = Encoding.UTF8.GetBytes(signedAnswerJson);
 			clientSock.SendAsync(signedAnswerBytes, WebSocketMessageType.Text, true, CancellationToken.None).Wait();
 
