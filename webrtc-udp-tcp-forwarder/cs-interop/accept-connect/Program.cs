@@ -320,11 +320,11 @@ namespace demo
 				var answerS = pc.createAnswer();
 				await pc.setLocalDescription(answerS);
 				await Task.Delay(1000);
-				answer = JsonSerializer.Serialize(new
+				answer = JsonSerializer.Serialize(new MungedSDP()
 				{
 					type = "answer",
 					sdp = pc.localDescription.sdp.ToString()
-				});
+				}, MSDPC.Default.MungedSDP);
 				Console.WriteLine(answer);
 				//answer = answerS.toJSON();
 			}
