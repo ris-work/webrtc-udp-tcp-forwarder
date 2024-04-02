@@ -621,6 +621,7 @@ namespace SIPSorcery.Sys
                 {
                     using (UdpClient udpClient = new UdpClient())
                     {
+						udpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer, 256 * 1024);
                         try
                         {
                             udpClient.Connect(destination.MapToIPv4(), NETWORK_TEST_PORT);
@@ -636,6 +637,7 @@ namespace SIPSorcery.Sys
                 {
                     using (UdpClient udpClient = new UdpClient(AddressFamily.InterNetworkV6))
                     {
+						udpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer, 256 * 1024);
                         try
                         {
                             udpClient.Connect(destination, NETWORK_TEST_PORT);
