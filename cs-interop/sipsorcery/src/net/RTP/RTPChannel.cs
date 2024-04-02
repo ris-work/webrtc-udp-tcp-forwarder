@@ -106,6 +106,7 @@ namespace SIPSorcery.Net
             m_localEndPoint = m_socket.LocalEndPoint as IPEndPoint;
             m_recvBuffer = new byte[mtu];
             m_addressFamily = m_socket.LocalEndPoint.AddressFamily;
+			socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer, 256 * 1024);
             endReceiveFrom = EndReceiveFrom;
         }
 

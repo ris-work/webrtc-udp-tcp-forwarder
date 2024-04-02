@@ -76,6 +76,7 @@ namespace SIPSorcery.Net
 
                 localEndPoint = new IPEndPoint(localIPAddress, localPort);
                 stunConn = new UdpClient(localEndPoint);
+				stunConn.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer, 256 * 1024);
 
                 m_stunConn = stunConn;
 
