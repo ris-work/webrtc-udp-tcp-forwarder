@@ -234,7 +234,7 @@ namespace SIPSorcery.Sys
 
             if (bindAddress == null)
             {
-                bindAddress = (Socket.OSSupportsIPv6 && SupportsDualModeIPv4PacketInfo) ? IPAddress.IPv6Any : IPAddress.Any;
+                bindAddress = (false && Socket.OSSupportsIPv6 && SupportsDualModeIPv4PacketInfo) ? IPAddress.IPv6Any : IPAddress.Any;
             }
 
             IPEndPoint logEp = new IPEndPoint(bindAddress, port);

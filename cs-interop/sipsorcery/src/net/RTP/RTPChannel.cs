@@ -111,7 +111,7 @@ namespace SIPSorcery.Net
         }
 
         static readonly IPEndPoint IPv4AnyEndPoint = new(IPAddress.Any, 0);
-        static readonly IPEndPoint IPv6AnyEndPoint = new(IPAddress.IPv6Any, 0);
+        static readonly IPEndPoint IPv6AnyEndPoint = new(IPAddress.Any, 0);
         /// <summary>
         /// Starts the receive. This method returns immediately. An event will be fired in the corresponding "End" event to
         /// return any data received.
@@ -131,7 +131,7 @@ namespace SIPSorcery.Net
             try
             {
                 m_isRunningReceive = true;
-                EndPoint recvEndPoint = m_addressFamily == AddressFamily.InterNetwork ? IPv4AnyEndPoint : IPv6AnyEndPoint;
+                EndPoint recvEndPoint = m_addressFamily == AddressFamily.InterNetwork ? IPv4AnyEndPoint : IPv4AnyEndPoint;
 #if FALSE // NET6_0_OR_GREATER bandwidth test falters at some point if this is enabled
                 var recive = m_socket.ReceiveFromAsync(m_recvBuffer.AsMemory(), SocketFlags.None, recvEndPoint);
                 if (recive.IsCompleted)
@@ -225,7 +225,7 @@ namespace SIPSorcery.Net
                 // When socket is closed the object will be disposed of in the middle of a receive.
                 if (!m_isClosed)
                 {
-                    EndPoint remoteEP = m_addressFamily == AddressFamily.InterNetwork ? IPv4AnyEndPoint : IPv6AnyEndPoint;
+                    EndPoint remoteEP = m_addressFamily == AddressFamily.InterNetwork ? IPv4AnyEndPoint : IPv4AnyEndPoint;
                     int bytesRead = m_socket.EndReceiveFrom(ar, ref remoteEP);
                     OnBytesRead(remoteEP, bytesRead);
                 }
@@ -313,7 +313,7 @@ namespace SIPSorcery.Net
             // create a very nasty stack.
             while (!m_isClosed && m_socket.Available > 0)
             {
-                EndPoint remoteEP = m_addressFamily == AddressFamily.InterNetwork ? IPv4AnyEndPoint : IPv6AnyEndPoint;
+                EndPoint remoteEP = m_addressFamily == AddressFamily.InterNetwork ? IPv4AnyEndPoint : IPv4AnyEndPoint;
                 int bytesReadSync = m_socket.ReceiveFrom(m_recvBuffer, 0, m_recvBuffer.Length, SocketFlags.None, ref remoteEP);
 
                 if (bytesReadSync > 0)
@@ -596,6 +596,7 @@ namespace SIPSorcery.Net
                     //Prevent Send to IPV4 while socket is IPV6 (Mono Error)
                     if (isMono && dstEndPoint.AddressFamily == AddressFamily.InterNetwork && sendSocket.AddressFamily != dstEndPoint.AddressFamily)
                     {
+                        logger.LogDebug("Different address family...");
                         dstEndPoint = new IPEndPoint(dstEndPoint.Address.MapToIPv6(), dstEndPoint.Port);
                     }
 
