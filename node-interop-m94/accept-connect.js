@@ -81,6 +81,7 @@ otherSocket.on("connect", () => {
 	to_os_queue.forEach((v) => to_os(v));
 });
 otherSocket.connect(conf.Port, conf.Address);
+otherSocket.setRecvBufferSize(512*1024);
 
 let transformedICEServers = [];
 for (const serverList in conf.ICEServers) {

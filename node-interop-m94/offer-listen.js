@@ -89,6 +89,7 @@ otherSocket.on("listening", () =>
 	console.log(`Listening on: ${JSON.stringify(otherSocket.address())}`)
 );
 otherSocket.bind(conf.Port, conf.Address);
+otherSocket.setRecvBufferSize(512*1024);
 
 let transformedICEServers = [];
 for (const serverList in conf.ICEServers) {
