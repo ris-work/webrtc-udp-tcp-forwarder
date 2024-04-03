@@ -67,9 +67,10 @@ otherSocket.on("message", (msg, rinfo) => {
 	if (selftest) console.log(rinfo);
 	to_dc(msg.buffer);
 });
-otherSocket.on("listening", () =>
+otherSocket.on("listening", () => {
+	otherSocket.setRecvBufferSize(512*1024);
 	console.log(`Listening on: ${JSON.stringify(otherSocket.address())}`)
-);
+});
 otherSocket.on("connect", () => {
 	console.log(`to_os_queue: ${to_os_queue.length}`);
 	console.log("oS connected.");

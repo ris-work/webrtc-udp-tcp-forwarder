@@ -85,11 +85,13 @@ otherSocket.on("connect", () => {
 	/* flush */
 	to_os_queue.forEach((v) => to_os(v));
 });
-otherSocket.on("listening", () =>
+otherSocket.on("listening", () => {
+	otherSocket.setRecvBufferSize(512*1024);
+	otherSocket.setSendBufferSize(512*1024);
 	console.log(`Listening on: ${JSON.stringify(otherSocket.address())}`)
-);
+});
 otherSocket.bind(conf.Port, conf.Address);
-otherSocket.setRecvBufferSize(512*1024);
+
 
 let transformedICEServers = [];
 for (const serverList in conf.ICEServers) {
