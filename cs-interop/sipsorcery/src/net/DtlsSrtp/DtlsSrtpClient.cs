@@ -47,7 +47,7 @@ namespace SIPSorcery.Net
         public virtual TlsCredentials GetClientCredentials(CertificateRequest certificateRequest)
         {
             short[] certificateTypes = certificateRequest.CertificateTypes;
-            if (certificateTypes == null || !Arrays.Contains(certificateTypes, ClientCertificateType.rsa_sign))
+            if (certificateTypes == null || !Arrays.Contains(certificateTypes, ClientCertificateType.rsa_sign) || !Arrays.Contains(certificateTypes, ClientCertificateType.ecdsa_sign))
             {
                 return null;
             }
@@ -159,6 +159,10 @@ namespace SIPSorcery.Net
         public DtlsSrtpClient(TlsCrypto crypto, UseSrtpData clientSrtpData) : this(crypto, null, null, clientSrtpData)
         { }
 
+        public override bool ShouldUseExtendedPadding()
+        {
+            return base.ShouldUseExtendedPadding();
+        }
 
         public override IDictionary<int, byte[]> GetClientExtensions()
         {
@@ -391,7 +395,7 @@ namespace SIPSorcery.Net
             string alertMessage = $"{AlertLevel.GetText(alertLevel)}, {AlertDescription.GetText(alertDescription)}";
             alertMessage += !string.IsNullOrEmpty(description) ? $", {description}." : ".";
 
-            if (alertDescription == (byte)AlertTypesEnum.close_notify)
+            if (alertDescription == AlertTypesEnum.close_notify.GetHashCode())
             {
                 logger.LogDebug($"DTLS client raised close notification: {alertMessage}");
             }
@@ -416,7 +420,7 @@ namespace SIPSorcery.Net
             return new ProtocolVersion[]
             {
                 ProtocolVersion.DTLSv10,
-                ProtocolVersion.DTLSv12,
+                ProtocolVersion.DTLSv12
             };
         }
 
@@ -427,12 +431,12 @@ namespace SIPSorcery.Net
             AlertLevelsEnum level = AlertLevelsEnum.Warning;
             AlertTypesEnum alertType = AlertTypesEnum.unknown;
 
-            if (Enum.IsDefined(typeof(AlertLevelsEnum), checked((byte)alertLevel)))
+            if (Enum.IsDefined(typeof(AlertLevelsEnum), alertLevel))
             {
                 level = (AlertLevelsEnum)alertLevel;
             }
 
-            if (Enum.IsDefined(typeof(AlertTypesEnum), checked((byte)alertDescription)))
+            if (Enum.IsDefined(typeof(AlertTypesEnum), alertDescription))
             {
                 alertType = (AlertTypesEnum)alertDescription;
             }

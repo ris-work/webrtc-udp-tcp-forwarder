@@ -16,7 +16,6 @@
 //-----------------------------------------------------------------------------
 
 using System;
-using System.Buffers;
 using System.Linq;
 using System.Net.Sockets;
 using System.Threading;
@@ -107,8 +106,8 @@ namespace SIPSorcery.Net
         /// </summary>
         public event Action<RTCSctpTransportState> OnStateChanged;
 
-        private Once _isStarted;
-        private Once _isClosed;
+        private bool _isStarted;
+        private bool _isClosed;
         private Thread _receiveThread;
 
         /// <summary>
@@ -163,8 +162,10 @@ namespace SIPSorcery.Net
         /// </summary>
         public void Start(DatagramTransport dtlsTransport, bool isDtlsClient)
         {
-            if (_isStarted.TryMarkOccurred())
+            if (!_isStarted)
             {
+                _isStarted = true;
+
                 transport = dtlsTransport;
                 IsDtlsClient = isDtlsClient;
 
@@ -173,17 +174,11 @@ namespace SIPSorcery.Net
                 _receiveThread.IsBackground = true;
                 _receiveThread.Start();
             }
-            else
-            {
-                logger.LogWarning($"RTCSctpTransport for association {RTCSctpAssociation.ID} has already been started.");
-            }
         }
 
         /// <summary>
         /// Attempts to create and initialise a new SCTP association with the remote party.
         /// </summary>
-        /// <param name="sourcePort">The source port to use for the SCTP association.</param>
-        /// <param name="destinationPort">The destination port to use for the SCTP association.</param>
         public void Associate()
         {
             SetState(RTCSctpTransportState.Connecting);
@@ -199,7 +194,7 @@ namespace SIPSorcery.Net
             {
                 RTCSctpAssociation?.Shutdown();
             }
-            _isClosed.TryMarkOccurred();
+            _isClosed = true;
         }
 
         /// <summary>
@@ -269,22 +264,13 @@ namespace SIPSorcery.Net
         /// </summary>
         private void DoReceive(object state)
         {
-#if NET6_0_OR_GREATER
-            Span<byte> recvBuffer = stackalloc byte[checked((int)SctpAssociation.DEFAULT_ADVERTISED_RECEIVE_WINDOW)];
-#else
-            byte[] recvBufferArray = new byte[SctpAssociation.DEFAULT_ADVERTISED_RECEIVE_WINDOW];
-            Span<byte> recvBuffer = recvBufferArray.AsSpan();
-#endif
+            byte[] recvBuffer = new byte[SctpAssociation.DEFAULT_ADVERTISED_RECEIVE_WINDOW];
 
-            while (!_isClosed.HasOccurred)
+            while (!_isClosed)
             {
                 try
                 {
-#if NET6_0_OR_GREATER
-                    int bytesRead = transport.Receive(recvBuffer, RECEIVE_TIMEOUT_MILLISECONDS);
-#else
-                    int bytesRead = transport.Receive(recvBufferArray, 0, recvBuffer.Length, RECEIVE_TIMEOUT_MILLISECONDS);
-#endif
+                    int bytesRead = transport.Receive(recvBuffer, 0, recvBuffer.Length, RECEIVE_TIMEOUT_MILLISECONDS);
 
                     if (bytesRead == DtlsSrtpTransport.DTLS_RETRANSMISSION_CODE)
                     {
@@ -294,22 +280,22 @@ namespace SIPSorcery.Net
                     }
                     else if (bytesRead > 0)
                     {
-                        if (!SctpPacket.VerifyChecksum(recvBuffer.Slice(0, bytesRead)))
+                        if (!SctpPacket.VerifyChecksum(recvBuffer, 0, bytesRead))
                         {
                             logger.LogWarning($"SCTP packet received on DTLS transport dropped due to invalid checksum.");
                         }
                         else
                         {
-                            var pkt = SctpPacketView.Parse(recvBuffer.Slice(0, bytesRead));
+                            var pkt = SctpPacket.Parse(recvBuffer, 0, bytesRead);
 
-                            if (pkt.Has(SctpChunkType.INIT))
+                            if (pkt.Chunks.Any(x => x.KnownType == SctpChunkType.INIT))
                             {
-                                var initChunk = pkt.GetChunk(SctpChunkType.INIT);
+                                var initChunk = pkt.Chunks.First(x => x.KnownType == SctpChunkType.INIT) as SctpInitChunk;
                                 logger.LogDebug($"SCTP INIT packet received, initial tag {initChunk.InitiateTag}, initial TSN {initChunk.InitialTSN}.");
 
                                 GotInit(pkt, null);
                             }
-                            else if (pkt.Has(SctpChunkType.COOKIE_ECHO))
+                            else if (pkt.Chunks.Any(x => x.KnownType == SctpChunkType.COOKIE_ECHO))
                             {
                                 // The COOKIE ECHO chunk is the 3rd step in the SCTP handshake when the remote party has
                                 // requested a new association be created.
@@ -323,7 +309,7 @@ namespace SIPSorcery.Net
                                 {
                                     RTCSctpAssociation.GotCookie(cookie);
 
-                                    if (pkt.ChunkCount > 1)
+                                    if (pkt.Chunks.Count() > 1)
                                     {
                                         // There could be DATA chunks after the COOKIE ECHO chunk.
                                         RTCSctpAssociation.OnPacketReceived(pkt);
@@ -336,7 +322,7 @@ namespace SIPSorcery.Net
                             }
                         }
                     }
-                    else if (_isClosed.HasOccurred)
+                    else if (_isClosed)
                     {
                         // The DTLS transport has been closed or is no longer available.
                         logger.LogWarning($"SCTP the RTCSctpTransport DTLS transport returned an error.");
@@ -361,7 +347,7 @@ namespace SIPSorcery.Net
                 }
             }
 
-            if (!_isClosed.HasOccurred)
+            if (!_isClosed)
             {
                 logger.LogWarning($"SCTP association {RTCSctpAssociation.ID} receive thread stopped.");
             }
@@ -374,32 +360,22 @@ namespace SIPSorcery.Net
         /// to the remote party.
         /// </summary>
         /// <param name="associationID">Not used for the DTLS transport.</param>
-        public override void Send(string associationID, ReadOnlySpan<byte> data)
+        /// <param name="buffer">The buffer containing the data to send.</param>
+        /// <param name="offset">The position in the buffer to send from.</param>
+        /// <param name="length">The number of bytes to send.</param>
+        public override void Send(string associationID, byte[] buffer, int offset, int length)
         {
-            if (data.Length > maxMessageSize)
+            if (length > maxMessageSize)
             {
-                throw new ApplicationException($"RTCSctpTransport was requested to send data of length {data.Length} " +
+                throw new ApplicationException($"RTCSctpTransport was requested to send data of length {length} " +
                     $" that exceeded the maximum allowed message size of {maxMessageSize}.");
             }
 
-            if (!_isClosed.HasOccurred)
+            if (!_isClosed)
             {
                 lock (transport)
                 {
-#if NET6_0_OR_GREATER
-                    transport.Send(data);
-#else
-                    byte[] tmp = ArrayPool<byte>.Shared.Rent(data.Length);
-                    try
-                    {
-                        data.CopyTo(tmp);
-                        transport.Send(tmp, 0, data.Length);
-                    }
-                    finally
-                    {
-                        ArrayPool<byte>.Shared.Return(tmp);
-                    }
-#endif
+                    transport.Send(buffer, offset, length);
                 }
             }
         }

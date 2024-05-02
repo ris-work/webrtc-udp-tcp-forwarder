@@ -36,7 +36,7 @@ namespace SIPSorcery.Sys
 
         protected override void HashCore(byte[] buffer, int start, int length)
         {
-            hash = CalculateHash(table, hash, buffer.AsSpan().Slice(start, length));
+            hash = CalculateHash(table, hash, buffer, start, length);
         }
 
         protected override byte[] HashFinal()
@@ -51,19 +51,19 @@ namespace SIPSorcery.Sys
             get { return 32; }
         }
 
-        public static UInt32 Compute(ReadOnlySpan<byte> buffer)
+        public static UInt32 Compute(byte[] buffer)
         {
-            return ~CalculateHash(InitializeTable(DefaultPolynomial), DefaultSeed, buffer);
+            return ~CalculateHash(InitializeTable(DefaultPolynomial), DefaultSeed, buffer, 0, buffer.Length);
         }
 
         public static UInt32 Compute(UInt32 seed, byte[] buffer)
         {
-            return ~CalculateHash(InitializeTable(DefaultPolynomial), seed, buffer);
+            return ~CalculateHash(InitializeTable(DefaultPolynomial), seed, buffer, 0, buffer.Length);
         }
 
         public static UInt32 Compute(UInt32 polynomial, UInt32 seed, byte[] buffer)
         {
-            return ~CalculateHash(InitializeTable(polynomial), seed, buffer);
+            return ~CalculateHash(InitializeTable(polynomial), seed, buffer, 0, buffer.Length);
         }
 
         private static UInt32[] InitializeTable(UInt32 polynomial)
@@ -99,10 +99,10 @@ namespace SIPSorcery.Sys
             return createTable;
         }
 
-        private static UInt32 CalculateHash(UInt32[] table, UInt32 seed, ReadOnlySpan<byte> buffer)
+        private static UInt32 CalculateHash(UInt32[] table, UInt32 seed, byte[] buffer, int start, int size)
         {
             UInt32 crc = seed;
-            for (int i = 0; i < buffer.Length; i++)
+            for (int i = start; i < size; i++)
             {
                 unchecked
                 {

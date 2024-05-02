@@ -51,7 +51,6 @@
 //-----------------------------------------------------------------------------
 
 using System;
-using System.Buffers.Binary;
 using System.Text;
 using SIPSorcery.Sys;
 
@@ -101,7 +100,7 @@ namespace SIPSorcery.Net
         /// Create a new RTCP SDES item from a serialised byte array.
         /// </summary>
         /// <param name="packet">The byte array holding the SDES report.</param>
-        public RTCPSDesReport(ReadOnlySpan<byte> packet)
+        public RTCPSDesReport(byte[] packet)
         {
             // if (packet.Length < MIN_PACKET_SIZE)
             // {
@@ -120,7 +119,14 @@ namespace SIPSorcery.Net
 
             if (packet.Length >= RTCPHeader.HEADER_BYTES_LENGTH+4)
             {
-                SSRC = BinaryPrimitives.ReadUInt32BigEndian(packet.Slice(RTCPHeader.HEADER_BYTES_LENGTH));
+                if (BitConverter.IsLittleEndian)
+                {
+                    SSRC = NetConvert.DoReverseEndian(BitConverter.ToUInt32(packet, RTCPHeader.HEADER_BYTES_LENGTH));
+                }
+                else
+                {
+                    SSRC = BitConverter.ToUInt32(packet, RTCPHeader.HEADER_BYTES_LENGTH);
+                }
             }
 
             if (packet.Length >= MIN_PACKET_SIZE)
@@ -131,7 +137,7 @@ namespace SIPSorcery.Net
                     CNAME = string.Empty;
                     return;
                 }
-                CNAME = packet.Slice(10, cnameLength).ToString(Encoding.UTF8);
+                CNAME = Encoding.UTF8.GetString(packet, 10, cnameLength);
             }
         }
 

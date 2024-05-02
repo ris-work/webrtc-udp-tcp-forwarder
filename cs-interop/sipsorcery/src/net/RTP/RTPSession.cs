@@ -20,7 +20,6 @@
 //-----------------------------------------------------------------------------
 
 using System;
-using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -35,7 +34,7 @@ using SIPSorceryMedia.Abstractions;
 
 namespace SIPSorcery.Net
 {
-    public delegate int ProtectRtpPacket(Span<byte> payload, int length, out int outputBufferLength);
+    public delegate int ProtectRtpPacket(byte[] payload, int length, out int outputBufferLength);
 
     public enum SetDescriptionResultEnum
     {
@@ -335,19 +334,17 @@ namespace SIPSorcery.Net
         /// </summary>
         public int MaxReconstructedVideoFrameSize { get => VideoStream.MaxReconstructedVideoFrameSize; set => VideoStream.MaxReconstructedVideoFrameSize = value; }
 
-        Once isClosed;
         /// <summary>
         /// Indicates whether the session has been closed. Once a session is closed it cannot
         /// be restarted.
         /// </summary>
-        public bool IsClosed => isClosed.HasOccurred;
+        public bool IsClosed { get; private set; }
 
-        Once isStarted;
         /// <summary>
         /// Indicates whether the session has been started. Starting a session tells the RTP 
         /// socket to start receiving,
         /// </summary>
-        public bool IsStarted => isStarted.HasOccurred;
+        public bool IsStarted { get; private set; }
 
         /// <summary>
         /// Indicates whether this session is using audio.
@@ -1588,7 +1585,7 @@ namespace SIPSorcery.Net
         /// <summary>
         /// Generates a session description from the provided list of MediaStream.
         /// </summary>
-        /// <param name="tracks">The list of tracks to generate the session description for.</param>
+        /// <param name="mediaStreamList">The list of tracks to generate the session description for.</param>
         /// <param name="connectionAddress">Optional. If set this address will be used as 
         /// the SDP Connection address. If not specified the Internet facing address will
         /// be used. IPAddress.Any and IPAddress. Any and IPv6Any are special cases. If they are set the respective
@@ -1802,7 +1799,6 @@ namespace SIPSorcery.Net
         /// Creates a new RTP channel (which manages the UDP socket sending and receiving RTP
         /// packets) for use with this session.
         /// </summary>
-        /// <param name="mediaType">The type of media the RTP channel is for. Must be audio or video.</param>
         /// <returns>A new RTPChannel instance.</returns>
         protected virtual RTPChannel CreateRtpChannel()
         {
@@ -1883,8 +1879,11 @@ namespace SIPSorcery.Net
         /// </summary>
         public virtual Task Start()
         {
-            if (isStarted.TryMarkOccurred())
+            if (!IsStarted)
             {
+                IsStarted = true;
+
+
                 foreach (var audioStream in AudioStreamList)
                 {
                     if (audioStream.HasAudio && audioStream.RtcpSession != null && audioStream.LocalTrack.StreamStatus != MediaStreamStatusEnum.Inactive)
@@ -1954,8 +1953,11 @@ namespace SIPSorcery.Net
         /// </summary>
         public virtual void Close(string reason)
         {
-            if (isClosed.TryMarkOccurred())
+            if (!IsClosed)
             {
+                IsClosed = true;
+
+
                 foreach (var audioStream in AudioStreamList)
                 {
                     if (audioStream != null)
@@ -1997,7 +1999,7 @@ namespace SIPSorcery.Net
             }
         }
 
-        protected void OnReceive(int localPort, IPEndPoint remoteEndPoint, ReadOnlySpan<byte> buffer)
+        protected void OnReceive(int localPort, IPEndPoint remoteEndPoint, byte[] buffer)
         {
             if (remoteEndPoint.Address.IsIPv4MappedToIPv6)
             {
@@ -2007,7 +2009,7 @@ namespace SIPSorcery.Net
             }
 
             // Quick sanity check on whether this is not an RTP or RTCP packet.
-            if (buffer.Length > RTPHeader.MIN_HEADER_LEN && buffer[0] >= 128 && buffer[0] <= 191)
+            if (buffer?.Length > RTPHeader.MIN_HEADER_LEN && buffer[0] >= 128 && buffer[0] <= 191)
             {
                 if ((rtpSessionConfig.IsSecure || rtpSessionConfig.UseSdpCryptoNegotiation) && !IsSecureContextReady())
                 {
@@ -2036,17 +2038,23 @@ namespace SIPSorcery.Net
             }
         }
 
-        private void OnReceiveRTCPPacket(int localPort, IPEndPoint remoteEndPoint, ReadOnlySpan<byte> bufferRO)
+        private void OnReceiveRTCPPacket(int localPort, IPEndPoint remoteEndPoint, byte[] buffer)
         {
             //logger.LogDebug($"RTCP packet received from {remoteEndPoint} {buffer.HexStr()}");
 
             #region RTCP packet.
 
-            Span<byte> buffer = stackalloc byte[bufferRO.Length];
-            bufferRO.CopyTo(buffer);
             // Get the SSRC in order to be able to figure out which media type 
             // This will let us choose the apropriate unprotect methods
-            uint ssrc = BinaryPrimitives.ReadUInt32BigEndian(buffer.Slice(4));
+            uint ssrc;
+            if (BitConverter.IsLittleEndian)
+            {
+                ssrc = NetConvert.DoReverseEndian(BitConverter.ToUInt32(buffer, 4));
+            }
+            else
+            {
+                ssrc = BitConverter.ToUInt32(buffer, 4);
+            }
 
             MediaStream mediaStream = GetMediaStream(ssrc);
             if (mediaStream != null)
@@ -2062,7 +2070,7 @@ namespace SIPSorcery.Net
                     }
                     else
                     {
-                        buffer = buffer.Slice(0, outBufLen);
+                        buffer = buffer.Take(outBufLen).ToArray();
                     }
                 }
             }
@@ -2091,7 +2099,7 @@ namespace SIPSorcery.Net
                     else
                     {
                         // We close peer connection only if there is no more local/remote tracks on the primary stream
-                        if ((m_primaryStream.RemoteTrack == null) && (m_primaryStream.LocalTrack == null))
+                        if ((m_primaryStream?.RemoteTrack == null) && (m_primaryStream?.LocalTrack == null))
                         {
                             OnRtcpBye?.Invoke(rtcpPkt.Bye.Reason);
                         }
@@ -2138,11 +2146,11 @@ namespace SIPSorcery.Net
             #endregion
         }
 
-        private void OnReceiveRTPPacket(int localPort, IPEndPoint remoteEndPoint, ReadOnlySpan<byte> bufferRO)
+        private void OnReceiveRTPPacket(int localPort, IPEndPoint remoteEndPoint, byte[] buffer)
         {
             if (!IsClosed)
             {
-                var hdr = new RTPHeader(bufferRO);
+                var hdr = new RTPHeader(buffer);
 
                 MediaStream mediaStream = GetMediaStream(hdr.SyncSource);
 
@@ -2160,14 +2168,10 @@ namespace SIPSorcery.Net
                 hdr.ReceivedTime = DateTime.Now;
                 if (mediaStream.MediaType == SDPMediaTypesEnum.audio)
                 {
-                    Span<byte> buffer = stackalloc byte[bufferRO.Length];
-                    bufferRO.CopyTo(buffer);
                     mediaStream.OnReceiveRTPPacket(hdr, localPort, remoteEndPoint, buffer, null);
                 }
                 else if (mediaStream.MediaType == SDPMediaTypesEnum.video)
                 {
-                    Span<byte> buffer = stackalloc byte[bufferRO.Length];
-                    bufferRO.CopyTo(buffer);
                     mediaStream.OnReceiveRTPPacket(hdr, localPort, remoteEndPoint, buffer, mediaStream as VideoStream);
                 }
             }

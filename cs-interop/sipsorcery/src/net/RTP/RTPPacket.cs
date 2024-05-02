@@ -34,11 +34,11 @@ namespace SIPSorcery.Net
             Payload = new byte[payloadSize];
         }
 
-        public RTPPacket(ReadOnlySpan<byte> packet)
+        public RTPPacket(byte[] packet)
         {
             Header = new RTPHeader(packet);
             Payload = new byte[Header.PayloadSize];
-            packet.Slice(Header.Length, Header.PayloadSize).CopyTo(Payload);
+            Array.Copy(packet, Header.Length, Payload, 0, Payload.Length);
         }
 
         public byte[] GetBytes()

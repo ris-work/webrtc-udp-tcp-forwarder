@@ -276,7 +276,7 @@ namespace SIPSorcery.SIP.App
         /// For calls accepted by this user agent this event will be fired if the call
         /// is cancelled before it gets answered.
         /// </summary>
-        public event SIPUASDelegate ServerCallCancelled;
+        public event SIPUASCancelDelegate ServerCallCancelled;
 
         /// <summary>
         /// For calls accepted by this user agent this event will be fired if the call
@@ -416,7 +416,7 @@ namespace SIPSorcery.SIP.App
 
         /// <summary>
         /// Attempts to place a new outgoing call AND waits for the call to be answered or fail.
-        /// Use <see cref="InitiateCallAsync(SIPCallDescriptor, IMediaSession)"/> to start a call without
+        /// Use <see cref="InitiateCallAsync(SIPCallDescriptor, IMediaSession, int)"/> to start a call without
         /// waiting for it to complete and monitor <see cref="ClientCallAnsweredHandler"/> and
         /// <see cref="ClientCallFailedHandler"/> to detect an answer or failure.
         /// </summary>
@@ -464,7 +464,7 @@ namespace SIPSorcery.SIP.App
 
         /// <summary>
         /// Attempts to place a new outgoing call AND waits for the call to be answered or fail.
-        /// Use <see cref="InitiateCallAsync(SIPCallDescriptor, IMediaSession)"/> to start a call without
+        /// Use <see cref="InitiateCallAsync(SIPCallDescriptor, IMediaSession, int)"/> to start a call without
         /// waiting for it to complete and monitor <see cref="ClientCallAnsweredHandler"/> and
         /// <see cref="ClientCallFailedHandler"/> to detect an answer or failure.
         /// </summary>
@@ -617,10 +617,10 @@ namespace SIPSorcery.SIP.App
             SIPServerUserAgent uas = new SIPServerUserAgent(m_transport, m_outboundProxy, uasTransaction, m_answerSipAccount);
             uas.ClientTransaction.TransactionStateChanged += (tx) => OnTransactionStateChange?.Invoke(tx);
             uas.ClientTransaction.TransactionTraceMessage += (tx, msg) => OnTransactionTraceMessage?.Invoke(tx, msg);
-            uas.CallCancelled += (pendingUas) =>
+            uas.CallCancelled += (pendingUas, sipCancelRequest) =>
             {
                 CallEnded(inviteRequest.Header.CallId);
-                ServerCallCancelled?.Invoke(pendingUas);
+                ServerCallCancelled?.Invoke(pendingUas, sipCancelRequest);
             };
             uas.NoRingTimeout += (pendingUas) =>
             {

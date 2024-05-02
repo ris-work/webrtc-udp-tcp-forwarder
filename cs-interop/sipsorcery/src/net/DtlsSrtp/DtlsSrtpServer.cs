@@ -193,7 +193,7 @@ namespace SIPSorcery.Net
         {
             get
             {
-                return ProtocolVersion.DTLSv12;
+                return ProtocolVersion.DTLSv10;
             }
         }
 
@@ -212,31 +212,20 @@ namespace SIPSorcery.Net
              * formats supported by the client [...].
              */
 
+            bool eccCipherSuitesEnabled = false;// SupportsClientEccCapabilities(this.mNamedCurves, this.mClientECPointFormats);
+
             int[] cipherSuites = GetCipherSuites();
             for (int i = 0; i < cipherSuites.Length; ++i)
             {
                 int cipherSuite = cipherSuites[i];
 
                 if (Arrays.Contains(this.m_offeredCipherSuites, cipherSuite)
-                        && !TlsEccUtilities.IsEccCipherSuite(cipherSuite)
+                        && (eccCipherSuitesEnabled || !TlsEccUtilities.IsEccCipherSuite(cipherSuite))
                         && TlsUtilities.IsValidVersionForCipherSuite(cipherSuite, GetServerVersion()))
                 {
                     return this.m_selectedCipherSuite = cipherSuite;
                 }
             }
-
-            for (int i = 0; i < cipherSuites.Length; ++i)
-            {
-                int cipherSuite = cipherSuites[i];
-
-                if (Arrays.Contains(this.m_offeredCipherSuites, cipherSuite)
-                        && TlsEccUtilities.IsEccCipherSuite(cipherSuite)
-                        && TlsUtilities.IsValidVersionForCipherSuite(cipherSuite, GetServerVersion()))
-                {
-                    return this.m_selectedCipherSuite = cipherSuite;
-                }
-            }
-
             throw new TlsFatalAlert(AlertDescription.handshake_failure);
         }
 
@@ -258,7 +247,7 @@ namespace SIPSorcery.Net
                     }
                 }
             }
-            return new CertificateRequest(new short[] { ClientCertificateType.rsa_sign }, serverSigAlgs, null);
+            return new CertificateRequest(new short[] { ClientCertificateType.rsa_sign, ClientCertificateType.ecdsa_sign }, serverSigAlgs, null);
         }
 
         public override void NotifyClientCertificate(Certificate clientCertificate)
@@ -529,12 +518,12 @@ namespace SIPSorcery.Net
             AlertLevelsEnum level = AlertLevelsEnum.Warning;
             AlertTypesEnum alertType = AlertTypesEnum.unknown;
 
-            if (Enum.IsDefined(typeof(AlertLevelsEnum), checked((byte)alertLevel)))
+            if (Enum.IsDefined(typeof(AlertLevelsEnum), alertLevel))
             {
                 level = (AlertLevelsEnum)alertLevel;
             }
 
-            if (Enum.IsDefined(typeof(AlertTypesEnum), checked((byte)alertDescription)))
+            if (Enum.IsDefined(typeof(AlertTypesEnum), alertDescription))
             {
                 alertType = (AlertTypesEnum)alertDescription;
             }

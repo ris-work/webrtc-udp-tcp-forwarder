@@ -17,7 +17,6 @@
 // Original Source: AGPL-3.0 License
 //-----------------------------------------------------------------------------
 
-using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
@@ -29,7 +28,7 @@ namespace SIPSorcery.Net
     /// It encapsulate the encryption / decryption logic for SRTCP packets
     ///
     /// @author Bing SU (nova.su @gmail.com)
-    /// @author Werner Dittmann<Werner.Dittmann@t-online.de>
+    /// @author Werner Dittmann (Werner.Dittmann@t-online.de)
     /// </summary>
     public class SrtcpTransformer : IPacketTransformer
     {
@@ -60,12 +59,12 @@ namespace SIPSorcery.Net
         /// </summary>
         /// <param name="pkt">plain SRTCP packet to be encrypted.</param>
         /// <returns>encrypted SRTCP packet.</returns>
-        public byte[] Transform(ReadOnlySpan<byte> pkt)
+        public byte[] Transform(byte[] pkt)
         {
             return Transform(pkt, 0, pkt.Length);
         }
 
-        public byte[] Transform(ReadOnlySpan<byte> pkt, int offset, int length)
+        public byte[] Transform(byte[] pkt, int offset, int length)
         {
             var isLocked = Interlocked.CompareExchange(ref _isLocked, 1, 0) != 0;
             try
@@ -96,18 +95,16 @@ namespace SIPSorcery.Net
             {
                 //Unlock
                 if (!isLocked)
-                {
                     Interlocked.CompareExchange(ref _isLocked, 0, 1);
-                }
             }
         }
 
-        public byte[] ReverseTransform(ReadOnlySpan<byte> pkt)
+        public byte[] ReverseTransform(byte[] pkt)
         {
             return ReverseTransform(pkt, 0, pkt.Length);
         }
 
-        public byte[] ReverseTransform(ReadOnlySpan<byte> pkt, int offset, int length)
+        public byte[] ReverseTransform(byte[] pkt, int offset, int length)
         {
             var isLocked = Interlocked.CompareExchange(ref _isLocked, 1, 0) != 0;
             try
@@ -141,9 +138,7 @@ namespace SIPSorcery.Net
             {
                 //Unlock
                 if (!isLocked)
-                {
                     Interlocked.CompareExchange(ref _isLocked, 0, 1);
-                }
             }
         }
 

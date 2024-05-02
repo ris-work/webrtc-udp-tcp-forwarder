@@ -45,7 +45,6 @@
 //-----------------------------------------------------------------------------
 
 using System;
-using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Linq;
 using SIPSorcery.Sys;
@@ -77,7 +76,7 @@ namespace SIPSorcery.Net
         /// Create a new RTCP Receiver Report from a serialised byte array.
         /// </summary>
         /// <param name="packet">The byte array holding the serialised receiver report.</param>
-        public RTCPReceiverReport(ReadOnlySpan<byte> packet)
+        public RTCPReceiverReport(byte[] packet)
         {
             if (packet.Length < MIN_PACKET_SIZE)
             {
@@ -86,12 +85,20 @@ namespace SIPSorcery.Net
 
             Header = new RTCPHeader(packet);
             ReceptionReports = new List<ReceptionReportSample>();
-            SSRC = BinaryPrimitives.ReadUInt32BigEndian(packet.Slice(4));
+
+            if (BitConverter.IsLittleEndian)
+            {
+                SSRC = NetConvert.DoReverseEndian(BitConverter.ToUInt32(packet, 4));
+            }
+            else
+            {
+                SSRC = BitConverter.ToUInt32(packet, 4);
+            }
 
             int rrIndex = 8;
             for (int i = 0; i < Header.ReceptionReportCount; i++)
             {
-                var rr = new ReceptionReportSample(packet.Slice(rrIndex + i * ReceptionReportSample.PAYLOAD_SIZE));
+                var rr = new ReceptionReportSample(packet.Skip(rrIndex + i * ReceptionReportSample.PAYLOAD_SIZE).ToArray());
                 ReceptionReports.Add(rr);
             }
         }
