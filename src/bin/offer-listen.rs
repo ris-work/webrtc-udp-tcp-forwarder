@@ -304,7 +304,8 @@ async fn configure_send_receive_udp(
             let Done_rx = Done_rx.clone();
             let no_data_count_max: u64 = config.TimeoutCountMax.unwrap_or(3 as u64);
             let mut no_data_counter: u64 = 0;
-            move || loop {
+            loop {
+                println! {"Recv loop"};
                 let E_TIMEDOUT = std::io::Error::from(ErrorKind::TimedOut);
                 let E_WOULDBLOCK = std::io::Error::from(ErrorKind::WouldBlock);
                 if (no_data_counter > no_data_count_max) {
@@ -319,6 +320,7 @@ async fn configure_send_receive_udp(
                 }
                 let mut buf = [0; PKT_SIZE];
                 if (Done_rx.try_recv() == Ok(true)) {
+                    info! {"[UDP -> WRTC SQ] Received exit signal"};
                     break;
                 }
                 match (ClonedSocketRecv.recv(&mut buf)) {
@@ -332,10 +334,12 @@ async fn configure_send_receive_udp(
                         std::io::ErrorKind::WouldBlock => {
                             trace!("Unable to read or save to the buffer: {:?}", E);
                             trace! {"Restarting the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
+                            no_data_counter += 1;
                         }
                         std::io::ErrorKind::TimedOut => {
                             trace!("Unable to read or save to the buffer: {:?}", E);
                             trace! {"Restarting the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
+                            no_data_counter += 1;
                         }
                         _ => {
                             warn!("Unable to read or save to the buffer: {:?}", E);
