@@ -305,7 +305,6 @@ async fn configure_send_receive_udp(
             let no_data_count_max: u64 = config.TimeoutCountMax.unwrap_or(3 as u64);
             let mut no_data_counter: u64 = 0;
             loop {
-                println! {"Recv loop"};
                 let E_TIMEDOUT = std::io::Error::from(ErrorKind::TimedOut);
                 let E_WOULDBLOCK = std::io::Error::from(ErrorKind::WouldBlock);
                 if (no_data_counter > no_data_count_max) {
