@@ -14,7 +14,7 @@ codegen-units=1
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.82"
+anyhow = "1.0.83"
 base64 = "0.21.7"
 bytes = "1.6.0"
 chrono = "0.4.38"
