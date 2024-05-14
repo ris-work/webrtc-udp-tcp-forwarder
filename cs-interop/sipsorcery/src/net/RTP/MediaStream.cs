@@ -253,7 +253,7 @@ namespace SIPSorcery.net.RTP
             return (SecureContext != null);
         }
 
-        private (bool, byte[]) UnprotectBuffer(byte[] buffer)
+        private bool UnprotectBuffer(Span<byte> buffer, out ReadOnlySpan<byte> result)
         {
             if (SecureContext != null)
             {
@@ -261,21 +261,23 @@ namespace SIPSorcery.net.RTP
 
                 if (res == 0)
                 {
-                    return (true, buffer.Take(outBufLen).ToArray());
+                    result = buffer.Slice(0, outBufLen);
+                    return true;
                 }
                 else
                 {
                     logger.LogWarning($"SRTP unprotect failed for {MediaType}, result {res}.");
                 }
             }
-            return (false, buffer);
+            result = buffer;
+            return false;
         }
 
-        public bool EnsureBufferUnprotected(byte[] buf, RTPHeader header, out RTPPacket packet)
+        public bool EnsureBufferUnprotected(Span<byte> buf, RTPHeader header, out RTPPacket packet)
         {
             if (RtpSessionConfig.IsSecure || RtpSessionConfig.UseSdpCryptoNegotiation)
             {
-                var (succeeded, newBuffer) = UnprotectBuffer(buf);
+                var succeeded = UnprotectBuffer(buf, out var newBuffer);
                 if (!succeeded)
                 {
                     packet = null;
@@ -366,12 +368,6 @@ namespace SIPSorcery.net.RTP
                 rtpPacket.Header.MarkerBit = markerBit;
                 rtpPacket.Header.PayloadType = payloadType;
 
-                if (RemoteTrack.HeaderExtensions.TryGetValue(RTCPeerConnection.RTP_HEADER_EXTENSION_ID_ABS_SEND_TIME, out var ext) &&
-                    ext.Uri == RTCPeerConnection.RTP_HEADER_EXTENSION_URI_ABS_SEND_TIME)
-                {
-                    rtpPacket.Header.AddAbsSendTimeExtension();
-                }
-
                 Buffer.BlockCopy(data, 0, rtpPacket.Payload, 0, data.Length);
 
                 var rtpBuffer = rtpPacket.GetBytes();
@@ -402,10 +398,11 @@ namespace SIPSorcery.net.RTP
         /// <summary>
         /// Allows additional control for sending raw RTP payloads. No framing or other processing is carried out.
         /// </summary>
-        /// <param name="data">The RTP packet payload.</param>
+        /// <param name="mediaType">The media type of the RTP packet being sent. Must be audio or video.</param>
+        /// <param name="payload">The RTP packet payload.</param>
         /// <param name="timestamp">The timestamp to set on the RTP header.</param>
         /// <param name="markerBit">The value to set on the RTP header marker bit, should be 0 or 1.</param>
-        /// <param name="payloadType">The payload ID to set in the RTP header.</param>
+        /// <param name="payloadTypeID">The payload ID to set in the RTP header.</param>
         /// <param name="seqNum"> The RTP sequence number </param>
         public void SendRtpRaw(byte[] data, uint timestamp, int markerBit, int payloadType, ushort seqNum)
         {
@@ -415,10 +412,11 @@ namespace SIPSorcery.net.RTP
         /// <summary>
         /// Allows additional control for sending raw RTP payloads. No framing or other processing is carried out.
         /// </summary>
-        /// <param name="data">The RTP packet payload.</param>
+        /// <param name="mediaType">The media type of the RTP packet being sent. Must be audio or video.</param>
+        /// <param name="payload">The RTP packet payload.</param>
         /// <param name="timestamp">The timestamp to set on the RTP header.</param>
         /// <param name="markerBit">The value to set on the RTP header marker bit, should be 0 or 1.</param>
-        /// <param name="payloadType">The payload ID to set in the RTP header.</param>
+        /// <param name="payloadTypeID">The payload ID to set in the RTP header.</param>
         public void SendRtpRaw(byte[] data, uint timestamp, int markerBit, int payloadType)
         {
             SendRtpRaw(data, timestamp, markerBit, payloadType, false);
@@ -517,6 +515,7 @@ namespace SIPSorcery.net.RTP
         /// <summary>
         /// Allows sending of RTCP feedback reports.
         /// </summary>
+        /// <param name="mediaType">The media type of the RTCP report  being sent. Must be audio or video.</param>
         /// <param name="feedback">The feedback report to send.</param>
         public void SendRtcpFeedback(RTCPFeedback feedback)
         {
@@ -528,7 +527,7 @@ namespace SIPSorcery.net.RTP
 
         #region RECEIVE PACKET
 
-        public void OnReceiveRTPPacket(RTPHeader hdr, int localPort, IPEndPoint remoteEndPoint, byte[] buffer, VideoStream videoStream = null)
+        public void OnReceiveRTPPacket(RTPHeader hdr, int localPort, IPEndPoint remoteEndPoint, Span<byte> buffer, VideoStream videoStream = null)
         {
             RTPPacket rtpPacket = null;
             if (RemoteRtpEventPayloadID != 0 && hdr.PayloadType == RemoteRtpEventPayloadID)
@@ -680,7 +679,7 @@ namespace SIPSorcery.net.RTP
 
         // Cache pending packages to use it later to prevent missing frames
         // when DTLS was not completed yet as a Server but already completed as a client
-        protected virtual bool AddPendingPackage(RTPHeader hdr, int localPort, IPEndPoint remoteEndPoint, byte[] buffer, VideoStream videoStream = null)
+        protected virtual bool AddPendingPackage(RTPHeader hdr, int localPort, IPEndPoint remoteEndPoint, ReadOnlySpan<byte> buffer, VideoStream videoStream = null)
         {
             const int MAX_PENDING_PACKAGES_BUFFER_SIZE = 32;
 
@@ -693,7 +692,7 @@ namespace SIPSorcery.net.RTP
                     {
                         _pendingPackagesBuffer.RemoveAt(0);
                     }
-                    _pendingPackagesBuffer.Add(new PendingPackages(hdr, localPort, remoteEndPoint, buffer, videoStream));
+                    _pendingPackagesBuffer.Add(new PendingPackages(hdr, localPort, remoteEndPoint, buffer.ToArray(), videoStream));
                 }
                 return true;
             }
@@ -715,6 +714,7 @@ namespace SIPSorcery.net.RTP
         /// <summary>
         /// Adjusts the expected remote end point for a particular media type.
         /// </summary>
+        /// <param name="mediaType">The media type of the RTP packet received.</param>
         /// <param name="ssrc">The SSRC from the RTP packet header.</param>
         /// <param name="receivedOnEndPoint">The actual remote end point that the RTP packet came from.</param>
         /// <returns>True if remote end point for this media type was the expected one or it was adjusted. False if
@@ -769,6 +769,8 @@ namespace SIPSorcery.net.RTP
         /// <summary>
         /// Creates a new RTCP session for a media track belonging to this RTP session.
         /// </summary>
+        /// <param name="mediaType">The media type to create the RTP session for. Must be
+        /// audio or video.</param>
         /// <returns>A new RTCPSession object. The RTCPSession must have its Start method called
         /// in order to commence sending RTCP reports.</returns>
         public Boolean CreateRtcpSession()
@@ -785,6 +787,7 @@ namespace SIPSorcery.net.RTP
         /// <summary>
         /// Sets the remote end points for a media type supported by this RTP session.
         /// </summary>
+        /// <param name="mediaType">The media type, must be audio or video, to set the remote end point for.</param>
         /// <param name="rtpEndPoint">The remote end point for RTP packets corresponding to the media type.</param>
         /// <param name="rtcpEndPoint">The remote end point for RTCP packets corresponding to the media type.</param>
         public void SetDestination(IPEndPoint rtpEndPoint, IPEndPoint rtcpEndPoint)

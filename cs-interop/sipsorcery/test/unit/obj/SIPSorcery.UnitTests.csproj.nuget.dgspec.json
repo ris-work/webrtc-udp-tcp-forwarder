@@ -1,43 +1,39 @@
 {
   "format": 1,
   "restore": {
-    "/root/interop/cs-interop/sipsorcery/test/unit/SIPSorcery.UnitTests.csproj": {}
+    "C:\\Users\\Rishi\\webrtc-udp-tcp-forwarder\\cs-interop\\sipsorcery\\test\\unit\\SIPSorcery.UnitTests.csproj": {}
   },
   "projects": {
-    "/root/interop/cs-interop/sipsorcery/src/SIPSorcery.csproj": {
-      "version": "6.2.4",
+    "C:\\Users\\Rishi\\webrtc-udp-tcp-forwarder\\cs-interop\\sipsorcery\\src\\SIPSorcery.csproj": {
+      "version": "7.0.0-PacketView-24.3.20.6",
       "restore": {
-        "projectUniqueName": "/root/interop/cs-interop/sipsorcery/src/SIPSorcery.csproj",
+        "projectUniqueName": "C:\\Users\\Rishi\\webrtc-udp-tcp-forwarder\\cs-interop\\sipsorcery\\src\\SIPSorcery.csproj",
         "projectName": "SIPSorcery",
-        "projectPath": "/root/interop/cs-interop/sipsorcery/src/SIPSorcery.csproj",
-        "packagesPath": "/root/.nuget/packages/",
-        "outputPath": "/root/interop/cs-interop/sipsorcery/src/obj/",
+        "projectPath": "C:\\Users\\Rishi\\webrtc-udp-tcp-forwarder\\cs-interop\\sipsorcery\\src\\SIPSorcery.csproj",
+        "packagesPath": "C:\\Users\\Rishi\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\Rishi\\webrtc-udp-tcp-forwarder\\cs-interop\\sipsorcery\\src\\obj\\",
         "projectStyle": "PackageReference",
         "crossTargeting": true,
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
         "configFilePaths": [
-          "/root/.nuget/NuGet/NuGet.Config"
+          "C:\\Users\\Rishi\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
           "net461",
-          "net5.0",
           "net6.0",
           "net8.0",
-          "netcoreapp3.1",
-          "netstandard2.0",
-          "netstandard2.1"
+          "netstandard2.0"
         ],
         "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "C:\\Program Files\\dotnet\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
-          "netcoreapp3.1": {
-            "targetAlias": "netcoreapp3.1",
-            "projectReferences": {}
-          },
-          "net5.0": {
-            "targetAlias": "net5.0",
-            "projectReferences": {}
-          },
           "net6.0": {
             "targetAlias": "net6.0",
             "projectReferences": {}
@@ -53,10 +49,6 @@
           "netstandard2.0": {
             "targetAlias": "netstandard2.0",
             "projectReferences": {}
-          },
-          "netstandard2.1": {
-            "targetAlias": "netstandard2.1",
-            "projectReferences": {}
           }
         },
         "warningProperties": {
@@ -71,126 +63,12 @@
         }
       },
       "frameworks": {
-        "netcoreapp3.1": {
-          "targetAlias": "netcoreapp3.1",
-          "dependencies": {
-            "BouncyCastle.Cryptography": {
-              "target": "Package",
-              "version": "[2.2.1, )"
-            },
-            "DnsClient": {
-              "target": "Package",
-              "version": "[1.7.0, )"
-            },
-            "Microsoft.SourceLink.GitHub": {
-              "suppressParent": "All",
-              "target": "Package",
-              "version": "[8.0.0, )"
-            },
-            "SIPSorcery.WebSocketSharp": {
-              "target": "Package",
-              "version": "[0.0.1, )"
-            },
-            "SIPSorceryMedia.Abstractions": {
-              "target": "Package",
-              "version": "[1.2.1, )"
-            },
-            "System.Net.WebSockets.Client": {
-              "target": "Package",
-              "version": "[4.3.2, )"
-            }
-          },
-          "imports": [
-            "net461",
-            "net462",
-            "net47",
-            "net471",
-            "net472",
-            "net48",
-            "net481"
-          ],
-          "assetTargetFallback": true,
-          "warn": true,
-          "downloadDependencies": [
-            {
-              "name": "Microsoft.AspNetCore.App.Ref",
-              "version": "[3.1.10, 3.1.10]"
-            },
-            {
-              "name": "Microsoft.NETCore.App.Ref",
-              "version": "[3.1.0, 3.1.0]"
-            }
-          ],
-          "frameworkReferences": {
-            "Microsoft.NETCore.App": {
-              "privateAssets": "all"
-            }
-          },
-          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/8.0.204/RuntimeIdentifierGraph.json"
-        },
-        "net5.0": {
-          "targetAlias": "net5.0",
-          "dependencies": {
-            "BouncyCastle.Cryptography": {
-              "target": "Package",
-              "version": "[2.2.1, )"
-            },
-            "DnsClient": {
-              "target": "Package",
-              "version": "[1.7.0, )"
-            },
-            "Microsoft.SourceLink.GitHub": {
-              "suppressParent": "All",
-              "target": "Package",
-              "version": "[8.0.0, )"
-            },
-            "SIPSorcery.WebSocketSharp": {
-              "target": "Package",
-              "version": "[0.0.1, )"
-            },
-            "SIPSorceryMedia.Abstractions": {
-              "target": "Package",
-              "version": "[1.2.1, )"
-            },
-            "System.Net.WebSockets.Client": {
-              "target": "Package",
-              "version": "[4.3.2, )"
-            }
-          },
-          "imports": [
-            "net461",
-            "net462",
-            "net47",
-            "net471",
-            "net472",
-            "net48",
-            "net481"
-          ],
-          "assetTargetFallback": true,
-          "warn": true,
-          "downloadDependencies": [
-            {
-              "name": "Microsoft.AspNetCore.App.Ref",
-              "version": "[5.0.0, 5.0.0]"
-            },
-            {
-              "name": "Microsoft.NETCore.App.Ref",
-              "version": "[5.0.0, 5.0.0]"
-            }
-          ],
-          "frameworkReferences": {
-            "Microsoft.NETCore.App": {
-              "privateAssets": "all"
-            }
-          },
-          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/8.0.204/RuntimeIdentifierGraph.json"
-        },
         "net6.0": {
           "targetAlias": "net6.0",
           "dependencies": {
             "BouncyCastle.Cryptography": {
               "target": "Package",
-              "version": "[2.2.1, )"
+              "version": "[2.3.0, )"
             },
             "DnsClient": {
               "target": "Package",
@@ -209,6 +87,10 @@
               "target": "Package",
               "version": "[1.2.1, )"
             },
+            "Small": {
+              "target": "Package",
+              "version": "[0.0.2, )"
+            },
             "System.Net.WebSockets.Client": {
               "target": "Package",
               "version": "[4.3.2, )"
@@ -225,29 +107,19 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
-          "downloadDependencies": [
-            {
-              "name": "Microsoft.AspNetCore.App.Ref",
-              "version": "[6.0.29, 6.0.29]"
-            },
-            {
-              "name": "Microsoft.NETCore.App.Ref",
-              "version": "[6.0.29, 6.0.29]"
-            }
-          ],
           "frameworkReferences": {
             "Microsoft.NETCore.App": {
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/8.0.204/RuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.204\\RuntimeIdentifierGraph.json"
         },
         "net8.0": {
           "targetAlias": "net8.0",
           "dependencies": {
             "BouncyCastle.Cryptography": {
               "target": "Package",
-              "version": "[2.2.1, )"
+              "version": "[2.3.0, )"
             },
             "DnsClient": {
               "target": "Package",
@@ -265,6 +137,10 @@
             "SIPSorceryMedia.Abstractions": {
               "target": "Package",
               "version": "[1.2.1, )"
+            },
+            "Small": {
+              "target": "Package",
+              "version": "[0.0.2, )"
             },
             "System.Net.WebSockets.Client": {
               "target": "Package",
@@ -287,14 +163,14 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/8.0.204/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.204/PortableRuntimeIdentifierGraph.json"
         },
         "net461": {
           "targetAlias": "net461",
           "dependencies": {
             "BouncyCastle.Cryptography": {
               "target": "Package",
-              "version": "[2.2.1, )"
+              "version": "[2.3.0, )"
             },
             "DnsClient": {
               "target": "Package",
@@ -319,19 +195,23 @@
               "target": "Package",
               "version": "[1.2.1, )"
             },
+            "Small": {
+              "target": "Package",
+              "version": "[0.0.2, )"
+            },
             "System.Net.WebSockets.Client": {
               "target": "Package",
               "version": "[4.3.2, )"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/8.0.204/RuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.204\\RuntimeIdentifierGraph.json"
         },
         "netstandard2.0": {
           "targetAlias": "netstandard2.0",
           "dependencies": {
             "BouncyCastle.Cryptography": {
               "target": "Package",
-              "version": "[2.2.1, )"
+              "version": "[2.3.0, )"
             },
             "DnsClient": {
               "target": "Package",
@@ -356,47 +236,9 @@
               "target": "Package",
               "version": "[1.2.1, )"
             },
-            "System.Net.WebSockets.Client": {
+            "Small": {
               "target": "Package",
-              "version": "[4.3.2, )"
-            }
-          },
-          "imports": [
-            "net461",
-            "net462",
-            "net47",
-            "net471",
-            "net472",
-            "net48",
-            "net481"
-          ],
-          "assetTargetFallback": true,
-          "warn": true,
-          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/8.0.204/RuntimeIdentifierGraph.json"
-        },
-        "netstandard2.1": {
-          "targetAlias": "netstandard2.1",
-          "dependencies": {
-            "BouncyCastle.Cryptography": {
-              "target": "Package",
-              "version": "[2.2.1, )"
-            },
-            "DnsClient": {
-              "target": "Package",
-              "version": "[1.7.0, )"
-            },
-            "Microsoft.SourceLink.GitHub": {
-              "suppressParent": "All",
-              "target": "Package",
-              "version": "[8.0.0, )"
-            },
-            "SIPSorcery.WebSocketSharp": {
-              "target": "Package",
-              "version": "[0.0.1, )"
-            },
-            "SIPSorceryMedia.Abstractions": {
-              "target": "Package",
-              "version": "[1.2.1, )"
+              "version": "[0.0.2, )"
             },
             "System.Net.WebSockets.Client": {
               "target": "Package",
@@ -414,49 +256,42 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
-          "frameworkReferences": {
-            "NETStandard.Library": {
-              "privateAssets": "all"
-            }
-          },
-          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/8.0.204/RuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.204\\RuntimeIdentifierGraph.json"
         }
       }
     },
-    "/root/interop/cs-interop/sipsorcery/test/unit/SIPSorcery.UnitTests.csproj": {
+    "C:\\Users\\Rishi\\webrtc-udp-tcp-forwarder\\cs-interop\\sipsorcery\\test\\unit\\SIPSorcery.UnitTests.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/root/interop/cs-interop/sipsorcery/test/unit/SIPSorcery.UnitTests.csproj",
+        "projectUniqueName": "C:\\Users\\Rishi\\webrtc-udp-tcp-forwarder\\cs-interop\\sipsorcery\\test\\unit\\SIPSorcery.UnitTests.csproj",
         "projectName": "SIPSorcery.UnitTests",
-        "projectPath": "/root/interop/cs-interop/sipsorcery/test/unit/SIPSorcery.UnitTests.csproj",
-        "packagesPath": "/root/.nuget/packages/",
-        "outputPath": "/root/interop/cs-interop/sipsorcery/test/unit/obj/",
+        "projectPath": "C:\\Users\\Rishi\\webrtc-udp-tcp-forwarder\\cs-interop\\sipsorcery\\test\\unit\\SIPSorcery.UnitTests.csproj",
+        "packagesPath": "C:\\Users\\Rishi\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\Rishi\\webrtc-udp-tcp-forwarder\\cs-interop\\sipsorcery\\test\\unit\\obj\\",
         "projectStyle": "PackageReference",
         "crossTargeting": true,
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
         "configFilePaths": [
-          "/root/.nuget/NuGet/NuGet.Config"
+          "C:\\Users\\Rishi\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
-          "net461",
           "net8.0"
         ],
         "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "C:\\Program Files\\dotnet\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
           "net8.0": {
             "targetAlias": "net8.0",
             "projectReferences": {
-              "/root/interop/cs-interop/sipsorcery/src/SIPSorcery.csproj": {
-                "projectPath": "/root/interop/cs-interop/sipsorcery/src/SIPSorcery.csproj"
-              }
-            }
-          },
-          "net461": {
-            "targetAlias": "net461",
-            "projectReferences": {
-              "/root/interop/cs-interop/sipsorcery/src/SIPSorcery.csproj": {
-                "projectPath": "/root/interop/cs-interop/sipsorcery/src/SIPSorcery.csproj"
+              "C:\\Users\\Rishi\\webrtc-udp-tcp-forwarder\\cs-interop\\sipsorcery\\src\\SIPSorcery.csproj": {
+                "projectPath": "C:\\Users\\Rishi\\webrtc-udp-tcp-forwarder\\cs-interop\\sipsorcery\\src\\SIPSorcery.csproj"
               }
             }
           }
@@ -525,51 +360,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/8.0.204/PortableRuntimeIdentifierGraph.json"
-        },
-        "net461": {
-          "targetAlias": "net461",
-          "dependencies": {
-            "Microsoft.NET.Test.Sdk": {
-              "target": "Package",
-              "version": "[16.10.0, )"
-            },
-            "Microsoft.NETFramework.ReferenceAssemblies": {
-              "suppressParent": "All",
-              "target": "Package",
-              "version": "[1.0.3, )",
-              "autoReferenced": true
-            },
-            "Serilog.Extensions.Logging": {
-              "target": "Package",
-              "version": "[8.0.0, )"
-            },
-            "Serilog.Sinks.Console": {
-              "target": "Package",
-              "version": "[5.0.1, )"
-            },
-            "Serilog.Sinks.XUnit": {
-              "target": "Package",
-              "version": "[2.0.4, )"
-            },
-            "xunit": {
-              "target": "Package",
-              "version": "[2.4.1, )"
-            },
-            "xunit.runner.console": {
-              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
-              "suppressParent": "All",
-              "target": "Package",
-              "version": "[2.4.1, )"
-            },
-            "xunit.runner.visualstudio": {
-              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
-              "suppressParent": "All",
-              "target": "Package",
-              "version": "[2.4.3, )"
-            }
-          },
-          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/8.0.204/RuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.204/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

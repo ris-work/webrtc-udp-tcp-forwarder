@@ -168,3 +168,11 @@
 /root/interop/cs-interop/sipsorcery/test/unit/obj/Debug/net8.0/SIPSorcery.UnitTests.pdb
 /root/interop/cs-interop/sipsorcery/test/unit/obj/Debug/net8.0/SIPSorcery.UnitTests.genruntimeconfig.cache
 /root/interop/cs-interop/sipsorcery/test/unit/obj/Debug/net8.0/ref/SIPSorcery.UnitTests.dll
+C:\Users\Rishi\webrtc-udp-tcp-forwarder\cs-interop\sipsorcery\test\unit\obj\Debug\net8.0\SIPSorcery.UnitTests.dll
+C:\Users\Rishi\webrtc-udp-tcp-forwarder\cs-interop\sipsorcery\test\unit\obj\Debug\net8.0\refint\SIPSorcery.UnitTests.dll
+C:\Users\Rishi\webrtc-udp-tcp-forwarder\cs-interop\sipsorcery\test\unit\obj\Debug\net8.0\SIPSorcery.UnitTests.pdb
+C:\Users\Rishi\webrtc-udp-tcp-forwarder\cs-interop\sipsorcery\test\unit\obj\Debug\net8.0\SIPSorcery.UnitTests.csproj.AssemblyReference.cache
+C:\Users\Rishi\webrtc-udp-tcp-forwarder\cs-interop\sipsorcery\test\unit\obj\Debug\net8.0\SIPSorcery.UnitTests.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Rishi\webrtc-udp-tcp-forwarder\cs-interop\sipsorcery\test\unit\obj\Debug\net8.0\SIPSorcery.UnitTests.AssemblyInfoInputs.cache
+C:\Users\Rishi\webrtc-udp-tcp-forwarder\cs-interop\sipsorcery\test\unit\obj\Debug\net8.0\SIPSorcery.UnitTests.AssemblyInfo.cs
+C:\Users\Rishi\webrtc-udp-tcp-forwarder\cs-interop\sipsorcery\test\unit\obj\Debug\net8.0\SIPSorcery.UnitTests.csproj.CoreCompileInputs.cache
