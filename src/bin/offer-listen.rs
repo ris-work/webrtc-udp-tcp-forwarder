@@ -18,6 +18,7 @@ use parking_lot::Mutex;
 use serde::Deserialize;
 use std::env;
 use std::error;
+use std::file;
 use std::time::Duration;
 
 use crossbeam_channel::{bounded, Receiver, Sender};
@@ -625,7 +626,8 @@ fn main() {
     arg_counter = arg.count();
     info!("Arguments received: {arg_counter}");
     if (arg_counter != 2) {
-        println! {"Expecting exactly one argument, the TOML file with connection parameters."}
+        println! {"Check utility name: {}", file!()};
+        println! {"Expecting exactly one argument, the TOML file with connection parameters."};
         #[cfg(unix)]
         {
             println! {"Built on: {}", run_command_str!("uname", "-a")};
