@@ -554,6 +554,8 @@ fn write_offer_and_read_answer_ws(local: Option<RTCSessionDescription>, config: 
         .custom_headers(&headers)
         .connect(None)
         .unwrap();
+    let _ = client.stream_ref().as_tcp().set_read_timeout(Some(Duration::from_secs(config.TimeoutCountMax.unwrap_or(10))));
+    let _ = client.stream_ref().as_tcp().set_write_timeout(Some(Duration::from_secs(config.TimeoutCountMax.unwrap_or(10))));
     if let Some(ref PeerAuthType) = config.PeerAuthType {
         if PeerAuthType == "PSK" {
             let tmessage: TimedMessage = ConstructMessage(encode(&json_str));

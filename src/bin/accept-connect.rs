@@ -648,6 +648,8 @@ fn read_offer_ws(config: Config) -> Option<String> {
         .custom_headers(&headers)
         .connect(None)
         .unwrap();
+    let _ = client.stream_ref().as_tcp().set_read_timeout(Some(Duration::from_secs(config.TimeoutCountMax.unwrap_or(10))));
+    let _ = client.stream_ref().as_tcp().set_write_timeout(Some(Duration::from_secs(config.TimeoutCountMax.unwrap_or(10))));
     if let Some(ref PeerAuthType) = config.PeerAuthType {
         if PeerAuthType == "PSK" {
             let aanswer = client.recv_message().expect("WS: Unable to receive.");
