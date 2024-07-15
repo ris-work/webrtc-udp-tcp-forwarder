@@ -18,9 +18,9 @@ use log::{debug, error, info, trace, warn};
 use parking_lot::Mutex;
 use serde::Deserialize;
 use std::env;
-use std::file;
 use std::error;
 use std::error::Error;
+use std::file;
 
 use crossbeam_channel::{bounded, Receiver, Sender};
 use std::fs::read_to_string;

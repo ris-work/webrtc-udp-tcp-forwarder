@@ -522,6 +522,7 @@ async fn configure_send_receive_udp(
                                     let d1 = d1.clone();
                                     debug! {"Blocking on DC send... Len: {}", amt};
                                     let written_bytes = rt.block_on(d3.send(&Bytes::copy_from_slice(&buf[0..amt])));
+
                                     match (written_bytes) {
                                         Ok(Bytes) => {
                                             debug! {"OS->DC: Written {Bytes} bytes!"};
@@ -533,6 +534,22 @@ async fn configure_send_receive_udp(
                                             E};
                                             info! {"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
                                             break;
+                                        }
+                                    }
+                                    if (amt <= 500) {
+                                        let written_bytes_2 = rt.block_on(d3.send(&Bytes::copy_from_slice(&buf[0..amt])));
+                                        match (written_bytes_2) {
+                                            Ok(Bytes) => {
+                                                debug! {"OS->DC: Written {Bytes} bytes!"};
+                                            }
+                                            #[cold]
+                                            Err(E) => {
+                                                info! {"DataConnection {}: unable to send: {:?}.",
+                                                d1.label(),
+                                                E};
+                                                info! {"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
+                                                break;
+                                            }
                                         }
                                     }
                                 }

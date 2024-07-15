@@ -349,7 +349,7 @@ async fn configure_send_receive_udp(
                         }
                     },
                 }
-            };
+            }
             info! {"[UDP -> WRTC SQ] Exiting concurrency unit (gracefully)..."};
         };
         let udp_to_wrtc_sq = thread::Builder::new()

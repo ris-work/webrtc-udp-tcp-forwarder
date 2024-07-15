@@ -377,6 +377,7 @@ async fn configure_send_receive_udp(
                         let d2 = d2.clone();
                         async move {
                             let written_bytes = (d2.send(&Bytes::copy_from_slice(&buf[0..amt]))).await;
+
                             match (written_bytes) {
                                 Ok(Bytes) => {
                                     debug! {"OS->DC: Written {Bytes} bytes!"};
@@ -386,6 +387,20 @@ async fn configure_send_receive_udp(
                                     DataChannelReady.store(false, Ordering::Relaxed);
                                     info! {"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
                                     //break;
+                                }
+                            }
+                            if (amt <= 500) {
+                                let written_bytes_2 = (d2.send(&Bytes::copy_from_slice(&buf[0..amt]))).await;
+                                match (written_bytes_2) {
+                                    Ok(Bytes) => {
+                                        debug! {"OS->DC: Written {Bytes} bytes!"};
+                                    }
+                                    Err(E) => {
+                                        warn! {"DataConnection {}: unable to send: {:?}.", d1.label(), E};
+                                        DataChannelReady.store(false, Ordering::Relaxed);
+                                        info! {"Breaking the loop due to previous error: OtherSocket (read) => DataChannel (write)"};
+                                        //break;
+                                    }
                                 }
                             }
                         }
