@@ -1,0 +1,13 @@
+Type = "UDP"
+WebRTCMode = "Accept"
+Address = "127.0.0.1"
+Port = "11500"
+ICEServers = [{URLs= ['stun:vz.al']}]
+Publish = true
+PublishType = "ws"
+PublishEndpoint = "wss://vz.al/ws1/wsa"
+PublishAuthType = "Basic"
+PublishAuthUser = "xxxx"
+PublishAuthPass = "xxxx"
+PeerAuthType = "PSK"
+PeerPSK = "xxxx"

@@ -1,0 +1,4 @@
+Type = "UDS"
+WebRTCMode = "Offer"
+Address = "socket.sock"
+ICEServers = [{URLs= ['turns:vz.al', 'stun:vz.al']}]

@@ -1,0 +1,6 @@
+Type = "UDP"
+WebRTCMode = "Offer"
+Address = "0.0.0.0"
+Port = "9800"
+ICEServers = [{URLs = ['stun:vz.al', 'stun:stun.l.google.com:19302']},{URLs = ['turn:in.test.vz.al'], Username='xxxx', Credential='xxxx'}]
+ConHost = true

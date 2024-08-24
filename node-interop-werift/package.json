@@ -1,0 +1,17 @@
+{
+  "dependencies": {
+    "bufferutil": "^4.0.8",
+    "js-crypto-hmac": "^1.0.7",
+    "nodejs-base64": "^2.0.0",
+    "toml": "^3.0.0",
+    "werift": "^0.19.1",
+    "ws": "^8.16.0"
+  },
+  "optionalDependencies": {
+    "bufferutil": "^4.0.8"
+  },
+  "type": "module",
+  "devDependencies": {
+    "prettier": "2.1.2"
+  }
+}

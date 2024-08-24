@@ -1,0 +1,15 @@
+Type = "UDP"
+WebRTCMode = "Accept"
+Address = "127.0.0.1"
+Port = "10010"
+ICEServers = [{URLs= ['stun:in.test.vz.al', 'stun:stun.l.google.com:19302']}, {URLs=['turn:in.test.vz.al'], Username='xxxx', Credential='xxxx'}]
+Publish = true
+PublishType = "ws"
+PublishEndpoint = "wss://vz.al/anonwsmul/xxxx-test/wsa"
+PublishAuthType = "Basic"
+PublishAuthUser = "xxxx"
+PublishAuthPass = "xxxx"
+PeerAuthType = "PSK"
+PeerPSK = "xxxx"
+TimeoutCountMax = 15
+ICEListenAddressPort = "0.0.0.0:10011"
