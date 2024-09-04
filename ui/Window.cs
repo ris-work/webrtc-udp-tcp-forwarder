@@ -9,12 +9,22 @@
 // -----------------------------------------------------------------------------
 namespace RV.WebRTCForwarders {
     using Terminal.Gui;
+    using Tomlyn.Model;
+    using Tomlyn;
     
     
     public partial class Window {
         
         public Window() {
             InitializeComponent();
+            Title = $"Configuration Editor ({Application.QuitKey} to Quit)";
+            string TomlFileContents = System.IO.File.ReadAllText(StartConfig.Filename);
+            var model = Toml.ToModel(TomlFileContents);
+            filename.Text = StartConfig.Filename;
+            localtype.Enabled = false;
+            addicecandidate.MouseClick += (e, a) => {
+                Application.Run<IceCandidateEditor>();
+            };
         }
     }
 }

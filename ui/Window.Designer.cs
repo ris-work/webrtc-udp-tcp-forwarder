@@ -27,13 +27,15 @@ namespace RV.WebRTCForwarders {
         
         private Terminal.Gui.ColorScheme redOnBlack;
         
+        private Terminal.Gui.ColorScheme greyOnBlack;
+        
         private Terminal.Gui.Label filenamelabel;
         
         private Terminal.Gui.Label filename;
         
         private Terminal.Gui.Label endpointtypelabel;
         
-        private Terminal.Gui.TextField type;
+        private Terminal.Gui.TextField localtype;
         
         private Terminal.Gui.Label label4;
         
@@ -48,6 +50,8 @@ namespace RV.WebRTCForwarders {
         private Terminal.Gui.TextValidateField textValidateField;
         
         private Terminal.Gui.Button button;
+        
+        private Terminal.Gui.LineView lineView;
         
         private Terminal.Gui.Label tunnelnamelabel;
         
@@ -87,6 +91,8 @@ namespace RV.WebRTCForwarders {
         
         private Terminal.Gui.Button addicecandidate;
         
+        private Terminal.Gui.Button button2;
+        
         private Terminal.Gui.Button removeicecandidate;
         
         private Terminal.Gui.MenuBar menuBar;
@@ -110,6 +116,7 @@ namespace RV.WebRTCForwarders {
         private void InitializeComponent() {
             this.menuBar = new Terminal.Gui.MenuBar();
             this.removeicecandidate = new Terminal.Gui.Button();
+            this.button2 = new Terminal.Gui.Button();
             this.addicecandidate = new Terminal.Gui.Button();
             this.iceserverslabel = new Terminal.Gui.Label();
             this.tableView = new Terminal.Gui.TableView();
@@ -129,6 +136,7 @@ namespace RV.WebRTCForwarders {
             this.publishlabel = new Terminal.Gui.Label();
             this.tunenlname = new Terminal.Gui.TextField();
             this.tunnelnamelabel = new Terminal.Gui.Label();
+            this.lineView = new Terminal.Gui.LineView();
             this.button = new Terminal.Gui.Button();
             this.textValidateField = new Terminal.Gui.TextValidateField();
             this.portlabel = new Terminal.Gui.Label();
@@ -136,7 +144,7 @@ namespace RV.WebRTCForwarders {
             this.addrlocallabel = new Terminal.Gui.Label();
             this.webrtcmode = new Terminal.Gui.RadioGroup();
             this.label4 = new Terminal.Gui.Label();
-            this.type = new Terminal.Gui.TextField();
+            this.localtype = new Terminal.Gui.TextField();
             this.endpointtypelabel = new Terminal.Gui.Label();
             this.filename = new Terminal.Gui.Label();
             this.filenamelabel = new Terminal.Gui.Label();
@@ -144,6 +152,7 @@ namespace RV.WebRTCForwarders {
             this.tgDefault = new Terminal.Gui.ColorScheme(new Terminal.Gui.Attribute(4294111986u, 4278204378u), new Terminal.Gui.Attribute(4278979596u, 4291611852u), new Terminal.Gui.Attribute(4284602070u, 4278204378u), new Terminal.Gui.Attribute(4286595104u, 4278204378u), new Terminal.Gui.Attribute(4282087679u, 4291611852u));
             this.blueOnBlack = new Terminal.Gui.ColorScheme(new Terminal.Gui.Attribute(4282087679u, 4278979596u), new Terminal.Gui.Attribute(4282087679u, 4294570405u), new Terminal.Gui.Attribute(4282029789u, 4278979596u), new Terminal.Gui.Attribute(4291611852u, 4278979596u), new Terminal.Gui.Attribute(4282029789u, 4294570405u));
             this.redOnBlack = new Terminal.Gui.ColorScheme(new Terminal.Gui.Attribute(4291104543u, 4278979596u), new Terminal.Gui.Attribute(4291104543u, 4286595104u), new Terminal.Gui.Attribute(4293347414u, 4278979596u), new Terminal.Gui.Attribute(4291611852u, 4278979596u), new Terminal.Gui.Attribute(4293347414u, 4286595104u));
+            this.greyOnBlack = new Terminal.Gui.ColorScheme(new Terminal.Gui.Attribute(4285953654u, 4278979596u), new Terminal.Gui.Attribute(4278979596u, 4285953654u), new Terminal.Gui.Attribute(4285953654u, 4278979596u), new Terminal.Gui.Attribute(4285953654u, 4278979596u), new Terminal.Gui.Attribute(4278979596u, 4285953654u));
             this.Width = Dim.Fill(0);
             this.Height = Dim.Fill(0);
             this.X = 0;
@@ -184,17 +193,17 @@ namespace RV.WebRTCForwarders {
             this.endpointtypelabel.Text = "Local Endpoint Type:";
             this.endpointtypelabel.TextAlignment = Terminal.Gui.Alignment.Start;
             this.Add(this.endpointtypelabel);
-            this.type.Width = Dim.Fill(5);
-            this.type.Height = 1;
-            this.type.X = 30;
-            this.type.Y = 4;
-            this.type.Visible = true;
-            this.type.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
-            this.type.Secret = false;
-            this.type.Data = "type";
-            this.type.Text = "UDP";
-            this.type.TextAlignment = Terminal.Gui.Alignment.Start;
-            this.Add(this.type);
+            this.localtype.Width = Dim.Fill(5);
+            this.localtype.Height = 1;
+            this.localtype.X = 30;
+            this.localtype.Y = 4;
+            this.localtype.Visible = true;
+            this.localtype.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
+            this.localtype.Secret = false;
+            this.localtype.Data = "localtype";
+            this.localtype.Text = "UDP";
+            this.localtype.TextAlignment = Terminal.Gui.Alignment.Start;
+            this.Add(this.localtype);
             this.label4.Width = Dim.Auto();
             this.label4.Height = 1;
             this.label4.X = 1;
@@ -261,15 +270,28 @@ namespace RV.WebRTCForwarders {
             this.Add(this.textValidateField);
             this.button.Width = Dim.Auto();
             this.button.Height = 1;
-            this.button.X = 109;
-            this.button.Y = 16;
+            this.button.X = 37;
+            this.button.Y = 15;
             this.button.Visible = true;
             this.button.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
+            this.button.ColorScheme = this.blueOnBlack;
             this.button.Data = "button";
             this.button.Text = "Swap config for the other end";
             this.button.TextAlignment = Terminal.Gui.Alignment.Center;
             this.button.IsDefault = false;
             this.Add(this.button);
+            this.lineView.Width = 33;
+            this.lineView.Height = 1;
+            this.lineView.X = 37;
+            this.lineView.Y = 16;
+            this.lineView.Visible = true;
+            this.lineView.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
+            this.lineView.ColorScheme = this.greyOnBlack;
+            this.lineView.Data = "lineView";
+            this.lineView.TextAlignment = Terminal.Gui.Alignment.Start;
+            this.lineView.LineRune = new System.Text.Rune('─');
+            this.lineView.Orientation = Terminal.Gui.Orientation.Horizontal;
+            this.Add(this.lineView);
             this.tunnelnamelabel.Width = Dim.Auto();
             this.tunnelnamelabel.Height = 1;
             this.tunnelnamelabel.X = 1;
@@ -484,7 +506,7 @@ namespace RV.WebRTCForwarders {
             this.Add(this.iceserverslabel);
             this.addicecandidate.Width = Dim.Auto();
             this.addicecandidate.Height = 1;
-            this.addicecandidate.X = 74;
+            this.addicecandidate.X = 31;
             this.addicecandidate.Y = 46;
             this.addicecandidate.Visible = true;
             this.addicecandidate.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
@@ -493,9 +515,21 @@ namespace RV.WebRTCForwarders {
             this.addicecandidate.TextAlignment = Terminal.Gui.Alignment.Center;
             this.addicecandidate.IsDefault = false;
             this.Add(this.addicecandidate);
+            this.button2.Width = Dim.Auto();
+            this.button2.Height = 1;
+            this.button2.X = 55;
+            this.button2.Y = 46;
+            this.button2.Visible = true;
+            this.button2.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
+            this.button2.ColorScheme = this.blueOnBlack;
+            this.button2.Data = "button2";
+            this.button2.Text = "Edit selected";
+            this.button2.TextAlignment = Terminal.Gui.Alignment.Center;
+            this.button2.IsDefault = false;
+            this.Add(this.button2);
             this.removeicecandidate.Width = Dim.Auto();
             this.removeicecandidate.Height = 1;
-            this.removeicecandidate.X = 129;
+            this.removeicecandidate.X = 75;
             this.removeicecandidate.Y = 46;
             this.removeicecandidate.Visible = true;
             this.removeicecandidate.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
