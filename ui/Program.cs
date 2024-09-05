@@ -10,7 +10,12 @@ if (args.Length > 0)
 Application.Run<RV.WebRTCForwarders.Window>();
 
 
-
+public partial class IceServers
+{
+    public string[] URLs;
+    public string Username;
+    public string Credential;
+}
 
 
 public static class StartConfig

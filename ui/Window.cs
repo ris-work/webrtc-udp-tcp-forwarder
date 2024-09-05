@@ -11,8 +11,9 @@ namespace RV.WebRTCForwarders {
     using Terminal.Gui;
     using Tomlyn.Model;
     using Tomlyn;
-    
-    
+    using System.Security.AccessControl;
+    using System.Data;
+
     public partial class Window {
         
         public Window() {
@@ -22,6 +23,23 @@ namespace RV.WebRTCForwarders {
             var model = Toml.ToModel(TomlFileContents);
             filename.Text = StartConfig.Filename;
             localtype.Enabled = false;
+            List<IceServers> iceServers = new List<IceServers>();
+            iceServers = ((TomlArray)model["ICEServers"]).Select( x => { var a = (TomlTable)x;
+                return new IceServers
+                {
+                    URLs = ((TomlArray)a["URLs"]).Select(x => (string)x).ToArray(),
+                    Username = a.ContainsKey("Username") ? (string)a["Username"] : "",
+                    Credential = a.ContainsKey("Credential") ? (string)a["Credential"] : "",
+                };
+            } ).ToList();
+            DataTable T = new DataTable();
+            T.Columns.Add("URLs");
+            T.Columns.Add("Username");
+            T.Columns.Add("Credential");
+            foreach (var i in iceServers) {
+                T.Rows.Add(String.Join(",", i.URLs), i.Username, i.Credential);
+            }
+            icecandidates.Table = new DataTableSource(T);
             addicecandidate.MouseClick += (e, a) => {
                 Application.Run<IceCandidateEditor>();
             };
