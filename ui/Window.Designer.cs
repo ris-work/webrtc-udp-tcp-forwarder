@@ -43,11 +43,11 @@ namespace RV.WebRTCForwarders {
         
         private Terminal.Gui.Label addrlocallabel;
         
-        private Terminal.Gui.TextField textField;
+        private Terminal.Gui.TextField addrlocal;
         
         private Terminal.Gui.Label portlabel;
         
-        private Terminal.Gui.TextValidateField textValidateField;
+        private Terminal.Gui.TextValidateField portlocal;
         
         private Terminal.Gui.Button button;
         
@@ -55,11 +55,17 @@ namespace RV.WebRTCForwarders {
         
         private Terminal.Gui.Label tunnelnamelabel;
         
-        private Terminal.Gui.TextField tunenlname;
+        private Terminal.Gui.TextField tunnelname;
         
         private Terminal.Gui.Label publishlabel;
         
-        private Terminal.Gui.RadioGroup radioGroup;
+        private Terminal.Gui.RadioGroup whetherpublish;
+        
+        private Terminal.Gui.Label publishauthtypelabel;
+        
+        private Terminal.Gui.RadioGroup authtype;
+        
+        private Terminal.Gui.Button autogenerate;
         
         private Terminal.Gui.Label label;
         
@@ -69,21 +75,21 @@ namespace RV.WebRTCForwarders {
         
         private Terminal.Gui.TextField publishendpoint;
         
-        private Terminal.Gui.Label publishauthtypelabel;
-        
-        private Terminal.Gui.RadioGroup radioGroup2;
-        
         private Terminal.Gui.Label publishauthuserlabel;
         
         private Terminal.Gui.TextField publishauthuser;
         
-        private Terminal.Gui.Label peerauthpasslabel;
+        private Terminal.Gui.Label publishauthpasslabel;
         
-        private Terminal.Gui.TextField peerauthpass;
+        private Terminal.Gui.TextField publishauthpass;
         
         private Terminal.Gui.Label peerauthtypelabel;
         
         private Terminal.Gui.TextField peerauthtype;
+        
+        private Terminal.Gui.Label peerpsklabel;
+        
+        private Terminal.Gui.TextField peerpsk;
         
         private Terminal.Gui.TableView icecandidates;
         
@@ -120,27 +126,30 @@ namespace RV.WebRTCForwarders {
             this.addicecandidate = new Terminal.Gui.Button();
             this.iceserverslabel = new Terminal.Gui.Label();
             this.icecandidates = new Terminal.Gui.TableView();
+            this.peerpsk = new Terminal.Gui.TextField();
+            this.peerpsklabel = new Terminal.Gui.Label();
             this.peerauthtype = new Terminal.Gui.TextField();
             this.peerauthtypelabel = new Terminal.Gui.Label();
-            this.peerauthpass = new Terminal.Gui.TextField();
-            this.peerauthpasslabel = new Terminal.Gui.Label();
+            this.publishauthpass = new Terminal.Gui.TextField();
+            this.publishauthpasslabel = new Terminal.Gui.Label();
             this.publishauthuser = new Terminal.Gui.TextField();
             this.publishauthuserlabel = new Terminal.Gui.Label();
-            this.radioGroup2 = new Terminal.Gui.RadioGroup();
-            this.publishauthtypelabel = new Terminal.Gui.Label();
             this.publishendpoint = new Terminal.Gui.TextField();
             this.publishendpointlabel = new Terminal.Gui.Label();
             this.label2 = new Terminal.Gui.Label();
             this.label = new Terminal.Gui.Label();
-            this.radioGroup = new Terminal.Gui.RadioGroup();
+            this.autogenerate = new Terminal.Gui.Button();
+            this.authtype = new Terminal.Gui.RadioGroup();
+            this.publishauthtypelabel = new Terminal.Gui.Label();
+            this.whetherpublish = new Terminal.Gui.RadioGroup();
             this.publishlabel = new Terminal.Gui.Label();
-            this.tunenlname = new Terminal.Gui.TextField();
+            this.tunnelname = new Terminal.Gui.TextField();
             this.tunnelnamelabel = new Terminal.Gui.Label();
             this.lineView = new Terminal.Gui.LineView();
             this.button = new Terminal.Gui.Button();
-            this.textValidateField = new Terminal.Gui.TextValidateField();
+            this.portlocal = new Terminal.Gui.TextValidateField();
             this.portlabel = new Terminal.Gui.Label();
-            this.textField = new Terminal.Gui.TextField();
+            this.addrlocal = new Terminal.Gui.TextField();
             this.addrlocallabel = new Terminal.Gui.Label();
             this.webrtcmode = new Terminal.Gui.RadioGroup();
             this.label4 = new Terminal.Gui.Label();
@@ -193,7 +202,7 @@ namespace RV.WebRTCForwarders {
             this.endpointtypelabel.Text = "Local Endpoint Type:";
             this.endpointtypelabel.TextAlignment = Terminal.Gui.Alignment.Start;
             this.Add(this.endpointtypelabel);
-            this.localtype.Width = Dim.Fill(5);
+            this.localtype.Width = 10;
             this.localtype.Height = 1;
             this.localtype.X = 30;
             this.localtype.Y = 4;
@@ -206,8 +215,8 @@ namespace RV.WebRTCForwarders {
             this.Add(this.localtype);
             this.label4.Width = Dim.Auto();
             this.label4.Height = 1;
-            this.label4.X = 1;
-            this.label4.Y = 6;
+            this.label4.X = 56;
+            this.label4.Y = 4;
             this.label4.Visible = true;
             this.label4.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
             this.label4.Data = "label4";
@@ -216,8 +225,8 @@ namespace RV.WebRTCForwarders {
             this.Add(this.label4);
             this.webrtcmode.Width = 10;
             this.webrtcmode.Height = 2;
-            this.webrtcmode.X = 30;
-            this.webrtcmode.Y = 6;
+            this.webrtcmode.X = 76;
+            this.webrtcmode.Y = 4;
             this.webrtcmode.Visible = true;
             this.webrtcmode.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
             this.webrtcmode.Data = "webrtcmode";
@@ -229,49 +238,49 @@ namespace RV.WebRTCForwarders {
             this.addrlocallabel.Width = Dim.Auto();
             this.addrlocallabel.Height = 1;
             this.addrlocallabel.X = 1;
-            this.addrlocallabel.Y = 10;
+            this.addrlocallabel.Y = 7;
             this.addrlocallabel.Visible = true;
             this.addrlocallabel.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
             this.addrlocallabel.Data = "addrlocallabel";
             this.addrlocallabel.Text = "Address (local)";
             this.addrlocallabel.TextAlignment = Terminal.Gui.Alignment.Start;
             this.Add(this.addrlocallabel);
-            this.textField.Width = Dim.Fill(5);
-            this.textField.Height = 2;
-            this.textField.X = 30;
-            this.textField.Y = 10;
-            this.textField.Visible = true;
-            this.textField.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
-            this.textField.Secret = false;
-            this.textField.Data = "textField";
-            this.textField.Text = "127.0.0.1";
-            this.textField.TextAlignment = Terminal.Gui.Alignment.Start;
-            this.Add(this.textField);
+            this.addrlocal.Width = Dim.Fill(5);
+            this.addrlocal.Height = 2;
+            this.addrlocal.X = 30;
+            this.addrlocal.Y = 7;
+            this.addrlocal.Visible = true;
+            this.addrlocal.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
+            this.addrlocal.Secret = false;
+            this.addrlocal.Data = "addrlocal";
+            this.addrlocal.Text = "127.0.0.1";
+            this.addrlocal.TextAlignment = Terminal.Gui.Alignment.Start;
+            this.Add(this.addrlocal);
             this.portlabel.Width = Dim.Auto();
             this.portlabel.Height = 1;
             this.portlabel.X = 1;
-            this.portlabel.Y = 12;
+            this.portlabel.Y = 9;
             this.portlabel.Visible = true;
             this.portlabel.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
             this.portlabel.Data = "portlabel";
             this.portlabel.Text = "Port";
             this.portlabel.TextAlignment = Terminal.Gui.Alignment.Start;
             this.Add(this.portlabel);
-            this.textValidateField.Width = Dim.Fill(5);
-            this.textValidateField.Height = 1;
-            this.textValidateField.X = 30;
-            this.textValidateField.Y = 12;
-            this.textValidateField.Visible = true;
-            this.textValidateField.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
-            this.textValidateField.Provider = new Terminal.Gui.TextValidateProviders.TextRegexProvider(".*");
-            this.textValidateField.Data = "textValidateField";
-            this.textValidateField.Text = "10010";
-            this.textValidateField.TextAlignment = Terminal.Gui.Alignment.Start;
-            this.Add(this.textValidateField);
+            this.portlocal.Width = Dim.Fill(5);
+            this.portlocal.Height = 1;
+            this.portlocal.X = 30;
+            this.portlocal.Y = 9;
+            this.portlocal.Visible = true;
+            this.portlocal.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
+            this.portlocal.Provider = new Terminal.Gui.TextValidateProviders.TextRegexProvider(".*");
+            this.portlocal.Data = "portlocal";
+            this.portlocal.Text = "10010";
+            this.portlocal.TextAlignment = Terminal.Gui.Alignment.Start;
+            this.Add(this.portlocal);
             this.button.Width = Dim.Auto();
             this.button.Height = 1;
             this.button.X = 37;
-            this.button.Y = 15;
+            this.button.Y = 11;
             this.button.Visible = true;
             this.button.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
             this.button.ColorScheme = this.blueOnBlack;
@@ -283,7 +292,7 @@ namespace RV.WebRTCForwarders {
             this.lineView.Width = 33;
             this.lineView.Height = 1;
             this.lineView.X = 37;
-            this.lineView.Y = 16;
+            this.lineView.Y = 12;
             this.lineView.Visible = true;
             this.lineView.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
             this.lineView.ColorScheme = this.greyOnBlack;
@@ -295,50 +304,83 @@ namespace RV.WebRTCForwarders {
             this.tunnelnamelabel.Width = Dim.Auto();
             this.tunnelnamelabel.Height = 1;
             this.tunnelnamelabel.X = 1;
-            this.tunnelnamelabel.Y = 19;
+            this.tunnelnamelabel.Y = 14;
             this.tunnelnamelabel.Visible = true;
             this.tunnelnamelabel.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
             this.tunnelnamelabel.Data = "tunnelnamelabel";
             this.tunnelnamelabel.Text = "Tunnel name";
             this.tunnelnamelabel.TextAlignment = Terminal.Gui.Alignment.Start;
             this.Add(this.tunnelnamelabel);
-            this.tunenlname.Width = Dim.Fill(5);
-            this.tunenlname.Height = 1;
-            this.tunenlname.X = 30;
-            this.tunenlname.Y = 19;
-            this.tunenlname.Visible = true;
-            this.tunenlname.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
-            this.tunenlname.Secret = false;
-            this.tunenlname.Data = "tunenlname";
-            this.tunenlname.Text = "name";
-            this.tunenlname.TextAlignment = Terminal.Gui.Alignment.Start;
-            this.Add(this.tunenlname);
+            this.tunnelname.Width = Dim.Fill(5);
+            this.tunnelname.Height = 1;
+            this.tunnelname.X = 30;
+            this.tunnelname.Y = 14;
+            this.tunnelname.Visible = true;
+            this.tunnelname.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
+            this.tunnelname.Secret = false;
+            this.tunnelname.Data = "tunnelname";
+            this.tunnelname.Text = "name";
+            this.tunnelname.TextAlignment = Terminal.Gui.Alignment.Start;
+            this.Add(this.tunnelname);
             this.publishlabel.Width = Dim.Auto();
             this.publishlabel.Height = 1;
             this.publishlabel.X = 1;
-            this.publishlabel.Y = 21;
+            this.publishlabel.Y = 16;
             this.publishlabel.Visible = true;
             this.publishlabel.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
             this.publishlabel.Data = "publishlabel";
             this.publishlabel.Text = "Publish";
             this.publishlabel.TextAlignment = Terminal.Gui.Alignment.Start;
             this.Add(this.publishlabel);
-            this.radioGroup.Width = 10;
-            this.radioGroup.Height = 2;
-            this.radioGroup.X = 30;
-            this.radioGroup.Y = 21;
-            this.radioGroup.Visible = true;
-            this.radioGroup.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
-            this.radioGroup.Data = "radioGroup";
-            this.radioGroup.TextAlignment = Terminal.Gui.Alignment.Start;
-            this.radioGroup.RadioLabels = new string[] {
+            this.whetherpublish.Width = 10;
+            this.whetherpublish.Height = 2;
+            this.whetherpublish.X = 30;
+            this.whetherpublish.Y = 16;
+            this.whetherpublish.Visible = true;
+            this.whetherpublish.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
+            this.whetherpublish.Data = "whetherpublish";
+            this.whetherpublish.TextAlignment = Terminal.Gui.Alignment.Start;
+            this.whetherpublish.RadioLabels = new string[] {
                     "True",
                     "False"};
-            this.Add(this.radioGroup);
+            this.Add(this.whetherpublish);
+            this.publishauthtypelabel.Width = Dim.Auto();
+            this.publishauthtypelabel.Height = 1;
+            this.publishauthtypelabel.X = 52;
+            this.publishauthtypelabel.Y = 16;
+            this.publishauthtypelabel.Visible = true;
+            this.publishauthtypelabel.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
+            this.publishauthtypelabel.Data = "publishauthtypelabel";
+            this.publishauthtypelabel.Text = "PublishAuthType";
+            this.publishauthtypelabel.TextAlignment = Terminal.Gui.Alignment.Start;
+            this.Add(this.publishauthtypelabel);
+            this.authtype.Width = 10;
+            this.authtype.Height = 2;
+            this.authtype.X = 77;
+            this.authtype.Y = 16;
+            this.authtype.Visible = true;
+            this.authtype.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
+            this.authtype.Data = "authtype";
+            this.authtype.TextAlignment = Terminal.Gui.Alignment.Start;
+            this.authtype.RadioLabels = new string[] {
+                    "Basic",
+                    "Bearer"};
+            this.Add(this.authtype);
+            this.autogenerate.Width = Dim.Auto();
+            this.autogenerate.Height = 1;
+            this.autogenerate.X = 91;
+            this.autogenerate.Y = 16;
+            this.autogenerate.Visible = true;
+            this.autogenerate.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
+            this.autogenerate.Data = "autogenerate";
+            this.autogenerate.Text = "Autofill the rest";
+            this.autogenerate.TextAlignment = Terminal.Gui.Alignment.Center;
+            this.autogenerate.IsDefault = false;
+            this.Add(this.autogenerate);
             this.label.Width = Dim.Auto();
             this.label.Height = 1;
             this.label.X = 1;
-            this.label.Y = 24;
+            this.label.Y = 19;
             this.label.Visible = true;
             this.label.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
             this.label.Data = "label";
@@ -348,7 +390,7 @@ namespace RV.WebRTCForwarders {
             this.label2.Width = Dim.Fill(0);
             this.label2.Height = 1;
             this.label2.X = 30;
-            this.label2.Y = 24;
+            this.label2.Y = 19;
             this.label2.Visible = true;
             this.label2.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
             this.label2.Data = "label2";
@@ -358,7 +400,7 @@ namespace RV.WebRTCForwarders {
             this.publishendpointlabel.Width = Dim.Auto();
             this.publishendpointlabel.Height = 1;
             this.publishendpointlabel.X = 1;
-            this.publishendpointlabel.Y = 26;
+            this.publishendpointlabel.Y = 21;
             this.publishendpointlabel.Visible = true;
             this.publishendpointlabel.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
             this.publishendpointlabel.Data = "publishendpointlabel";
@@ -368,7 +410,7 @@ namespace RV.WebRTCForwarders {
             this.publishendpoint.Width = Dim.Fill(5);
             this.publishendpoint.Height = 1;
             this.publishendpoint.X = 30;
-            this.publishendpoint.Y = 26;
+            this.publishendpoint.Y = 21;
             this.publishendpoint.Visible = true;
             this.publishendpoint.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
             this.publishendpoint.Secret = false;
@@ -376,32 +418,10 @@ namespace RV.WebRTCForwarders {
             this.publishendpoint.Text = "wss://vz.al/wsanonmul/tunnel_name/wsa";
             this.publishendpoint.TextAlignment = Terminal.Gui.Alignment.Start;
             this.Add(this.publishendpoint);
-            this.publishauthtypelabel.Width = Dim.Auto();
-            this.publishauthtypelabel.Height = 1;
-            this.publishauthtypelabel.X = 1;
-            this.publishauthtypelabel.Y = 28;
-            this.publishauthtypelabel.Visible = true;
-            this.publishauthtypelabel.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
-            this.publishauthtypelabel.Data = "publishauthtypelabel";
-            this.publishauthtypelabel.Text = "PublishAuthType";
-            this.publishauthtypelabel.TextAlignment = Terminal.Gui.Alignment.Start;
-            this.Add(this.publishauthtypelabel);
-            this.radioGroup2.Width = 10;
-            this.radioGroup2.Height = 2;
-            this.radioGroup2.X = 30;
-            this.radioGroup2.Y = 28;
-            this.radioGroup2.Visible = true;
-            this.radioGroup2.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
-            this.radioGroup2.Data = "radioGroup2";
-            this.radioGroup2.TextAlignment = Terminal.Gui.Alignment.Start;
-            this.radioGroup2.RadioLabels = new string[] {
-                    "Basic",
-                    "Bearer"};
-            this.Add(this.radioGroup2);
             this.publishauthuserlabel.Width = Dim.Auto();
             this.publishauthuserlabel.Height = 1;
             this.publishauthuserlabel.X = 1;
-            this.publishauthuserlabel.Y = 32;
+            this.publishauthuserlabel.Y = 23;
             this.publishauthuserlabel.Visible = true;
             this.publishauthuserlabel.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
             this.publishauthuserlabel.Data = "publishauthuserlabel";
@@ -411,7 +431,7 @@ namespace RV.WebRTCForwarders {
             this.publishauthuser.Width = Dim.Fill(5);
             this.publishauthuser.Height = 1;
             this.publishauthuser.X = 30;
-            this.publishauthuser.Y = 32;
+            this.publishauthuser.Y = 23;
             this.publishauthuser.Visible = true;
             this.publishauthuser.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
             this.publishauthuser.Secret = false;
@@ -419,41 +439,41 @@ namespace RV.WebRTCForwarders {
             this.publishauthuser.Text = "username";
             this.publishauthuser.TextAlignment = Terminal.Gui.Alignment.Start;
             this.Add(this.publishauthuser);
-            this.peerauthpasslabel.Width = Dim.Auto();
-            this.peerauthpasslabel.Height = 1;
-            this.peerauthpasslabel.X = 1;
-            this.peerauthpasslabel.Y = 34;
-            this.peerauthpasslabel.Visible = true;
-            this.peerauthpasslabel.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
-            this.peerauthpasslabel.Data = "peerauthpasslabel";
-            this.peerauthpasslabel.Text = "PeerAuthPass";
-            this.peerauthpasslabel.TextAlignment = Terminal.Gui.Alignment.Start;
-            this.Add(this.peerauthpasslabel);
-            this.peerauthpass.Width = Dim.Fill(5);
-            this.peerauthpass.Height = 1;
-            this.peerauthpass.X = 30;
-            this.peerauthpass.Y = 34;
-            this.peerauthpass.Visible = true;
-            this.peerauthpass.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
-            this.peerauthpass.Secret = false;
-            this.peerauthpass.Data = "peerauthpass";
-            this.peerauthpass.Text = "password";
-            this.peerauthpass.TextAlignment = Terminal.Gui.Alignment.Start;
-            this.Add(this.peerauthpass);
+            this.publishauthpasslabel.Width = Dim.Auto();
+            this.publishauthpasslabel.Height = 1;
+            this.publishauthpasslabel.X = 1;
+            this.publishauthpasslabel.Y = 25;
+            this.publishauthpasslabel.Visible = true;
+            this.publishauthpasslabel.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
+            this.publishauthpasslabel.Data = "publishauthpasslabel";
+            this.publishauthpasslabel.Text = "PublishAuthPass";
+            this.publishauthpasslabel.TextAlignment = Terminal.Gui.Alignment.Start;
+            this.Add(this.publishauthpasslabel);
+            this.publishauthpass.Width = Dim.Fill(5);
+            this.publishauthpass.Height = 1;
+            this.publishauthpass.X = 30;
+            this.publishauthpass.Y = 25;
+            this.publishauthpass.Visible = true;
+            this.publishauthpass.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
+            this.publishauthpass.Secret = false;
+            this.publishauthpass.Data = "publishauthpass";
+            this.publishauthpass.Text = "password";
+            this.publishauthpass.TextAlignment = Terminal.Gui.Alignment.Start;
+            this.Add(this.publishauthpass);
             this.peerauthtypelabel.Width = Dim.Auto();
             this.peerauthtypelabel.Height = 1;
             this.peerauthtypelabel.X = 1;
-            this.peerauthtypelabel.Y = 36;
+            this.peerauthtypelabel.Y = 27;
             this.peerauthtypelabel.Visible = true;
             this.peerauthtypelabel.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
             this.peerauthtypelabel.Data = "peerauthtypelabel";
             this.peerauthtypelabel.Text = "PeerAuthType";
             this.peerauthtypelabel.TextAlignment = Terminal.Gui.Alignment.Start;
             this.Add(this.peerauthtypelabel);
-            this.peerauthtype.Width = 5;
+            this.peerauthtype.Width = 6;
             this.peerauthtype.Height = 1;
             this.peerauthtype.X = 30;
-            this.peerauthtype.Y = 36;
+            this.peerauthtype.Y = 27;
             this.peerauthtype.Visible = true;
             this.peerauthtype.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
             this.peerauthtype.Secret = false;
@@ -461,10 +481,33 @@ namespace RV.WebRTCForwarders {
             this.peerauthtype.Text = "PSK";
             this.peerauthtype.TextAlignment = Terminal.Gui.Alignment.Start;
             this.Add(this.peerauthtype);
+            this.peerpsklabel.Width = Dim.Auto();
+            this.peerpsklabel.Height = 1;
+            this.peerpsklabel.X = 41;
+            this.peerpsklabel.Y = 27;
+            this.peerpsklabel.Visible = true;
+            this.peerpsklabel.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
+            this.peerpsklabel.ColorScheme = this.redOnBlack;
+            this.peerpsklabel.Data = "peerpsklabel";
+            this.peerpsklabel.Text = "PeerPSK (secret)";
+            this.peerpsklabel.TextAlignment = Terminal.Gui.Alignment.Start;
+            this.Add(this.peerpsklabel);
+            this.peerpsk.Width = Dim.Fill(5);
+            this.peerpsk.Height = 1;
+            this.peerpsk.X = 62;
+            this.peerpsk.Y = 27;
+            this.peerpsk.Visible = true;
+            this.peerpsk.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
+            this.peerpsk.ColorScheme = this.redOnBlack;
+            this.peerpsk.Secret = false;
+            this.peerpsk.Data = "peerpsk";
+            this.peerpsk.Text = "(secret)";
+            this.peerpsk.TextAlignment = Terminal.Gui.Alignment.Start;
+            this.Add(this.peerpsk);
             this.icecandidates.Width = Dim.Fill(5);
             this.icecandidates.Height = 9;
             this.icecandidates.X = 30;
-            this.icecandidates.Y = 38;
+            this.icecandidates.Y = 29;
             this.icecandidates.Visible = true;
             this.icecandidates.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
             this.icecandidates.ColorScheme = this.blueOnBlack;
@@ -497,7 +540,7 @@ namespace RV.WebRTCForwarders {
             this.iceserverslabel.Width = Dim.Auto();
             this.iceserverslabel.Height = 1;
             this.iceserverslabel.X = 1;
-            this.iceserverslabel.Y = 39;
+            this.iceserverslabel.Y = 30;
             this.iceserverslabel.Visible = true;
             this.iceserverslabel.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
             this.iceserverslabel.Data = "iceserverslabel";
@@ -507,7 +550,7 @@ namespace RV.WebRTCForwarders {
             this.addicecandidate.Width = Dim.Auto();
             this.addicecandidate.Height = 1;
             this.addicecandidate.X = 31;
-            this.addicecandidate.Y = 48;
+            this.addicecandidate.Y = 40;
             this.addicecandidate.Visible = true;
             this.addicecandidate.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
             this.addicecandidate.Data = "addicecandidate";
@@ -518,7 +561,7 @@ namespace RV.WebRTCForwarders {
             this.button2.Width = Dim.Auto();
             this.button2.Height = 1;
             this.button2.X = 55;
-            this.button2.Y = 48;
+            this.button2.Y = 40;
             this.button2.Visible = true;
             this.button2.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
             this.button2.ColorScheme = this.blueOnBlack;
@@ -530,7 +573,7 @@ namespace RV.WebRTCForwarders {
             this.removeicecandidate.Width = Dim.Auto();
             this.removeicecandidate.Height = 1;
             this.removeicecandidate.X = 75;
-            this.removeicecandidate.Y = 48;
+            this.removeicecandidate.Y = 40;
             this.removeicecandidate.Visible = true;
             this.removeicecandidate.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
             this.removeicecandidate.ColorScheme = this.redOnBlack;

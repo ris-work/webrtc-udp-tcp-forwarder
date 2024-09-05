@@ -8,13 +8,18 @@
 //  </auto-generated>
 // -----------------------------------------------------------------------------
 namespace RV.WebRTCForwarders {
+    using System.Security.Cryptography.X509Certificates;
     using Terminal.Gui;
     
     
     public partial class IceCandidateEditor {
-        
+        public bool Cancelled = false;
         public IceCandidateEditor() {
             InitializeComponent();
+            cancel.Accept += (_, _) => {
+                Canceled = true;
+                Application.RequestStop();
+            };
         }
     }
 }

@@ -37,10 +37,10 @@ namespace RV.WebRTCForwarders {
         
         private Terminal.Gui.Button save;
         
-        private Terminal.Gui.Button button;
+        private Terminal.Gui.Button cancel;
         
         private void InitializeComponent() {
-            this.button = new Terminal.Gui.Button();
+            this.cancel = new Terminal.Gui.Button();
             this.save = new Terminal.Gui.Button();
             this.credential = new Terminal.Gui.TextField();
             this.credentiallabel = new Terminal.Gui.Label();
@@ -134,18 +134,18 @@ namespace RV.WebRTCForwarders {
             this.save.TextAlignment = Terminal.Gui.Alignment.Center;
             this.save.IsDefault = false;
             this.Add(this.save);
-            this.button.Width = Dim.Auto();
-            this.button.Height = 1;
-            this.button.X = 26;
-            this.button.Y = 6;
-            this.button.Visible = true;
-            this.button.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
-            this.button.ColorScheme = this.redOnBlack;
-            this.button.Data = "button";
-            this.button.Text = "Cancel";
-            this.button.TextAlignment = Terminal.Gui.Alignment.Center;
-            this.button.IsDefault = false;
-            this.Add(this.button);
+            this.cancel.Width = Dim.Auto();
+            this.cancel.Height = 1;
+            this.cancel.X = 26;
+            this.cancel.Y = 6;
+            this.cancel.Visible = true;
+            this.cancel.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
+            this.cancel.ColorScheme = this.redOnBlack;
+            this.cancel.Data = "cancel";
+            this.cancel.Text = "Cancel";
+            this.cancel.TextAlignment = Terminal.Gui.Alignment.Center;
+            this.cancel.IsDefault = false;
+            this.Add(this.cancel);
         }
     }
 }
