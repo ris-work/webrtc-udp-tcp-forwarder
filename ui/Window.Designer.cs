@@ -95,6 +95,8 @@ namespace RV.WebRTCForwarders {
         
         private Terminal.Gui.Label iceserverslabel;
         
+        private Terminal.Gui.Button launchutils;
+        
         private Terminal.Gui.Button addicecandidate;
         
         private Terminal.Gui.Button editicecandidate;
@@ -124,6 +126,7 @@ namespace RV.WebRTCForwarders {
             this.removeicecandidate = new Terminal.Gui.Button();
             this.editicecandidate = new Terminal.Gui.Button();
             this.addicecandidate = new Terminal.Gui.Button();
+            this.launchutils = new Terminal.Gui.Button();
             this.iceserverslabel = new Terminal.Gui.Label();
             this.icecandidates = new Terminal.Gui.TableView();
             this.peerpsk = new Terminal.Gui.TextField();
@@ -547,6 +550,18 @@ namespace RV.WebRTCForwarders {
             this.iceserverslabel.Text = "ICEServers";
             this.iceserverslabel.TextAlignment = Terminal.Gui.Alignment.Start;
             this.Add(this.iceserverslabel);
+            this.launchutils.Width = Dim.Auto();
+            this.launchutils.Height = 1;
+            this.launchutils.X = 1;
+            this.launchutils.Y = 35;
+            this.launchutils.Visible = true;
+            this.launchutils.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
+            this.launchutils.ColorScheme = this.greyOnBlack;
+            this.launchutils.Data = "launchutils";
+            this.launchutils.Text = "Utils";
+            this.launchutils.TextAlignment = Terminal.Gui.Alignment.Center;
+            this.launchutils.IsDefault = false;
+            this.Add(this.launchutils);
             this.addicecandidate.Width = Dim.Auto();
             this.addicecandidate.Height = 1;
             this.addicecandidate.X = 31;

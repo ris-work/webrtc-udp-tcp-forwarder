@@ -92,6 +92,10 @@ namespace RV.WebRTCForwarders {
                     (T.Rows[icecandidates.SelectedRow]).EndEdit();
                 }
             };
+            launchutils.Accept += (_, _) => {
+                var portNumberCalculatorWindow = new PortNumberCalculationUtils();
+                Application.Run(portNumberCalculatorWindow);
+            };
         }
     }
 }
