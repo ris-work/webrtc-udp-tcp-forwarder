@@ -69,7 +69,28 @@ namespace RV.WebRTCForwarders {
             }
             icecandidates.Table = new DataTableSource(T);
             addicecandidate.Accept += (e, a) => {
-                Application.Run<IceCandidateEditor>();
+                var result = Application.Run<IceCandidateEditor>();
+                if (!result.Cancelled)
+                {
+                    T.Rows.Add(result.URLs, result.Username, result.Credential);
+                }
+            };
+            removeicecandidate.Accept += (_, _) => {
+                T.Rows.RemoveAt((icecandidates.SelectedRow));
+            };
+            editicecandidate.Accept += (_, _) =>
+            {
+                var selectedValue = T.Rows[icecandidates.SelectedRow];
+                var editorDialog = new IceCandidateEditor(selectedValue);
+                Application.Run(editorDialog);
+                if (!editorDialog.Canceled)
+                {
+                    (T.Rows[icecandidates.SelectedRow]).BeginEdit();
+                    T.Rows[icecandidates.SelectedRow][0] = editorDialog.URLs;
+                    T.Rows[icecandidates.SelectedRow][1] = editorDialog.Username;
+                    T.Rows[icecandidates.SelectedRow][2] = editorDialog.Credential;
+                    (T.Rows[icecandidates.SelectedRow]).EndEdit();
+                }
             };
         }
     }

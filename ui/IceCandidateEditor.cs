@@ -8,16 +8,32 @@
 //  </auto-generated>
 // -----------------------------------------------------------------------------
 namespace RV.WebRTCForwarders {
+    using System.Data;
     using System.Security.Cryptography.X509Certificates;
     using Terminal.Gui;
     
     
     public partial class IceCandidateEditor {
         public bool Cancelled = false;
+        public string URLs;
+        public string Username;
+        public string Credential;
+        public IceCandidateEditor(DataRow R): this() {
+            server.Text = (string)R[0];
+            username.Text = (string)R[1];
+            credential.Text = (string)R[2];
+        }
         public IceCandidateEditor() {
             InitializeComponent();
             cancel.Accept += (_, _) => {
                 Canceled = true;
+                Application.RequestStop();
+            };
+            save.Accept += (_, _) => {
+                Canceled = false;
+                URLs = server.Text;
+                Username = username.Text;
+                Credential = credential.Text;
                 Application.RequestStop();
             };
         }

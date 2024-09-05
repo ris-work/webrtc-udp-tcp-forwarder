@@ -97,7 +97,7 @@ namespace RV.WebRTCForwarders {
         
         private Terminal.Gui.Button addicecandidate;
         
-        private Terminal.Gui.Button button2;
+        private Terminal.Gui.Button editicecandidate;
         
         private Terminal.Gui.Button removeicecandidate;
         
@@ -122,7 +122,7 @@ namespace RV.WebRTCForwarders {
         private void InitializeComponent() {
             this.menuBar = new Terminal.Gui.MenuBar();
             this.removeicecandidate = new Terminal.Gui.Button();
-            this.button2 = new Terminal.Gui.Button();
+            this.editicecandidate = new Terminal.Gui.Button();
             this.addicecandidate = new Terminal.Gui.Button();
             this.iceserverslabel = new Terminal.Gui.Label();
             this.icecandidates = new Terminal.Gui.TableView();
@@ -558,18 +558,18 @@ namespace RV.WebRTCForwarders {
             this.addicecandidate.TextAlignment = Terminal.Gui.Alignment.Center;
             this.addicecandidate.IsDefault = false;
             this.Add(this.addicecandidate);
-            this.button2.Width = Dim.Auto();
-            this.button2.Height = 1;
-            this.button2.X = 55;
-            this.button2.Y = 40;
-            this.button2.Visible = true;
-            this.button2.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
-            this.button2.ColorScheme = this.blueOnBlack;
-            this.button2.Data = "button2";
-            this.button2.Text = "Edit selected";
-            this.button2.TextAlignment = Terminal.Gui.Alignment.Center;
-            this.button2.IsDefault = false;
-            this.Add(this.button2);
+            this.editicecandidate.Width = Dim.Auto();
+            this.editicecandidate.Height = 1;
+            this.editicecandidate.X = 55;
+            this.editicecandidate.Y = 40;
+            this.editicecandidate.Visible = true;
+            this.editicecandidate.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
+            this.editicecandidate.ColorScheme = this.blueOnBlack;
+            this.editicecandidate.Data = "editicecandidate";
+            this.editicecandidate.Text = "Edit selected";
+            this.editicecandidate.TextAlignment = Terminal.Gui.Alignment.Center;
+            this.editicecandidate.IsDefault = false;
+            this.Add(this.editicecandidate);
             this.removeicecandidate.Width = Dim.Auto();
             this.removeicecandidate.Height = 1;
             this.removeicecandidate.X = 75;

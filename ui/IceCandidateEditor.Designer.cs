@@ -29,7 +29,7 @@ namespace RV.WebRTCForwarders {
         
         private Terminal.Gui.Label usernamelabel;
         
-        private Terminal.Gui.TextField textField;
+        private Terminal.Gui.TextField username;
         
         private Terminal.Gui.Label credentiallabel;
         
@@ -44,7 +44,7 @@ namespace RV.WebRTCForwarders {
             this.save = new Terminal.Gui.Button();
             this.credential = new Terminal.Gui.TextField();
             this.credentiallabel = new Terminal.Gui.Label();
-            this.textField = new Terminal.Gui.TextField();
+            this.username = new Terminal.Gui.TextField();
             this.usernamelabel = new Terminal.Gui.Label();
             this.server = new Terminal.Gui.TextField();
             this.serverlabel = new Terminal.Gui.Label();
@@ -90,17 +90,17 @@ namespace RV.WebRTCForwarders {
             this.usernamelabel.Text = "Username";
             this.usernamelabel.TextAlignment = Terminal.Gui.Alignment.Start;
             this.Add(this.usernamelabel);
-            this.textField.Width = Dim.Fill(5);
-            this.textField.Height = 1;
-            this.textField.X = 25;
-            this.textField.Y = 2;
-            this.textField.Visible = true;
-            this.textField.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
-            this.textField.Secret = false;
-            this.textField.Data = "textField";
-            this.textField.Text = "username";
-            this.textField.TextAlignment = Terminal.Gui.Alignment.Start;
-            this.Add(this.textField);
+            this.username.Width = Dim.Fill(5);
+            this.username.Height = 1;
+            this.username.X = 25;
+            this.username.Y = 2;
+            this.username.Visible = true;
+            this.username.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
+            this.username.Secret = false;
+            this.username.Data = "username";
+            this.username.Text = "username";
+            this.username.TextAlignment = Terminal.Gui.Alignment.Start;
+            this.Add(this.username);
             this.credentiallabel.Width = Dim.Auto();
             this.credentiallabel.Height = 1;
             this.credentiallabel.X = 1;
