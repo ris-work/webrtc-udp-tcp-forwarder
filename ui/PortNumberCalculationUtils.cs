@@ -8,6 +8,7 @@
 //  </auto-generated>
 // -----------------------------------------------------------------------------
 namespace RV.WebRTCForwarders {
+    using System.Diagnostics;
     using System.Text.RegularExpressions;
     using Terminal.Gui;
     
@@ -47,7 +48,39 @@ namespace RV.WebRTCForwarders {
                 configuration += $"AllowedIPs = {PeerAllowedIPs}\r\n";
                 configuration += $"PublicKey = [Peer_pubkey]";
                 confout.Text = configuration;
+                confout.SelectAll();
+                confout.Copy();
                 };
+            genkeysbutton.Accept += (_, _) => {
+                try
+                {
+                    var PrivO = new ProcessStartInfo()
+                    {
+                        FileName = "wg",
+                        Arguments = "genkey",
+                        RedirectStandardOutput = true,
+                    };
+                    var ProcessPrivO = Process.Start(PrivO);
+                    string privKeyO = ProcessPrivO.StandardOutput.ReadToEnd();
+                    privKeyOurs.Text = privKeyO;
+                    var PubO = new ProcessStartInfo()
+                    {
+                        FileName = "wg",
+                        Arguments = "genkey",
+                        RedirectStandardOutput = true,
+                        RedirectStandardInput = true,
+                    };
+                    var ProcessPubO = Process.Start(PubO);
+                    ProcessPubO.StandardInput.Write(privKeyO);
+                    ProcessPubO.StandardInput.Flush();
+                    pubKeyOurs.Text = ProcessPubO.StandardOutput.ReadToEnd();
+
+                }
+                catch (System.Exception E)
+                {
+                    MessageBox.Query(70, 24, "Exception", $"{E.ToString()}");
+                }
+            };
         }
     }
 }

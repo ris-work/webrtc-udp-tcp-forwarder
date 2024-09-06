@@ -21,6 +21,10 @@ namespace RV.WebRTCForwarders {
         
         private Terminal.Gui.ColorScheme blueOnBlack;
         
+        private Terminal.Gui.ColorScheme greenOnBlack;
+        
+        private Terminal.Gui.ColorScheme new1;
+        
         private Terminal.Gui.Label label;
         
         private Terminal.Gui.TextField portnumber;
@@ -29,15 +33,41 @@ namespace RV.WebRTCForwarders {
         
         private Terminal.Gui.Button calculatebutton;
         
+        private Terminal.Gui.Button genkeysbutton;
+        
+        private Terminal.Gui.Label labelOurs;
+        
+        private Terminal.Gui.Label privKeyOurs;
+        
+        private Terminal.Gui.Label pubKeyOurs;
+        
+        private Terminal.Gui.Label labelTheirs;
+        
+        private Terminal.Gui.Label privKeyTheirs;
+        
+        private Terminal.Gui.Label pubKeyTheirs;
+        
         private Terminal.Gui.TextView confout;
         
+        private Terminal.Gui.TextView confoutTheirs;
+        
         private void InitializeComponent() {
+            this.confoutTheirs = new Terminal.Gui.TextView();
             this.confout = new Terminal.Gui.TextView();
+            this.pubKeyTheirs = new Terminal.Gui.Label();
+            this.privKeyTheirs = new Terminal.Gui.Label();
+            this.labelTheirs = new Terminal.Gui.Label();
+            this.pubKeyOurs = new Terminal.Gui.Label();
+            this.privKeyOurs = new Terminal.Gui.Label();
+            this.labelOurs = new Terminal.Gui.Label();
+            this.genkeysbutton = new Terminal.Gui.Button();
             this.calculatebutton = new Terminal.Gui.Button();
             this.role = new Terminal.Gui.RadioGroup();
             this.portnumber = new Terminal.Gui.TextField();
             this.label = new Terminal.Gui.Label();
             this.blueOnBlack = new Terminal.Gui.ColorScheme(new Terminal.Gui.Attribute(4282087679u, 4278979596u), new Terminal.Gui.Attribute(4282087679u, 4294570405u), new Terminal.Gui.Attribute(4282029789u, 4278979596u), new Terminal.Gui.Attribute(4291611852u, 4278979596u), new Terminal.Gui.Attribute(4282029789u, 4294570405u));
+            this.greenOnBlack = new Terminal.Gui.ColorScheme(new Terminal.Gui.Attribute(4279476494u, 4278979596u), new Terminal.Gui.Attribute(4279476494u, 4287109016u), new Terminal.Gui.Attribute(4279682572u, 4278979596u), new Terminal.Gui.Attribute(4291611852u, 4278979596u), new Terminal.Gui.Attribute(4279682572u, 4287109016u));
+            this.new1 = new Terminal.Gui.ColorScheme(new Terminal.Gui.Attribute(4280927999u, 4291415892u), new Terminal.Gui.Attribute(4283567602u, 4282400832u), new Terminal.Gui.Attribute(4294111986u, 4278979596u), new Terminal.Gui.Attribute(4294306795u, 4289829530u), new Terminal.Gui.Attribute(4294111986u, 4278979596u));
             this.Width = Dim.Fill(0);
             this.Height = Dim.Fill(0);
             this.X = 0;
@@ -92,10 +122,82 @@ namespace RV.WebRTCForwarders {
             this.calculatebutton.TextAlignment = Terminal.Gui.Alignment.Center;
             this.calculatebutton.IsDefault = false;
             this.Add(this.calculatebutton);
-            this.confout.Width = Dim.Fill(74);
-            this.confout.Height = 27;
+            this.genkeysbutton.Width = Dim.Auto();
+            this.genkeysbutton.Height = 1;
+            this.genkeysbutton.X = 35;
+            this.genkeysbutton.Y = 6;
+            this.genkeysbutton.Visible = true;
+            this.genkeysbutton.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
+            this.genkeysbutton.ColorScheme = this.new1;
+            this.genkeysbutton.Data = "genkeysbutton";
+            this.genkeysbutton.Text = "Generate keys (both sides) - requires WG";
+            this.genkeysbutton.TextAlignment = Terminal.Gui.Alignment.Center;
+            this.genkeysbutton.IsDefault = false;
+            this.Add(this.genkeysbutton);
+            this.labelOurs.Width = Dim.Auto();
+            this.labelOurs.Height = 1;
+            this.labelOurs.X = 89;
+            this.labelOurs.Y = 6;
+            this.labelOurs.Visible = true;
+            this.labelOurs.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
+            this.labelOurs.Data = "labelOurs";
+            this.labelOurs.Text = "Ours (priv, pub)";
+            this.labelOurs.TextAlignment = Terminal.Gui.Alignment.Start;
+            this.Add(this.labelOurs);
+            this.privKeyOurs.Width = Dim.Auto();
+            this.privKeyOurs.Height = 1;
+            this.privKeyOurs.X = 113;
+            this.privKeyOurs.Y = 6;
+            this.privKeyOurs.Visible = true;
+            this.privKeyOurs.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
+            this.privKeyOurs.Data = "privKeyOurs";
+            this.privKeyOurs.Text = "PrivKeyOurs";
+            this.privKeyOurs.TextAlignment = Terminal.Gui.Alignment.Start;
+            this.Add(this.privKeyOurs);
+            this.pubKeyOurs.Width = Dim.Auto();
+            this.pubKeyOurs.Height = 1;
+            this.pubKeyOurs.X = 113;
+            this.pubKeyOurs.Y = 8;
+            this.pubKeyOurs.Visible = true;
+            this.pubKeyOurs.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
+            this.pubKeyOurs.Data = "pubKeyOurs";
+            this.pubKeyOurs.Text = "PubKeyOurs";
+            this.pubKeyOurs.TextAlignment = Terminal.Gui.Alignment.Start;
+            this.Add(this.pubKeyOurs);
+            this.labelTheirs.Width = Dim.Auto();
+            this.labelTheirs.Height = 1;
+            this.labelTheirs.X = 89;
+            this.labelTheirs.Y = 10;
+            this.labelTheirs.Visible = true;
+            this.labelTheirs.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
+            this.labelTheirs.Data = "labelTheirs";
+            this.labelTheirs.Text = "Theirs (priv, pub)";
+            this.labelTheirs.TextAlignment = Terminal.Gui.Alignment.Start;
+            this.Add(this.labelTheirs);
+            this.privKeyTheirs.Width = Dim.Auto();
+            this.privKeyTheirs.Height = 1;
+            this.privKeyTheirs.X = 113;
+            this.privKeyTheirs.Y = 10;
+            this.privKeyTheirs.Visible = true;
+            this.privKeyTheirs.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
+            this.privKeyTheirs.Data = "privKeyTheirs";
+            this.privKeyTheirs.Text = "PrivKeyTheirs";
+            this.privKeyTheirs.TextAlignment = Terminal.Gui.Alignment.Start;
+            this.Add(this.privKeyTheirs);
+            this.pubKeyTheirs.Width = Dim.Auto();
+            this.pubKeyTheirs.Height = 1;
+            this.pubKeyTheirs.X = 113;
+            this.pubKeyTheirs.Y = 12;
+            this.pubKeyTheirs.Visible = true;
+            this.pubKeyTheirs.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
+            this.pubKeyTheirs.Data = "pubKeyTheirs";
+            this.pubKeyTheirs.Text = "PubKeyTheirs";
+            this.pubKeyTheirs.TextAlignment = Terminal.Gui.Alignment.Start;
+            this.Add(this.pubKeyTheirs);
+            this.confout.Width = Dim.Fill(5);
+            this.confout.Height = 10;
             this.confout.X = 1;
-            this.confout.Y = 8;
+            this.confout.Y = 14;
             this.confout.Visible = true;
             this.confout.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
             this.confout.AllowsTab = true;
@@ -105,6 +207,19 @@ namespace RV.WebRTCForwarders {
             this.confout.Text = "";
             this.confout.TextAlignment = Terminal.Gui.Alignment.Start;
             this.Add(this.confout);
+            this.confoutTheirs.Width = Dim.Fill(5);
+            this.confoutTheirs.Height = 10;
+            this.confoutTheirs.X = 1;
+            this.confoutTheirs.Y = 26;
+            this.confoutTheirs.Visible = true;
+            this.confoutTheirs.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
+            this.confoutTheirs.AllowsTab = true;
+            this.confoutTheirs.AllowsReturn = true;
+            this.confoutTheirs.WordWrap = false;
+            this.confoutTheirs.Data = "confoutTheirs";
+            this.confoutTheirs.Text = "";
+            this.confoutTheirs.TextAlignment = Terminal.Gui.Alignment.Start;
+            this.Add(this.confoutTheirs);
         }
     }
 }
