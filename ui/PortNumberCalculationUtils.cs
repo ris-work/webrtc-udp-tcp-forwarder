@@ -14,6 +14,10 @@ namespace RV.WebRTCForwarders {
     using Wiry.Base32;
     using System.Security.Cryptography;
     using System.Buffers.Text;
+    using ICSharpCode.SharpZipLib;
+    using ICSharpCode.SharpZipLib.Zip;
+    using System.Text;
+    using System.Xml;
 
     public partial class PortNumberCalculationUtils {
         
@@ -156,6 +160,65 @@ namespace RV.WebRTCForwarders {
                     confoutTheirs.Text = configurationT;
                     confoutTheirs.SelectAll();
                     confout.Copy();
+
+                    /* Create the ZIP file */
+
+                    var ZO = new ZipOutputStream(File.Create($"{portnumber.Text}.tun.otherside.zip"));
+                    ZO.Password = random128bitsHumanFriendly;
+
+                    ZipEntry ZE = new ZipEntry("wg.conf");
+                    ZE.AESKeySize = 128;
+                    ZE.Comment = "Wireguard configuration";
+                    //ZE.IsCrypted = true;
+                    ZO.PutNextEntry(ZE);
+                    ZO.Write(Encoding.UTF8.GetBytes(confoutTheirs.Text));
+                    ZO.CloseEntry();
+                    ZipEntry ZE_SVC = new ZipEntry("rvtunsvc.xml");
+                    ZE_SVC.AESKeySize = 128;
+                    ZE_SVC.Comment = "Service coniguration";
+                    ZO.PutNextEntry(ZE_SVC);
+
+                    /* Create the SM file */
+                    var XS = new XmlWriterSettings() {
+                        Indent = true,
+                        NewLineChars = "\r\n"
+                    };
+                    var XW = XmlWriter.Create(ZO);
+                    XW.WriteStartElement("service");
+                    XW.WriteStartElement("id");
+                    XW.WriteString($"TUNSVC-RV-{portnumber.Text}");
+                    XW.WriteEndElement();
+                    XW.WriteStartElement("name");
+                    XW.WriteString($"TUNSVC-RV-{portnumber.Text}");
+                    XW.WriteEndElement();
+                    XW.WriteStartElement("executable");
+                    XW.WriteString($"powershell");
+                    XW.WriteEndElement();
+                    XW.WriteStartElement("arguments");
+                    XW.WriteString($"-ExecutionPolicy Bypass {portnumber.Text}.service.ps1");
+                    XW.WriteEndElement();
+
+                    XW.WriteStartElement("log");
+                    XW.WriteStartAttribute("mode");
+                    XW.WriteString("roll");
+                    XW.WriteEndAttribute();
+                    XW.WriteEndElement();
+                    XW.WriteEndElement();
+                    XW.Flush();
+
+                    
+
+                    /* Finish ZIP here */
+                    ZO.CloseEntry();
+                    ZO.Flush();
+                    ZO.Close();
+                    string runCommand = "";
+                    string powershellScript = "do {\r\n" +
+                    $"{runCommand}\r\n" +
+                    $"Start-Sleep -Seconds 2\r\n" +
+                    "}\r\n" +
+                    "until ($false)";
+                    File.WriteAllText($"{portnumber.Text}.service.ps1", powershellScript);
 
 
                 }
