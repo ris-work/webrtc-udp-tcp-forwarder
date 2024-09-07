@@ -13,8 +13,8 @@ namespace RV.WebRTCForwarders {
     using Terminal.Gui;
     using Wiry.Base32;
     using System.Security.Cryptography;
-    
-    
+    using System.Buffers.Text;
+
     public partial class PortNumberCalculationUtils {
         
         public PortNumberCalculationUtils() {
@@ -95,10 +95,10 @@ namespace RV.WebRTCForwarders {
                     int Addr_24_32 = role.SelectedItem == 0 ? 1 : 2;
                     int Addr_24_32_peer = Addr_24_32 == 1 ? 2 : 1;
                     string Addresses = $"{Addr_8}.{Addr_8_16}.{Addr_16_24}.{Addr_24_32}/24";
-                    string PeerAllowedIPs = $"{Addr_8}.{Addr_8_16}.{Addr_16_24}.{Addr_24_32}/32";
+                    string PeerAllowedIPs = $"{Addr_8}.{Addr_8_16}.{Addr_16_24}.{Addr_24_32_peer}/32";
                     string configuration;
                     configuration = $"Address = {Addresses}\r\n";
-                    configuration += $"PublicKey =  {pubKeyTheirs}\r\n";
+                    configuration += $"PrivateKey =  {privKeyO}\r\n";
                     if (role.SelectedItem == 0)
                     {
                         configuration += $"ListenPort = {portnumber.Text}\r\n";
@@ -109,16 +109,54 @@ namespace RV.WebRTCForwarders {
                         configuration += $"Endpoint = 127.0.0.1:{portnumber.Text}\r\n";
                     }
                     configuration += $"AllowedIPs = {PeerAllowedIPs}\r\n";
-                    configuration += $"PublicKey = {pubKeyTheirs}";
+                    configuration += $"PublicKey = {pubKeyTheirs.Text}";
                     confout.Text = configuration;
                     confout.SelectAll();
                     confout.Copy();
                     byte[] random8bytes = new byte[16];
                     var RNG = RandomNumberGenerator.Create();
                     RNG.GetBytes(random8bytes);
-                    string random128bits = Wiry.Base32.Base32Encoding.Standard.GetString(random8bytes);
+                    string random128bits = Wiry.Base32.Base32Encoding.Standard.GetString(random8bytes)[0..26];
                     string random128bitsHumanFriendly = Utils.MakeItLookLikeACdKey(random128bits);
-                    MessageBox.Query(80, 20, "Keep this safe!", $"You won't see this again;\r\nWrite it down: \r\n{random128bitsHumanFriendly}", "Done!");
+                    MessageBox.Query("Keep this safe!", $"You won't see this again;\r\nWrite it down: \r\n{random128bitsHumanFriendly}", "Done!");
+                    MessageBox.Query("Decoded debug", $"Decoded debug: \r\n{
+                        Convert.ToBase64String(
+                            Wiry.Base32.Base32Encoding.Standard.ToBytes(
+                                Utils.MakeItNormalBase32(random128bitsHumanFriendly)
+                            )
+                        )
+                        }", "Ok");
+                    MessageBox.Query("Warning", $"This will overwrite: {portnumber.Text}.tun.otherside.zip with an encrypted ZIP.\r\n" +
+                        $"Close the program immediately if you don't want this.", "Ok, I understand");
+
+                    /* Other side configuration */
+                    string addrT = portnumber.Text;
+                    string[] aT = Regex.Split(addr, String.Empty);
+                    int Addr_8_T = int.Parse(a[0] + a[1]);
+                    int Addr_8_16_T = int.Parse(a[2]);
+                    int Addr_16_24_T = int.Parse(a[3] + a[4]);
+                    int Addr_24_32_T = role.SelectedItem == 0 ? 2 : 1;
+                    int Addr_24_32_peer_T = Addr_24_32 == 1 ? 1 : 2;
+                    string AddressesT = $"{Addr_8_T}.{Addr_8_16_T}.{Addr_16_24_T}.{Addr_24_32_T}/24";
+                    string PeerAllowedIPsT = $"{Addr_8_T}.{Addr_8_16_T}.{Addr_16_24_T}.{Addr_24_32_peer_T}/32";
+                    string configurationT;
+                    configurationT = $"Address = {AddressesT}\r\n";
+                    configurationT += $"PrivateKey =  {privKeyTheirs.Text}\r\n";
+                    if (role.SelectedItem == 1)
+                    {
+                        configurationT += $"ListenPort = {portnumber.Text}\r\n";
+                    }
+                    configurationT += $"\r\n\r\n[Peer]\r\n";
+                    if (role.SelectedItem == 0)
+                    {
+                        configurationT += $"Endpoint = 127.0.0.1:{portnumber.Text}\r\n";
+                    }
+                    configurationT += $"AllowedIPs = {PeerAllowedIPsT}\r\n";
+                    configurationT += $"PublicKey = {pubKeyOurs.Text}";
+                    confoutTheirs.Text = configurationT;
+                    confoutTheirs.SelectAll();
+                    confout.Copy();
+
 
                 }
                 catch (System.Exception E)

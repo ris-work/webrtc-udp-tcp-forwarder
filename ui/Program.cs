@@ -44,6 +44,6 @@ public static class Utils
     }
     public static string MakeItNormalBase32(string text)
     {
-        return text.ToUpperInvariant().Replace("-", String.Empty);
+        return text.ToUpperInvariant().Replace("-", String.Empty)+"======"; //It expects 6 chars padding for 26 characters, making it 32 bytes _in_.
     }
 }
