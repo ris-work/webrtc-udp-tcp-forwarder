@@ -11,6 +11,8 @@ namespace RV.WebRTCForwarders {
     using System.Diagnostics;
     using System.Text.RegularExpressions;
     using Terminal.Gui;
+    using Wiry.Base32;
+    using System.Security.Cryptography;
     
     
     public partial class PortNumberCalculationUtils {
@@ -66,14 +68,57 @@ namespace RV.WebRTCForwarders {
                     var PubO = new ProcessStartInfo()
                     {
                         FileName = "wg",
-                        Arguments = "genkey",
+                        Arguments = "pubkey",
                         RedirectStandardOutput = true,
                         RedirectStandardInput = true,
                     };
                     var ProcessPubO = Process.Start(PubO);
                     ProcessPubO.StandardInput.Write(privKeyO);
                     ProcessPubO.StandardInput.Flush();
+                    ProcessPubO.StandardInput.Close();
                     pubKeyOurs.Text = ProcessPubO.StandardOutput.ReadToEnd();
+                    var ProcessPrivT = Process.Start(PrivO);
+                    string privKeyT = ProcessPrivT.StandardOutput.ReadToEnd();
+                    privKeyTheirs.Text = privKeyT;
+                    var ProcessPubT = Process.Start(PubO);
+                    ProcessPubT.StandardInput.Write(privKeyT);
+                    ProcessPubT.StandardInput.Flush();
+                    ProcessPubT.StandardInput.Close();
+                    pubKeyTheirs.Text = ProcessPubT.StandardOutput.ReadToEnd();
+
+                    /* Config */
+                    string addr = portnumber.Text;
+                    string[] a = Regex.Split(addr, String.Empty);
+                    int Addr_8 = int.Parse(a[0] + a[1]);
+                    int Addr_8_16 = int.Parse(a[2]);
+                    int Addr_16_24 = int.Parse(a[3] + a[4]);
+                    int Addr_24_32 = role.SelectedItem == 0 ? 1 : 2;
+                    int Addr_24_32_peer = Addr_24_32 == 1 ? 2 : 1;
+                    string Addresses = $"{Addr_8}.{Addr_8_16}.{Addr_16_24}.{Addr_24_32}/24";
+                    string PeerAllowedIPs = $"{Addr_8}.{Addr_8_16}.{Addr_16_24}.{Addr_24_32}/32";
+                    string configuration;
+                    configuration = $"Address = {Addresses}\r\n";
+                    configuration += $"PublicKey =  {pubKeyTheirs}\r\n";
+                    if (role.SelectedItem == 0)
+                    {
+                        configuration += $"ListenPort = {portnumber.Text}\r\n";
+                    }
+                    configuration += $"\r\n\r\n[Peer]\r\n";
+                    if (role.SelectedItem == 1)
+                    {
+                        configuration += $"Endpoint = 127.0.0.1:{portnumber.Text}\r\n";
+                    }
+                    configuration += $"AllowedIPs = {PeerAllowedIPs}\r\n";
+                    configuration += $"PublicKey = {pubKeyTheirs}";
+                    confout.Text = configuration;
+                    confout.SelectAll();
+                    confout.Copy();
+                    byte[] random8bytes = new byte[16];
+                    var RNG = RandomNumberGenerator.Create();
+                    RNG.GetBytes(random8bytes);
+                    string random128bits = Wiry.Base32.Base32Encoding.Standard.GetString(random8bytes);
+                    string random128bitsHumanFriendly = Utils.MakeItLookLikeACdKey(random128bits);
+                    MessageBox.Query(80, 20, "Keep this safe!", $"You won't see this again;\r\nWrite it down: \r\n{random128bitsHumanFriendly}", "Done!");
 
                 }
                 catch (System.Exception E)
