@@ -206,19 +206,55 @@ namespace RV.WebRTCForwarders {
                     XW.WriteEndElement();
                     XW.Flush();
 
-                    
+                    ZipEntry ZE_PS = new ZipEntry($"{portnumber.Text}.service.ps1");
+                    ZE_PS.AESKeySize = 128;
+                    ZE_PS.Comment = "Service Powershell Script (Win32/Win64)";
+                    ZO.CloseEntry();
+                    ZO.PutNextEntry(ZE_PS);
+                    string runCommandTheirs = role.SelectedItem == 0 ? "..\\common\\o-l.exe" : "..\\common\\a-c.exe";
+                    string powershellScriptTheirs = "do {\r\n" +
+                    $"{runCommandTheirs}\r\n" +
+                    $"Start-Sleep -Seconds 2\r\n" +
+                    "}\r\n" +
+                    "until ($false)";
+                    ZO.Write(Encoding.UTF8.GetBytes(powershellScriptTheirs));
 
                     /* Finish ZIP here */
                     ZO.CloseEntry();
                     ZO.Flush();
                     ZO.Close();
-                    string runCommand = "";
-                    string powershellScript = "do {\r\n" +
-                    $"{runCommand}\r\n" +
+                    string runCommandOurs = role.SelectedItem == 1 ? "..\\common\\o-l.exe" : "..\\common\\a-c.exe";
+                    string powershellScriptOurs = "do {\r\n" +
+                    $"{runCommandOurs}\r\n" +
                     $"Start-Sleep -Seconds 2\r\n" +
                     "}\r\n" +
                     "until ($false)";
-                    File.WriteAllText($"{portnumber.Text}.service.ps1", powershellScript);
+                    File.WriteAllText($"{portnumber.Text}.ours.service.ps1", powershellScriptOurs);
+
+                    var XWO = XmlWriter.Create("rvtunsvc.xml");
+                    XWO.WriteStartElement("service");
+                    XWO.WriteStartElement("id");
+                    XWO.WriteString($"TUNSVC-RV-{portnumber.Text}");
+                    XWO.WriteEndElement();
+                    XWO.WriteStartElement("name");
+                    XWO.WriteString($"TUNSVC-RV-{portnumber.Text}");
+                    XWO.WriteEndElement();
+                    XWO.WriteStartElement("executable");
+                    XWO.WriteString($"powershell");
+                    XWO.WriteEndElement();
+                    XWO.WriteStartElement("arguments");
+                    XWO.WriteString($"-ExecutionPolicy Bypass {portnumber.Text}.ours.service.ps1");
+                    XWO.WriteEndElement();
+
+                    XWO.WriteStartElement("log");
+                    XWO.WriteStartAttribute("mode");
+                    XWO.WriteString("roll");
+                    XWO.WriteEndAttribute();
+                    XWO.WriteEndElement();
+                    XWO.WriteEndElement();
+                    XWO.Flush();
+                    XWO.Close();
+                    File.WriteAllText($"wg.{portnumber.Text}.conf", confout.Text);
 
 
                 }
