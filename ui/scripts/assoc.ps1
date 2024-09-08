@@ -1,9 +1,9 @@
 #Privileged run
-$exename = ""
-$extension = ""
-$iconpath = ""
-$formatdesc = ""
-$appname = ""
+#$exename = ""
+#$extension = ""
+#$iconpath = ""
+#$formatdesc = ""
+#$appname = ""
 
 
 New-PSDrive -PSProvider registry -Root HKEY_CLASSES_ROOT -Name HKCR
@@ -281,128 +281,5 @@ $a = @{
     Name = "FileName"
     PropertyType = "String"
     Value = "$pwd\new.logs.sqlite3$extension"
-}
-New-ItemProperty -Force @a
-
-#Control panel things
-$guid = Get-Content "guid.guid"
-mkdir "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ControlPanel\NameSpace\$guid"
-mkdir "HKCR:\CLSID\$guid"
-
-$a = @{
-    Path = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ControlPanel\NameSpace\$guid"
-    Name = "(default)"
-    PropertyType = "String"
-    Value = "Health Monitor Log Viewer"
-}
-New-ItemProperty -Force @a
-
-$a = @{
-    Path = "HKCR:\CLSID\$guid"
-    Name = "LocalizedString"
-    PropertyType = "String"
-    Value = "Health Monitor Log Viewer"
-}
-New-ItemProperty -Force @a
-
-$a = @{
-    Path = "HKCR:\CLSID\$guid"
-    Name = "InfoTip"
-    PropertyType = "String"
-    Value = "Health Monitor Log Viewer"
-}
-New-ItemProperty -Force @a
-
-$a = @{
-    Path = "HKCR:\CLSID\$guid"
-    Name = "System.ApplicationName"
-    PropertyType = "String"
-    Value = "$appname"
-}
-New-ItemProperty -Force @a
-
-$a = @{
-    Path = "HKCR:\CLSID\$guid"
-    Name = "System.ControlPanel.Category"
-    PropertyType = "String"
-    Value = "0,2,3,8"
-}
-New-ItemProperty -Force @a
-
-mkdir "HKCR:\CLSID\$guid\DefaultIcon\"
-$a = @{
-    Path = "HKCR:\CLSID\$guid\DefaultIcon\"
-    Name = "(default)"
-    PropertyType = "String"
-    Value = "$pwd\time-view.ico"
-}
-New-ItemProperty -Force @a
-
-
-mkdir "HKCR:\CLSID\$guid\shell"
-mkdir "HKCR:\CLSID\$guid\shell\open"
-mkdir "HKCR:\CLSID\$guid\shell\open\command"
-$a = @{
-    Path = "HKCR:\CLSID\$guid\DefaultIcon\"
-    Name = "(default)"
-    PropertyType = "String"
-    Value = "$pwd\$exename"
-}
-New-ItemProperty -Force @a
-
-winget install SQLite.SQLite --scope Machine
-$SQLite3ExePathMachine = (Get-Command "sqlite3.exe" | Select -Last 1).Path
-
-$EWS = "Edit with SQLite3"
-mkdir "HKCU:\Software\Classes\$extension"
-mkdir "HKCU:\Software\Classes\$extension\shell"
-mkdir "HKCU:\Software\Classes\$extension\shell\$EWS"
-mkdir "HKCU:\Software\Classes\$extension\shell\$EWS\command"
-mkdir "HKCU:\Software\Classes\$appname"
-mkdir "HKCU:\Software\Classes\$appname\shell"
-mkdir "HKCU:\Software\Classes\$appname\shell\$EWS"
-mkdir "HKCU:\Software\Classes\$appname\shell\$EWS\command"
-
-mkdir "HKCR:\$extension"
-mkdir "HKCR:\$extension\shell"
-mkdir "HKCR:\$extension\shell\$EWS"
-mkdir "HKCR:\$extension\shell\$EWS\command"
-mkdir "HKCR:\$appname"
-mkdir "HKCR:\$appname\shell"
-mkdir "HKCR:\$appname\shell\$EWS"
-mkdir "HKCR:\$appname\shell\$EWS\command"
-
-$a = @{
-    Path = "HKCU:\Software\Classes\$extension\shell\$EWS\command"
-    Name = "(default)"
-    PropertyType = "String"
-    Value = "`"$SQLite3ExePathMachine`" `"%1`""
-}
-New-ItemProperty -Force @a
-
-$a = @{
-    Path = "HKCU:\Software\Classes\$appname\shell\$EWS\command"
-    Name = "(default)"
-    PropertyType = "String"
-    Value = "`"$SQLite3ExePathMachine`" `"%1`""
-}
-New-ItemProperty -Force @a
-
-winget install SQLite.SQLite --scope User
-$SQLite3ExePathLocal = ((Get-Command "sqlite3.exe") | Select -First 1).Path
-$a = @{
-    Path = "HKCR:\$extension\shell\$EWS\command"
-    Name = "(default)"
-    PropertyType = "String"
-    Value = "`"$SQLite3ExePathLocal`" `"%1`""
-}
-New-ItemProperty -Force @a
-
-
-$a = @{
-    Path = "HKCR:\$appname\shell\$EWS\command"
-    Name = "(default)"
-    PropertyType = "String"
-    Value = "`"$SQLite3ExePathLocal`" `"%1`""
 }
 New-ItemProperty -Force @a
