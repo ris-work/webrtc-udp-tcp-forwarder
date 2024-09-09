@@ -239,9 +239,6 @@ namespace RV.WebRTCForwarders {
                     ZOT.Write(Encoding.UTF8.GetBytes(config_toml));
                     ZOT.Flush();
                     ZOT.CloseEntry();
-                    
-
-                    ZOT.Flush();
                     ZOT.Close();
                     string runCommandOurs = role.SelectedItem == 1 ? "..\\common\\o-l.exe" : "..\\common\\a-c.exe";
                     string powershellScriptOurs = "do {\r\n" +
