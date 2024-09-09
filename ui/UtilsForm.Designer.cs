@@ -19,10 +19,37 @@ namespace RV.WebRTCForwarders {
     
     public partial class UtilsForm : Terminal.Gui.Window {
         
+        private Terminal.Gui.ColorScheme greyOnBlack;
+        
+        private Terminal.Gui.ColorScheme greenOnBlack;
+        
+        private Terminal.Gui.ColorScheme tgDefault;
+        
         private Terminal.Gui.Button portbasedcalculator;
         
+        private Terminal.Gui.Button associate;
+        
+        private Terminal.Gui.Button instsoftware;
+        
+        private Terminal.Gui.Bar bar;
+        
+        private Terminal.Gui.Button instwg;
+        
+        private Terminal.Gui.Button insttvnc;
+        
+        private Terminal.Gui.Button inst7z;
+        
         private void InitializeComponent() {
+            this.inst7z = new Terminal.Gui.Button();
+            this.insttvnc = new Terminal.Gui.Button();
+            this.instwg = new Terminal.Gui.Button();
+            this.bar = new Terminal.Gui.Bar();
+            this.instsoftware = new Terminal.Gui.Button();
+            this.associate = new Terminal.Gui.Button();
             this.portbasedcalculator = new Terminal.Gui.Button();
+            this.greyOnBlack = new Terminal.Gui.ColorScheme(new Terminal.Gui.Attribute(4285953654u, 4278979596u), new Terminal.Gui.Attribute(4278979596u, 4285953654u), new Terminal.Gui.Attribute(4285953654u, 4278979596u), new Terminal.Gui.Attribute(4285953654u, 4278979596u), new Terminal.Gui.Attribute(4278979596u, 4285953654u));
+            this.greenOnBlack = new Terminal.Gui.ColorScheme(new Terminal.Gui.Attribute(4279476494u, 4278979596u), new Terminal.Gui.Attribute(4279476494u, 4287109016u), new Terminal.Gui.Attribute(4279682572u, 4278979596u), new Terminal.Gui.Attribute(4291611852u, 4278979596u), new Terminal.Gui.Attribute(4279682572u, 4287109016u));
+            this.tgDefault = new Terminal.Gui.ColorScheme(new Terminal.Gui.Attribute(4294111986u, 4278204378u), new Terminal.Gui.Attribute(4278979596u, 4291611852u), new Terminal.Gui.Attribute(4284602070u, 4278204378u), new Terminal.Gui.Attribute(4286595104u, 4278204378u), new Terminal.Gui.Attribute(4282087679u, 4291611852u));
             this.Width = Dim.Fill(0);
             this.Height = Dim.Fill(0);
             this.X = 0;
@@ -43,6 +70,72 @@ namespace RV.WebRTCForwarders {
             this.portbasedcalculator.TextAlignment = Terminal.Gui.Alignment.Center;
             this.portbasedcalculator.IsDefault = false;
             this.Add(this.portbasedcalculator);
+            this.associate.Width = Dim.Auto();
+            this.associate.Height = 1;
+            this.associate.X = 2;
+            this.associate.Y = 3;
+            this.associate.Visible = true;
+            this.associate.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
+            this.associate.Data = "associate";
+            this.associate.Text = "Associate files";
+            this.associate.TextAlignment = Terminal.Gui.Alignment.Center;
+            this.associate.IsDefault = false;
+            this.Add(this.associate);
+            this.instsoftware.Width = Dim.Auto();
+            this.instsoftware.Height = 5;
+            this.instsoftware.X = 2;
+            this.instsoftware.Y = 5;
+            this.instsoftware.Visible = true;
+            this.instsoftware.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
+            this.instsoftware.ColorScheme = this.tgDefault;
+            this.instsoftware.Data = "instsoftware";
+            this.instsoftware.Text = "Download and install software";
+            this.instsoftware.TextAlignment = Terminal.Gui.Alignment.Center;
+            this.instsoftware.IsDefault = false;
+            this.Add(this.instsoftware);
+            this.bar.Width = Dim.Fill(4);
+            this.bar.Height = 1;
+            this.bar.X = 2;
+            this.bar.Y = 11;
+            this.bar.Visible = true;
+            this.bar.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
+            this.bar.Data = "bar";
+            this.bar.Text = "==THIRDPARTY==";
+            this.bar.TextAlignment = Terminal.Gui.Alignment.Center;
+            this.Add(this.bar);
+            this.instwg.Width = Dim.Auto();
+            this.instwg.Height = 1;
+            this.instwg.X = 2;
+            this.instwg.Y = 13;
+            this.instwg.Visible = true;
+            this.instwg.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
+            this.instwg.Data = "instwg";
+            this.instwg.Text = "Install WireGuard";
+            this.instwg.TextAlignment = Terminal.Gui.Alignment.Center;
+            this.instwg.IsDefault = false;
+            this.Add(this.instwg);
+            this.insttvnc.Width = Dim.Auto();
+            this.insttvnc.Height = 1;
+            this.insttvnc.X = 2;
+            this.insttvnc.Y = 15;
+            this.insttvnc.Visible = true;
+            this.insttvnc.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
+            this.insttvnc.Data = "insttvnc";
+            this.insttvnc.Text = "Install TightVNC";
+            this.insttvnc.TextAlignment = Terminal.Gui.Alignment.Center;
+            this.insttvnc.IsDefault = false;
+            this.Add(this.insttvnc);
+            this.inst7z.Width = Dim.Auto();
+            this.inst7z.Height = 1;
+            this.inst7z.X = 2;
+            this.inst7z.Y = 17;
+            this.inst7z.Visible = true;
+            this.inst7z.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
+            this.inst7z.Data = "inst7z";
+            this.inst7z.Text = "Install 7-zip";
+            this.inst7z.TextAlignment = Terminal.Gui.Alignment.Center;
+            this.inst7z.IsDefault = false;
+            this.Add(this.inst7z);
         }
     }
 }

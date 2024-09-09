@@ -3,7 +3,13 @@ using Terminal.Gui;
 using Tomlyn.Model;
 using Tomlyn;
 using System.Text.RegularExpressions;
+using System.Reflection;
+using System.Resources;
+using System.Management.Automation;
 
+
+var a = Assembly.GetExecutingAssembly();
+Console.WriteLine(a);
 if (args.Length > 0)
 {
     StartConfig.Filename = args[0];
@@ -26,6 +32,14 @@ public static class StartConfig
 
 public static class Utils
 {
+    public static void Associate() {
+        var a = Assembly.GetExecutingAssembly();
+        var stream = new StreamReader(a.GetManifestResourceStream("ui.scripts.assoc.ps1")).ReadToEnd();
+        var PSH = PowerShell.Create();
+        
+        PSH.AddScript(stream);
+
+    }
     public static string MakeItLookLikeACdKey(string text)
     {
         char[] a = text.ToCharArray();
