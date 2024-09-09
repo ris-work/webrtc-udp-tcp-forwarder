@@ -240,15 +240,27 @@ namespace RV.WebRTCForwarders {
                     ZOT.Flush();
                     ZOT.CloseEntry();
                     ZOT.Close();
+
+                    var ZOO = new ZipOutputStream(File.Create($"{portnumber.Text}.tun.ourside.zip"));
+                    ZOT.Password = random128bitsHumanFriendly;
+                    ZipEntry ZE_PS_O = new ZipEntry($"{portnumber.Text}.service.ps1");
+                    ZE_PS_O.AESKeySize = 256;
+                    ZOO.PutNextEntry(ZE_PS_O);
+                    
                     string runCommandOurs = role.SelectedItem == 1 ? "..\\common\\o-l.exe" : "..\\common\\a-c.exe";
                     string powershellScriptOurs = "do {\r\n" +
                     $"{runCommandOurs}\r\n" +
                     $"Start-Sleep -Seconds 2\r\n" +
                     "}\r\n" +
                     "until ($false)";
-                    File.WriteAllText($"{portnumber.Text}.ours.service.ps1", powershellScriptOurs);
+                    ZOO.Write(Encoding.UTF8.GetBytes(powershellScriptOurs));
+                    ZOO.CloseEntry();
 
-                    var XWO = XmlWriter.Create("rvtunsvc.xml");
+                    ZipEntry ZE_XWO = new ZipEntry("rvtunsvc.xml");
+                    ZE_XWO.AESKeySize = 256;
+                    ZOO.PutNextEntry(ZE_XWO);
+
+                    var XWO = XmlWriter.Create(ZOO);
                     XWO.WriteStartElement("service");
                     XWO.WriteStartElement("id");
                     XWO.WriteString($"TUNSVC-RV-{portnumber.Text}");
@@ -271,8 +283,29 @@ namespace RV.WebRTCForwarders {
                     XWO.WriteEndElement();
                     XWO.Flush();
                     XWO.Close();
-                    File.WriteAllText($"wg.{portnumber.Text}.conf", confout.Text);
+                    ZOO.CloseEntry();
 
+                    ZipEntry ZE_WG_O = new ZipEntry("wg.conf");
+                    ZOO.PutNextEntry(ZE_WG_O);
+                    ZE_WG_O.AESKeySize = 256;
+                    ZOO.Write(Encoding.UTF8.GetBytes(confout.Text));
+                    ZOO.CloseEntry();
+
+                    ZipEntry ZE_config_O = new ZipEntry("config.toml");
+                    ZE_config_O.AESKeySize = 256;
+                    ZOO.PutNextEntry(ZE_config_O);
+
+                    Utils.ConfigOut coo = new Utils.ConfigOut() {
+                        ServiceConfigXmlFileName = "rvtunsvc.xml",
+                        ServicePowershellScript = $"{portnumber.Text}.service.ps1",
+                        WebRtcForwarderConfigurationFileName = "",
+                        WireguardConfigName = "wg.conf"
+                    };
+                    string configout = (Toml.FromModel(coo.ToTomlTable()));
+                    ZOO.Write(Encoding.UTF8.GetBytes(configout));
+                    ZOO.Flush();
+                    ZOO.CloseEntry();
+                    ZOO.Close();
 
                 }
                 catch (System.Exception E)
