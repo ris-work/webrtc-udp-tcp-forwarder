@@ -99,6 +99,9 @@ namespace RV.WebRTCForwarders {
                 }
 
             };
+            portbasedcalculator.Accept += (_, _) => {
+                Application.Run<PortNumberCalculationUtils>();
+            };
         }
     }
 }

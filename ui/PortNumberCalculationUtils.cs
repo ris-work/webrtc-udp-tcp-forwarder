@@ -18,6 +18,8 @@ namespace RV.WebRTCForwarders {
     using ICSharpCode.SharpZipLib.Zip;
     using System.Text;
     using System.Xml;
+    using Tomlyn.Model;
+    using Tomlyn;
 
     public partial class PortNumberCalculationUtils {
         
@@ -130,7 +132,8 @@ namespace RV.WebRTCForwarders {
                             )
                         )
                         }", "Ok");
-                    MessageBox.Query("Warning", $"This will overwrite: {portnumber.Text}.tun.otherside.zip with an encrypted ZIP.\r\n" +
+                    MessageBox.Query("Warning", $"This will overwrite: {portnumber.Text}.tun.theirs.zip with an encrypted ZIP.\r\n" +
+                        $"This will overwrite: {portnumber.Text}.tun.ours.zip with an encrypted ZIP.\r\n" +
                         $"Close the program immediately if you don't want this.", "Ok, I understand");
 
                     /* Other side configuration */
@@ -163,27 +166,27 @@ namespace RV.WebRTCForwarders {
 
                     /* Create the ZIP file */
 
-                    var ZO = new ZipOutputStream(File.Create($"{portnumber.Text}.tun.otherside.zip"));
-                    ZO.Password = random128bitsHumanFriendly;
+                    var ZOT = new ZipOutputStream(File.Create($"{portnumber.Text}.tun.otherside.zip"));
+                    ZOT.Password = random128bitsHumanFriendly;
 
                     ZipEntry ZE = new ZipEntry("wg.conf");
-                    ZE.AESKeySize = 128;
+                    ZE.AESKeySize = 256;
                     ZE.Comment = "Wireguard configuration";
                     //ZE.IsCrypted = true;
-                    ZO.PutNextEntry(ZE);
-                    ZO.Write(Encoding.UTF8.GetBytes(confoutTheirs.Text));
-                    ZO.CloseEntry();
+                    ZOT.PutNextEntry(ZE);
+                    ZOT.Write(Encoding.UTF8.GetBytes(confoutTheirs.Text));
+                    ZOT.CloseEntry();
                     ZipEntry ZE_SVC = new ZipEntry("rvtunsvc.xml");
-                    ZE_SVC.AESKeySize = 128;
+                    ZE_SVC.AESKeySize = 256;
                     ZE_SVC.Comment = "Service coniguration";
-                    ZO.PutNextEntry(ZE_SVC);
+                    ZOT.PutNextEntry(ZE_SVC);
 
                     /* Create the SM file */
                     var XS = new XmlWriterSettings() {
                         Indent = true,
                         NewLineChars = "\r\n"
                     };
-                    var XW = XmlWriter.Create(ZO);
+                    var XW = XmlWriter.Create(ZOT);
                     XW.WriteStartElement("service");
                     XW.WriteStartElement("id");
                     XW.WriteString($"TUNSVC-RV-{portnumber.Text}");
@@ -207,22 +210,39 @@ namespace RV.WebRTCForwarders {
                     XW.Flush();
 
                     ZipEntry ZE_PS = new ZipEntry($"{portnumber.Text}.service.ps1");
-                    ZE_PS.AESKeySize = 128;
+                    ZE_PS.AESKeySize = 256;
                     ZE_PS.Comment = "Service Powershell Script (Win32/Win64)";
-                    ZO.CloseEntry();
-                    ZO.PutNextEntry(ZE_PS);
+                    ZOT.CloseEntry();
+                    ZOT.PutNextEntry(ZE_PS);
                     string runCommandTheirs = role.SelectedItem == 0 ? "..\\common\\o-l.exe" : "..\\common\\a-c.exe";
                     string powershellScriptTheirs = "do {\r\n" +
                     $"{runCommandTheirs}\r\n" +
                     $"Start-Sleep -Seconds 2\r\n" +
                     "}\r\n" +
                     "until ($false)";
-                    ZO.Write(Encoding.UTF8.GetBytes(powershellScriptTheirs));
+                    ZOT.Write(Encoding.UTF8.GetBytes(powershellScriptTheirs));
 
                     /* Finish ZIP here */
-                    ZO.CloseEntry();
-                    ZO.Flush();
-                    ZO.Close();
+                    ZOT.CloseEntry();
+                    ZipEntry config = new ZipEntry("config.toml");
+                    config.AESKeySize = 256;
+                    
+                    ZOT.PutNextEntry(config);
+                    Utils.ConfigOut co = new Utils.ConfigOut() {
+                        ServiceConfigXmlFileName = "rvtunsvc.xml",
+                        ServicePowershellScript = $"{portnumber.Text}.service.ps1",
+                        WebRtcForwarderConfigurationFileName = "",
+                        WireguardConfigName = "wg.conf"
+                    };
+                    string config_toml = Toml.FromModel(co.ToTomlTable());
+                    MessageBox.Query("TOML", config_toml, "OK");
+                    ZOT.Write(Encoding.UTF8.GetBytes(config_toml));
+                    ZOT.Flush();
+                    ZOT.CloseEntry();
+                    
+
+                    ZOT.Flush();
+                    ZOT.Close();
                     string runCommandOurs = role.SelectedItem == 1 ? "..\\common\\o-l.exe" : "..\\common\\a-c.exe";
                     string powershellScriptOurs = "do {\r\n" +
                     $"{runCommandOurs}\r\n" +
