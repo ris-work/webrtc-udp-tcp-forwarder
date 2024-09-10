@@ -25,30 +25,31 @@ namespace RV.WebRTCForwarders {
             instsoftware.ShadowStyle = ShadowStyle.Transparent;
             instsoftware.SetBorderStyle(LineStyle.Rounded );
             instsoftware.Border.BorderStyle = LineStyle.Single;
-            var root = Path.Combine(SpecialDirectories.Programs, "rv", "rvtunsvc");
+            var root = Path.Combine(SpecialDirectories.ProgramFiles, "rv", "rvtunsvc");
             //var root = Environment.CurrentDirectory;
 
 
             instsoftware.Accept += (_, _) => {
+                MessageBox.Query("Directory", $"Will be installed in:\r\n{root}", "Ok");
 
                 try
                 {
-                    Directory.CreateDirectory(Path.Combine(SpecialDirectories.Programs, "rv"));
+                    Directory.CreateDirectory(Path.Combine(SpecialDirectories.ProgramFiles, "rv"));
                 } catch (Exception _) { }
                 try
                 {
-                    Directory.CreateDirectory(Path.Combine(SpecialDirectories.Programs, "rv", "rvtunsvc"));
+                    Directory.CreateDirectory(Path.Combine(SpecialDirectories.ProgramFiles, "rv", "rvtunsvc"));
                 } catch (Exception) { }
                 try
                 {
-                    Directory.CreateDirectory(Path.Combine(SpecialDirectories.Programs, "rv", "rvtunsvc", "tunnels"));
+                    Directory.CreateDirectory(Path.Combine(SpecialDirectories.ProgramFiles, "rv", "rvtunsvc", "tunnels"));
                 } catch(Exception){ }
                 try {
-                    DirectoryInfo DI = new DirectoryInfo(Path.Combine(SpecialDirectories.Programs, "rv", "rvtunsvc", "tunnels"));
+                    DirectoryInfo DI = new DirectoryInfo(Path.Combine(SpecialDirectories.ProgramFiles, "rv", "rvtunsvc", "tunnels"));
                     var DA2 = DI.GetAccessControl();
                     var DA = new DirectorySecurity();
                     DA.SetAccessRuleProtection(true, false);
-                    var FAAdmin = new FileSystemAccessRule("Administrators", FileSystemRights.ReadAndExecute, AccessControlType.Allow);
+                    var FAAdmin = new FileSystemAccessRule("Administrators", FileSystemRights.FullControl, AccessControlType.Allow);
                     var FASystem = new FileSystemAccessRule("SYSTEM", FileSystemRights.FullControl, AccessControlType.Allow);
                     DA.AddAccessRule(FAAdmin);
                     DA.AddAccessRule(FASystem);
@@ -127,6 +128,9 @@ namespace RV.WebRTCForwarders {
             };
             portbasedcalculator.Accept += (_, _) => {
                 Application.Run<PortNumberCalculationUtils>();
+            };
+            associate.Accept += (_, _) => {
+                Utils.Associate();
             };
         }
     }

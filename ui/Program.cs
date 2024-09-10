@@ -5,11 +5,11 @@ using Tomlyn;
 using System.Text.RegularExpressions;
 using System.Reflection;
 using System.Resources;
-using System.Management.Automation;
 using Microsoft.VisualBasic.FileIO;
 using System.Text.Json.Serialization;
 using System.Reflection.PortableExecutable;
 using System.Security.Policy;
+using System.Management.Automation;
 
 
 var a = Assembly.GetExecutingAssembly();
@@ -108,15 +108,27 @@ public static class Utils
         Environment.CurrentDirectory = ROOT ;
         string ScriptPrelude = "$exename = 'configinstaller.exe'\r\n" +
             "$extension = '.rvtunnelconfiguration'\r\n" +
-            "$iconpath = '{ROOT}'\r\n" +
+            $"$iconpath = '{Config.InstallationRoot}/configinstaller.exe'\r\n" +
             "$formatdesc = 'Tunnel Configuration File (ZIP, encrypted)'\r\n" +
             "$appname = 'Tunnel Configuration Installer'\r\n";
         var a = Assembly.GetExecutingAssembly();
         var Script = new StreamReader(a.GetManifestResourceStream("ui.scripts.assoc.ps1")).ReadToEnd();
-        var PSH = PowerShell.Create();
-        
-        PSH.AddScript(ScriptPrelude + Script);
-        (new Thread(() => { PSH.Invoke(); })).Start();
+        Thread T = (new Thread(() => {
+            try
+            {
+                var PSH = PowerShell.Create();
+                //MessageBox.Query("Script", ScriptPrelude+Script, "Ok");
+                PSH.AddScript(ScriptPrelude + Script);
+                //MessageBox.Query("Association", "Association script will run now", "Ok");
+                var output = PSH.Invoke();
+                //MessageBox.Query("Association script", $"Script exited:\r\n{String.Join("", output.Select(e => e.ToString()))}");
+            }
+            catch (Exception E)
+            {
+                MessageBox.Query("Exception - Association", E.ToString(), "Ok");
+            }
+        }));
+        T.Start();
         Environment.CurrentDirectory = OldDir;
 
     }
