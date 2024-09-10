@@ -8,6 +8,8 @@ using System.Resources;
 using System.Management.Automation;
 using Microsoft.VisualBasic.FileIO;
 using System.Text.Json.Serialization;
+using System.Reflection.PortableExecutable;
+using System.Security.Policy;
 
 
 var a = Assembly.GetExecutingAssembly();
@@ -52,8 +54,50 @@ public static class Utils
             };
         }
     }
+
+    public class ForwarderConfigOut {
+        public string Type = "";
+        public string WebRTCMode = "";
+        public string Address = "127.0.0.1";
+        public string Port = "";
+        public TomlArray ICEServers = new TomlArray() {
+            new TomlTable()
+            {
+                ["URLs"] = new TomlArray()
+                {
+                    "vz.al", "stun.l.google.com:19302"
+                }
+            }
+        };
+        public string PublishType = "ws";
+        public string PublishEndpoint = "";
+        public string PublishAuthType = "";
+        public string PublishAuthUser = "";
+        public string PublishAuthPass = "";
+        public string PeerAuthType = "PSK";
+        public string PeerPSK = "";
+
+        public TomlTable ToTomlTable() {
+            return new TomlTable()
+            {
+                ["Type"] = Type,
+                ["WebRTCMode"] = WebRTCMode,
+                ["Address"] = Address,
+                ["Port"] = Port,
+                ["PublishType"] = PublishType,
+                ["PublishEndpoint"] = PublishEndpoint,
+                ["PublishAuthType"] = PublishAuthType,
+                ["PublishAuthPass"] = PublishAuthPass,
+                ["PeerAuthType"] = PeerAuthType,
+                ["PeerPSK"] = PeerPSK,
+                ["ICEServers"] = ICEServers
+            };
+        }
+    }
     public static void Associate() {
         string ROOT = Path.Combine(SpecialDirectories.ProgramFiles, "rv", "rvtunsvc") ;
+        var OldDir = Environment.CurrentDirectory;
+        Environment.CurrentDirectory = ROOT ;
         string ScriptPrelude = "$exename = 'configinstaller.exe'\r\n" +
             "$extension = '.rvtunnelconfiguration'\r\n" +
             "$iconpath = '{ROOT}'\r\n" +
@@ -64,6 +108,8 @@ public static class Utils
         var PSH = PowerShell.Create();
         
         PSH.AddScript(ScriptPrelude + Script);
+        (new Thread(() => { PSH.Invoke(); })).Start();
+        Environment.CurrentDirectory = OldDir;
 
     }
     public static string MakeItLookLikeACdKey(string text)

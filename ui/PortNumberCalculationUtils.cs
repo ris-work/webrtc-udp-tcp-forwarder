@@ -242,7 +242,7 @@ namespace RV.WebRTCForwarders {
                     ZOT.Close();
 
                     var ZOO = new ZipOutputStream(File.Create($"{portnumber.Text}.tun.ourside.zip"));
-                    ZOT.Password = random128bitsHumanFriendly;
+                    ZOO.Password = random128bitsHumanFriendly;
                     ZipEntry ZE_PS_O = new ZipEntry($"{portnumber.Text}.service.ps1");
                     ZE_PS_O.AESKeySize = 256;
                     ZOO.PutNextEntry(ZE_PS_O);
@@ -306,6 +306,13 @@ namespace RV.WebRTCForwarders {
                     ZOO.Flush();
                     ZOO.CloseEntry();
                     ZOO.Close();
+
+                    MessageBox.Query("Generated conf:", Toml.FromModel((new Utils.ForwarderConfigOut()
+                    {
+                        Address = "127.0.0.1",
+                        PublishAuthUser = "randomuser",
+                        PublishAuthPass = "randompw"
+                    }).ToTomlTable()));
 
                 }
                 catch (System.Exception E)
