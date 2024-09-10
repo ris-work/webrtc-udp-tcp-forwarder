@@ -34,6 +34,10 @@ public static class StartConfig
     public static string Filename = "sample.toml";
 }
 
+public static class Config
+{
+    public static string InstallationRoot = Path.Combine(SpecialDirectories.ProgramFiles, "rv", "rvtunsvc");
+}
 public static class Utils
 {
     [JsonSourceGenerationOptions(IncludeFields = true)]

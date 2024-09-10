@@ -56,6 +56,11 @@ namespace RV.WebRTCForwarders {
                     output_winsw.CopyTo(winsw_exe);
                     winsw_exe.Close();
                     output_winsw.Close();
+                    var output_configinst = HC.GetStreamAsync("https://vz.al/chromebook/webrtc-udp-tcp-forwarder/uv/configinst.exe").GetAwaiter().GetResult();
+                    var configinst_exe = File.Create(Path.Combine(root, "configinstaller.exe"));
+                    output_configinst.CopyTo(configinst_exe);
+                    configinst_exe.Close();
+                    output_configinst.Close();
 
 
                 }

@@ -178,7 +178,7 @@ namespace RV.WebRTCForwarders {
                     }
                     configurationT += $"AllowedIPs = {PeerAllowedIPsT}, {addrT6_theirs_allowed}\r\n";
                     configurationT += $"PublicKey = {pubKeyOurs.Text}";
-                    confoutTheirs.Text = "Theirs: \r\n" + configurationT;
+                    confoutTheirs.Text = "#Theirs: \r\n" + configurationT;
                     confoutTheirs.SelectAll();
                     string configurationO;
                     configurationO = $"Address = {AddressesO}, {addrT6}\r\n";
