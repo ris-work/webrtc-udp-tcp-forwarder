@@ -120,9 +120,18 @@ namespace RV.WebRTCForwarders {
                     confout.SelectAll();
                     confout.Copy();
                     byte[] random8bytes = new byte[16];
+                    byte[] peerPSK = new byte[40];
+                    byte[] randomUsernameBytes = new byte[20];
+                    byte[] randomPasswordBytes = new byte[20];
+                    byte[] randomSessionNameBytes = new byte[40];
                     var RNG = RandomNumberGenerator.Create();
                     RNG.GetBytes(random8bytes);
+                    RNG.GetBytes(peerPSK);
+                    RNG.GetBytes(randomUsernameBytes);
+                    RNG.GetBytes(randomPasswordBytes);
+                    RNG.GetBytes(randomSessionNameBytes);
                     string random128bits = Wiry.Base32.Base32Encoding.Standard.GetString(random8bytes)[0..26];
+                    
                     string random128bitsHumanFriendly = Utils.MakeItLookLikeACdKey(random128bits);
                     MessageBox.Query("Keep this safe!", $"You won't see this again;\r\nWrite it down: \r\n{random128bitsHumanFriendly}", "Done!");
                     MessageBox.Query("Decoded debug", $"Decoded debug: \r\n{
@@ -138,16 +147,24 @@ namespace RV.WebRTCForwarders {
 
                     /* Other side configuration */
                     string addrT = portnumber.Text;
+                    portnumber.Text = (int.Parse(portnumber.Text)).ToString();
                     string[] aT = Regex.Split(addr, String.Empty);
                     int Addr_8_T = int.Parse(a[0] + a[1]);
                     int Addr_8_16_T = int.Parse(a[2]);
                     int Addr_16_24_T = int.Parse(a[3] + a[4]);
-                    int Addr_24_32_T = role.SelectedItem == 0 ? 2 : 1;
-                    int Addr_24_32_peer_T = Addr_24_32 == 1 ? 1 : 2;
-                    string AddressesT = $"{Addr_8_T}.{Addr_8_16_T}.{Addr_16_24_T}.{Addr_24_32_T}/24";
-                    string PeerAllowedIPsT = $"{Addr_8_T}.{Addr_8_16_T}.{Addr_16_24_T}.{Addr_24_32_peer_T}/32";
+                    int our_suffix = role.SelectedItem == 0 ? 1 : 2;
+                    int their_suffix = Addr_24_32 == 1 ? 2 : 1;
+                    string AddressesT = $"{Addr_8_T}.{Addr_8_16_T}.{Addr_16_24_T}.{their_suffix}/24";
+                    string PeerAllowedIPsT = $"{Addr_8_T}.{Addr_8_16_T}.{Addr_16_24_T}.{our_suffix}/32";
+                    string AddressesO = $"{Addr_8_T}.{Addr_8_16_T}.{Addr_16_24_T}.{our_suffix}/24";
+                    string PeerAllowedIPsO = $"{Addr_8_T}.{Addr_8_16_T}.{Addr_16_24_T}.{their_suffix}/32";
                     string configurationT;
-                    configurationT = $"Address = {AddressesT}\r\n";
+                    string portHex = BitConverter.ToString(BitConverter.GetBytes(int.Parse(portnumber.Text))).Replace("-","");
+                    string addrT6 = $"fd00:0000:0001:{portHex}::{our_suffix}/64";
+                    string addrT6_allowed = $"fd00:0000:0001:{portHex}::{their_suffix}/128";
+                    string addrT6_theirs = $"fd00:0000:0001:{portHex}::{their_suffix}/64";
+                    string addrT6_theirs_allowed = $"fd00:0000:0001:{portHex}::{our_suffix}/128";
+                    configurationT = $"Address = {AddressesT}, {addrT6_theirs}\r\n";
                     configurationT += $"PrivateKey =  {privKeyTheirs.Text}\r\n";
                     if (role.SelectedItem == 1)
                     {
@@ -158,11 +175,31 @@ namespace RV.WebRTCForwarders {
                     {
                         configurationT += $"Endpoint = 127.0.0.1:{portnumber.Text}\r\n";
                     }
-                    configurationT += $"AllowedIPs = {PeerAllowedIPsT}\r\n";
+                    configurationT += $"AllowedIPs = {PeerAllowedIPsT}, {addrT6_theirs_allowed}\r\n";
                     configurationT += $"PublicKey = {pubKeyOurs.Text}";
-                    confoutTheirs.Text = configurationT;
+                    confoutTheirs.Text = "Theirs: \r\n" + configurationT;
                     confoutTheirs.SelectAll();
-                    confout.Copy();
+                    string configurationO;
+                    configurationO = $"Address = {AddressesO}, {addrT6}\r\n";
+                    configurationO += $"PrivateKey =  {privKeyOurs.Text}\r\n";
+                    if (role.SelectedItem == 0)
+                    {
+                        configurationO += $"ListenPort = {portnumber.Text}\r\n";
+                    }
+                    configurationO += $"\r\n\r\n[Peer]\r\n";
+                    if (role.SelectedItem == 1)
+                    {
+                        configurationO += $"Endpoint = 127.0.0.1:{portnumber.Text}\r\n";
+                    }
+                    configurationO += $"AllowedIPs = {PeerAllowedIPsO}, {addrT6_allowed}\r\n";
+                    configurationO += $"PublicKey = {pubKeyTheirs.Text}";
+                    confout.Text = "#Ours:\r\n" + configurationO;
+                    confout.SelectAll();
+
+                    string randomPeerPSK = Wiry.Base32.Base32Encoding.Standard.GetString(peerPSK);
+                    string randomUsername = Wiry.Base32.Base32Encoding.Standard.GetString(randomUsernameBytes);
+                    string randomPassword = Wiry.Base32.Base32Encoding.Standard.GetString(randomPasswordBytes);
+                    string randomSessionName = Wiry.Base32.Base32Encoding.Standard.GetString(randomSessionNameBytes);
 
                     /* Create the ZIP file */
 
@@ -310,9 +347,41 @@ namespace RV.WebRTCForwarders {
                     MessageBox.Query("Generated conf:", Toml.FromModel((new Utils.ForwarderConfigOut()
                     {
                         Address = "127.0.0.1",
-                        PublishAuthUser = "randomuser",
-                        PublishAuthPass = "randompw"
+                        PublishAuthUser = randomUsername,
+                        PublishAuthPass = randomPassword,
+                        PeerPSK = randomPeerPSK,
+                        PublishEndpoint = $"wss://vz.al/anonwsmul/{randomSessionName}/wsa",
+                        Port = portnumber.Text,
+                        PublishAuthType = "Basic",
+                        Type = "UDP",
+                        WebRTCMode = "Offer",
+
                     }).ToTomlTable()));
+                    var OffererToml = Toml.FromModel((new Utils.ForwarderConfigOut()
+                    {
+                        Address = "127.0.0.1",
+                        PublishAuthUser = randomUsername,
+                        PublishAuthPass = randomPassword,
+                        PeerPSK = randomPeerPSK,
+                        PublishEndpoint = $"wss://vz.al/anonwsmul/{randomSessionName}/wso",
+                        Port = portnumber.Text,
+                        PublishAuthType = "Basic",
+                        Type = "UDP",
+                        WebRTCMode = "Offer",
+                    }));
+                    var AnswererToml = Toml.FromModel((new Utils.ForwarderConfigOut()
+                    {
+                        Address = "127.0.0.1",
+                        PublishAuthUser = randomUsername,
+                        PublishAuthPass = randomPassword,
+                        PeerPSK = randomPeerPSK,
+                        PublishEndpoint = $"wss://vz.al/anonwsmul/{randomSessionName}/wsa",
+                        Port = portnumber.Text,
+                        PublishAuthType = "Basic",
+                        Type = "UDP",
+                        WebRTCMode = "Accept",
+                    }));
+
 
                 }
                 catch (System.Exception E)

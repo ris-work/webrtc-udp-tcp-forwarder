@@ -87,10 +87,12 @@ public static class Utils
                 ["PublishType"] = PublishType,
                 ["PublishEndpoint"] = PublishEndpoint,
                 ["PublishAuthType"] = PublishAuthType,
+                ["PublishAuthUser"] = PublishAuthUser,
                 ["PublishAuthPass"] = PublishAuthPass,
                 ["PeerAuthType"] = PeerAuthType,
                 ["PeerPSK"] = PeerPSK,
-                ["ICEServers"] = ICEServers
+                ["ICEServers"] = ICEServers,
+                
             };
         }
     }
