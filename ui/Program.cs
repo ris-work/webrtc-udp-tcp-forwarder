@@ -43,6 +43,7 @@ public static class Utils
         [JsonInclude] public string WireguardConfigName = "";
         [JsonInclude] public string ServiceConfigXmlFileName = "";
         [JsonInclude] public string ServicePowershellScript = "";
+        [JsonInclude] public int PortNumber = 0;
         public TomlTable ToTomlTable()
         {
             return new TomlTable
@@ -50,7 +51,8 @@ public static class Utils
                 ["WebRtcForwarderConfigurationFileName"] = WebRtcForwarderConfigurationFileName,
                 ["WireguardConfigName"] = WireguardConfigName,
                 ["ServiceConfigXmlFileName"] = ServiceConfigXmlFileName,
-                ["ServicePowershellScript"] = ServicePowershellScript
+                ["ServicePowershellScript"] = ServicePowershellScript,
+                ["PortNumber"] = PortNumber,
             };
         }
     }

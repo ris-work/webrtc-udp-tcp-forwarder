@@ -159,6 +159,7 @@ namespace RV.WebRTCForwarders {
                     string AddressesO = $"{Addr_8_T}.{Addr_8_16_T}.{Addr_16_24_T}.{our_suffix}/24";
                     string PeerAllowedIPsO = $"{Addr_8_T}.{Addr_8_16_T}.{Addr_16_24_T}.{their_suffix}/32";
                     string configurationT;
+                    int portInt = int.Parse(portnumber.Text);
                     string portHex = BitConverter.ToString(BitConverter.GetBytes(int.Parse(portnumber.Text))).Replace("-","");
                     string addrT6 = $"fd00:0000:0001:{portHex}::{our_suffix}/64";
                     string addrT6_allowed = $"fd00:0000:0001:{portHex}::{their_suffix}/128";
@@ -201,10 +202,46 @@ namespace RV.WebRTCForwarders {
                     string randomPassword = Wiry.Base32.Base32Encoding.Standard.GetString(randomPasswordBytes);
                     string randomSessionName = Wiry.Base32.Base32Encoding.Standard.GetString(randomSessionNameBytes);
 
+                    /* Generate WebRTC Forwarder TOML configuration */
+                    var OffererToml = Toml.FromModel((new Utils.ForwarderConfigOut()
+                    {
+                        Address = "127.0.0.1",
+                        PublishAuthUser = randomUsername,
+                        PublishAuthPass = randomPassword,
+                        PeerPSK = randomPeerPSK,
+                        PublishEndpoint = $"wss://vz.al/anonwsmul/{randomSessionName}/wso",
+                        Port = portnumber.Text,
+                        PublishAuthType = "Basic",
+                        Type = "UDP",
+                        WebRTCMode = "Offer",
+                    }).ToTomlTable());
+                    var AnswererToml = Toml.FromModel((new Utils.ForwarderConfigOut()
+                    {
+                        Address = "127.0.0.1",
+                        PublishAuthUser = randomUsername,
+                        PublishAuthPass = randomPassword,
+                        PeerPSK = randomPeerPSK,
+                        PublishEndpoint = $"wss://vz.al/anonwsmul/{randomSessionName}/wsa",
+                        Port = portnumber.Text,
+                        PublishAuthType = "Basic",
+                        Type = "UDP",
+                        WebRTCMode = "Accept",
+                    }).ToTomlTable());
+                    var ourForwarderToml = role.SelectedItem == 0 ? AnswererToml : OffererToml;
+                    var theirForwarderToml = role.SelectedItem == 1 ? AnswererToml : OffererToml;
+
                     /* Create the ZIP file */
 
                     var ZOT = new ZipOutputStream(File.Create($"{portnumber.Text}.tun.otherside.zip"));
                     ZOT.Password = random128bitsHumanFriendly;
+
+                    ZipEntry ZE_FW_T = new ZipEntry("tunnel.toml");
+                    ZE_FW_T.AESKeySize = 256;
+
+                    ZOT.PutNextEntry(ZE_FW_T);
+
+                    ZOT.Write(Encoding.UTF8.GetBytes(theirForwarderToml));
+                    ZOT.CloseEntry();
 
                     ZipEntry ZE = new ZipEntry("wg.conf");
                     ZE.AESKeySize = 256;
@@ -226,16 +263,22 @@ namespace RV.WebRTCForwarders {
                     var XW = XmlWriter.Create(ZOT);
                     XW.WriteStartElement("service");
                     XW.WriteStartElement("id");
-                    XW.WriteString($"TUNSVC-RV-{portnumber.Text}");
+                    XW.WriteString($"TUNSVC-RV-{portInt.ToString()}");
                     XW.WriteEndElement();
                     XW.WriteStartElement("name");
-                    XW.WriteString($"TUNSVC-RV-{portnumber.Text}");
+                    XW.WriteString($"TUNSVC-RV-{portInt.ToString()}");
                     XW.WriteEndElement();
                     XW.WriteStartElement("executable");
                     XW.WriteString($"powershell");
                     XW.WriteEndElement();
                     XW.WriteStartElement("arguments");
                     XW.WriteString($"-ExecutionPolicy Bypass {portnumber.Text}.service.ps1");
+                    XW.WriteEndElement();
+                    XW.WriteStartElement("workingdirectory");
+                    XW.WriteString(Path.Combine("", "tunnels", portInt.ToString()));
+                    XW.WriteEndElement();
+                    XW.WriteStartElement("description");
+                    XW.WriteString($"Secure WebRTC based end-to-end tunnel port: {portInt}.");
                     XW.WriteEndElement();
 
                     XW.WriteStartElement("log");
@@ -250,6 +293,12 @@ namespace RV.WebRTCForwarders {
                     ZE_PS.AESKeySize = 256;
                     ZE_PS.Comment = "Service Powershell Script (Win32/Win64)";
                     ZOT.CloseEntry();
+                    ZipEntry ZE_WG_T = new ZipEntry("wg.conf");
+                    ZE_WG_T.AESKeySize = 256;
+                    ZOT.PutNextEntry(ZE_WG_T);
+                    
+                    ZOT.Write(Encoding.UTF8.GetBytes(confoutTheirs.Text));
+                    ZOT.CloseEntry();
                     ZOT.PutNextEntry(ZE_PS);
                     string runCommandTheirs = role.SelectedItem == 0 ? "..\\common\\o-l.exe" : "..\\common\\a-c.exe";
                     string powershellScriptTheirs = "do {\r\n" +
@@ -261,6 +310,10 @@ namespace RV.WebRTCForwarders {
 
                     /* Finish ZIP here */
                     ZOT.CloseEntry();
+
+                    
+
+
                     ZipEntry config = new ZipEntry("config.toml");
                     config.AESKeySize = 256;
                     
@@ -280,10 +333,19 @@ namespace RV.WebRTCForwarders {
 
                     var ZOO = new ZipOutputStream(File.Create($"{portnumber.Text}.tun.ourside.zip"));
                     ZOO.Password = random128bitsHumanFriendly;
+                    
+                    ZipEntry ZE_FW_O = new ZipEntry("tunnel.toml");
+                    ZE_FW_O.AESKeySize = 256;
+
+                    ZOO.PutNextEntry(ZE_FW_O);
+                    
+                    ZOO.Write(Encoding.UTF8.GetBytes(ourForwarderToml));
+                    ZOO.CloseEntry();
+                    
                     ZipEntry ZE_PS_O = new ZipEntry($"{portnumber.Text}.service.ps1");
                     ZE_PS_O.AESKeySize = 256;
                     ZOO.PutNextEntry(ZE_PS_O);
-                    
+
                     string runCommandOurs = role.SelectedItem == 1 ? "..\\common\\o-l.exe" : "..\\common\\a-c.exe";
                     string powershellScriptOurs = "do {\r\n" +
                     $"{runCommandOurs}\r\n" +
@@ -300,16 +362,22 @@ namespace RV.WebRTCForwarders {
                     var XWO = XmlWriter.Create(ZOO);
                     XWO.WriteStartElement("service");
                     XWO.WriteStartElement("id");
-                    XWO.WriteString($"TUNSVC-RV-{portnumber.Text}");
+                    XWO.WriteString($"TUNSVC-RV-{portInt}");
                     XWO.WriteEndElement();
                     XWO.WriteStartElement("name");
-                    XWO.WriteString($"TUNSVC-RV-{portnumber.Text}");
+                    XWO.WriteString($"TUNSVC-RV-{portInt}");
                     XWO.WriteEndElement();
                     XWO.WriteStartElement("executable");
                     XWO.WriteString($"powershell");
                     XWO.WriteEndElement();
                     XWO.WriteStartElement("arguments");
                     XWO.WriteString($"-ExecutionPolicy Bypass {portnumber.Text}.ours.service.ps1");
+                    XWO.WriteEndElement();
+                    XWO.WriteStartElement("workingdirectory");
+                    XWO.WriteString(Path.Combine("", "tunnels", portInt.ToString()));
+                    XWO.WriteEndElement();
+                    XWO.WriteStartElement("description");
+                    XWO.WriteString($"Secure WebRTC based end-to-end tunnel port: {portInt}.");
                     XWO.WriteEndElement();
 
                     XWO.WriteStartElement("log");
@@ -323,10 +391,13 @@ namespace RV.WebRTCForwarders {
                     ZOO.CloseEntry();
 
                     ZipEntry ZE_WG_O = new ZipEntry("wg.conf");
-                    ZOO.PutNextEntry(ZE_WG_O);
                     ZE_WG_O.AESKeySize = 256;
+                    ZOO.PutNextEntry(ZE_WG_O);
+                    
                     ZOO.Write(Encoding.UTF8.GetBytes(confout.Text));
                     ZOO.CloseEntry();
+
+                    
 
                     ZipEntry ZE_config_O = new ZipEntry("config.toml");
                     ZE_config_O.AESKeySize = 256;
@@ -335,12 +406,14 @@ namespace RV.WebRTCForwarders {
                     Utils.ConfigOut coo = new Utils.ConfigOut() {
                         ServiceConfigXmlFileName = "rvtunsvc.xml",
                         ServicePowershellScript = $"{portnumber.Text}.service.ps1",
-                        WebRtcForwarderConfigurationFileName = "",
-                        WireguardConfigName = "wg.conf"
+                        WebRtcForwarderConfigurationFileName = "tunnel.toml",
+                        WireguardConfigName = "wg.conf",
+                        PortNumber = portInt
                     };
                     string configout = (Toml.FromModel(coo.ToTomlTable()));
                     ZOO.Write(Encoding.UTF8.GetBytes(configout));
                     ZOO.Flush();
+                    
                     ZOO.CloseEntry();
                     ZOO.Close();
 
@@ -357,30 +430,7 @@ namespace RV.WebRTCForwarders {
                         WebRTCMode = "Offer",
 
                     }).ToTomlTable()));
-                    var OffererToml = Toml.FromModel((new Utils.ForwarderConfigOut()
-                    {
-                        Address = "127.0.0.1",
-                        PublishAuthUser = randomUsername,
-                        PublishAuthPass = randomPassword,
-                        PeerPSK = randomPeerPSK,
-                        PublishEndpoint = $"wss://vz.al/anonwsmul/{randomSessionName}/wso",
-                        Port = portnumber.Text,
-                        PublishAuthType = "Basic",
-                        Type = "UDP",
-                        WebRTCMode = "Offer",
-                    }));
-                    var AnswererToml = Toml.FromModel((new Utils.ForwarderConfigOut()
-                    {
-                        Address = "127.0.0.1",
-                        PublishAuthUser = randomUsername,
-                        PublishAuthPass = randomPassword,
-                        PeerPSK = randomPeerPSK,
-                        PublishEndpoint = $"wss://vz.al/anonwsmul/{randomSessionName}/wsa",
-                        Port = portnumber.Text,
-                        PublishAuthType = "Basic",
-                        Type = "UDP",
-                        WebRTCMode = "Accept",
-                    }));
+
 
 
                 }
