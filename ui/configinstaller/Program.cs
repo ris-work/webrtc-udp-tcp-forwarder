@@ -7,6 +7,14 @@ using RV.WebRTCForwarders;
 using ICSharpCode.SharpZipLib.Zip;
 using System.Text.Json.Serialization;
 using Tomlyn.Model;
+using Microsoft.VisualBasic.FileIO;
+using System.Diagnostics;
+
+public static class Config {
+    //public static string InstallationRoot = Path.Combine(SpecialDirectories.ProgramFiles, "rv", "rvtunsvc");
+    public static string InstallationRoot = Environment.CurrentDirectory;
+}
+
 public static class ConfigInstaller
 {
     public static int Main(string[] args)
@@ -50,7 +58,33 @@ public static class ConfigInstaller
             string configuration = (new StreamReader(config_file)).ReadToEnd();
             MessageBox.Query("Config", $"{configuration}", "OK");
             ConfigIn ci = ConfigIn.FromTomlTable(Tomlyn.Toml.ToModel(configuration));
-            MessageBox.Query("Config Read: ", $"{ci.ServicePowershellScript}", "OK");
+            MessageBox.Query("Config Read: ", $"{ci.PortNumber}", "OK");
+            var TunnelsRoot = Path.Combine(Config.InstallationRoot, "tunnels");
+            Directory.CreateDirectory(Path.Combine(TunnelsRoot, ci.PortNumber.ToString()));
+            FastZip FZ = new FastZip() {
+                Password = EKF.Key
+            };
+            FZ.ExtractZip(args[0], Path.Combine(TunnelsRoot, ci.PortNumber.ToString()), "*");
+
+            ProcessStartInfo PSI_WINSW = new ProcessStartInfo()
+            {
+                FileName = "winsw.exe"
+            };
+            PSI_WINSW.ArgumentList.Add("install");
+            PSI_WINSW.ArgumentList.Add(Path.Combine(TunnelsRoot, ci.PortNumber.ToString()));
+            var PS_WINSW = new System.Diagnostics.Process();
+            PS_WINSW.StartInfo = PSI_WINSW;
+            PS_WINSW.Start();
+
+            ProcessStartInfo PSI_WG_INST = new ProcessStartInfo() { 
+                FileName = "wireguard.exe"
+            };
+            PSI_WG_INST.ArgumentList.Add("/installtunnelservice");
+            PSI_WG_INST.ArgumentList.Add(Path.Combine(TunnelsRoot, ci.PortNumber.ToString()));
+            var PS_WG_INST = new System.Diagnostics.Process();
+            PS_WG_INST.StartInfo = PSI_WG_INST;
+            Process.Start(PSI_WG_INST);
+
         }
         catch (Exception E)
         {
@@ -70,6 +104,7 @@ public class ConfigIn
     [JsonInclude] public string WireguardConfigName = "";
     [JsonInclude] public string ServiceConfigXmlFileName = "";
     [JsonInclude] public string ServicePowershellScript = "";
+    [JsonInclude] public int PortNumber = 0;
     public TomlTable ToTomlTable()
     {
         return new TomlTable
@@ -77,7 +112,8 @@ public class ConfigIn
             ["WebRtcForwarderConfigurationFileName"] = WebRtcForwarderConfigurationFileName,
             ["WireguardConfigName"] = WireguardConfigName,
             ["ServiceConfigXmlFileName"] = ServiceConfigXmlFileName,
-            ["ServicePowershellScript"] = ServicePowershellScript
+            ["ServicePowershellScript"] = ServicePowershellScript,
+            ["PortNumber"] = PortNumber,
         };
     }
     public static ConfigIn FromTomlTable(TomlTable TT) {
@@ -86,7 +122,8 @@ public class ConfigIn
             WebRtcForwarderConfigurationFileName = (string)TT["WebRtcForwarderConfigurationFileName"],
             WireguardConfigName = (string)TT["WireguardConfigName"],
             ServicePowershellScript = (string)TT["ServicePowershellScript"],
-            ServiceConfigXmlFileName = (string)TT["ServiceConfigXmlFileName"]
+            ServiceConfigXmlFileName = (string)TT["ServiceConfigXmlFileName"],
+            PortNumber = (int)TT["PortNumber"]
         };
     }
 }

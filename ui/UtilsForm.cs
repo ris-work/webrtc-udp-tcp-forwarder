@@ -13,6 +13,7 @@
 namespace RV.WebRTCForwarders {
     using Microsoft.VisualBasic.FileIO;
     using System.Net;
+    using System.Security.AccessControl;
     using System.Text;
     using Terminal.Gui;
     
@@ -29,9 +30,29 @@ namespace RV.WebRTCForwarders {
 
 
             instsoftware.Accept += (_, _) => {
-               
+
                 try
                 {
+                    Directory.CreateDirectory(Path.Combine(SpecialDirectories.Programs, "rv"));
+                } catch (Exception _) { }
+                try
+                {
+                    Directory.CreateDirectory(Path.Combine(SpecialDirectories.Programs, "rv", "rvtunsvc"));
+                } catch (Exception) { }
+                try
+                {
+                    Directory.CreateDirectory(Path.Combine(SpecialDirectories.Programs, "rv", "rvtunsvc", "tunnels"));
+                } catch(Exception){ }
+                try {
+                    DirectoryInfo DI = new DirectoryInfo(Path.Combine(SpecialDirectories.Programs, "rv", "rvtunsvc", "tunnels"));
+                    var DA2 = DI.GetAccessControl();
+                    var DA = new DirectorySecurity();
+                    DA.SetAccessRuleProtection(true, false);
+                    var FAAdmin = new FileSystemAccessRule("Administrators", FileSystemRights.ReadAndExecute, AccessControlType.Allow);
+                    var FASystem = new FileSystemAccessRule("SYSTEM", FileSystemRights.FullControl, AccessControlType.Allow);
+                    DA.AddAccessRule(FAAdmin);
+                    DA.AddAccessRule(FASystem);
+                    DI.SetAccessControl(DA);
                     Directory.CreateDirectory(root);
                 }
                 catch (System.Exception E)
@@ -56,7 +77,7 @@ namespace RV.WebRTCForwarders {
                     output_winsw.CopyTo(winsw_exe);
                     winsw_exe.Close();
                     output_winsw.Close();
-                    var output_configinst = HC.GetStreamAsync("https://vz.al/chromebook/webrtc-udp-tcp-forwarder/uv/configinst.exe").GetAwaiter().GetResult();
+                    var output_configinst = HC.GetStreamAsync("https://vz.al/chromebook/webrtc-udp-tcp-forwarder/uv/configinstaller.exe").GetAwaiter().GetResult();
                     var configinst_exe = File.Create(Path.Combine(root, "configinstaller.exe"));
                     output_configinst.CopyTo(configinst_exe);
                     configinst_exe.Close();

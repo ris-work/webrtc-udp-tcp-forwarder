@@ -243,7 +243,7 @@ namespace RV.WebRTCForwarders {
                     ZOT.Write(Encoding.UTF8.GetBytes(theirForwarderToml));
                     ZOT.CloseEntry();
 
-                    ZipEntry ZE = new ZipEntry("wg.conf");
+                    ZipEntry ZE = new ZipEntry($"wg.rv.{portInt}.conf");
                     ZE.AESKeySize = 256;
                     ZE.Comment = "Wireguard configuration";
                     //ZE.IsCrypted = true;
@@ -293,7 +293,7 @@ namespace RV.WebRTCForwarders {
                     ZE_PS.AESKeySize = 256;
                     ZE_PS.Comment = "Service Powershell Script (Win32/Win64)";
                     ZOT.CloseEntry();
-                    ZipEntry ZE_WG_T = new ZipEntry("wg.conf");
+                    ZipEntry ZE_WG_T = new ZipEntry($"wg.rv.{portInt}.conf");
                     ZE_WG_T.AESKeySize = 256;
                     ZOT.PutNextEntry(ZE_WG_T);
                     
@@ -322,7 +322,7 @@ namespace RV.WebRTCForwarders {
                         ServiceConfigXmlFileName = "rvtunsvc.xml",
                         ServicePowershellScript = $"{portnumber.Text}.service.ps1",
                         WebRtcForwarderConfigurationFileName = "",
-                        WireguardConfigName = "wg.conf"
+                        WireguardConfigName = $"wg.rv.{portInt}.conf"
                     };
                     string config_toml = Toml.FromModel(co.ToTomlTable());
                     MessageBox.Query("TOML", config_toml, "OK");
@@ -390,7 +390,7 @@ namespace RV.WebRTCForwarders {
                     XWO.Close();
                     ZOO.CloseEntry();
 
-                    ZipEntry ZE_WG_O = new ZipEntry("wg.conf");
+                    ZipEntry ZE_WG_O = new ZipEntry($"wg.rv.{portInt}.conf");
                     ZE_WG_O.AESKeySize = 256;
                     ZOO.PutNextEntry(ZE_WG_O);
                     
@@ -407,7 +407,7 @@ namespace RV.WebRTCForwarders {
                         ServiceConfigXmlFileName = "rvtunsvc.xml",
                         ServicePowershellScript = $"{portnumber.Text}.service.ps1",
                         WebRtcForwarderConfigurationFileName = "tunnel.toml",
-                        WireguardConfigName = "wg.conf",
+                        WireguardConfigName = $"wg.rv.{portInt}.conf",
                         PortNumber = portInt
                     };
                     string configout = (Toml.FromModel(coo.ToTomlTable()));
