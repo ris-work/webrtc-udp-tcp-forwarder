@@ -259,27 +259,3 @@ $a = @{
 }
 New-ItemProperty -Force @a
 
-#FILE ASSOCIATION
-#LOCAL USER
-
-mkdir "HKCU:\Software\Classes\$extension\$appname"
-mkdir "HKCU:\Software\Classes\$extension\$appname\ShellNew"
-$a = @{
-    Path = "HKCU:\Software\Classes\$extension\$appname\ShellNew"
-    Name = "FileName"
-    PropertyType = "String"
-    Value = "$pwd\new.logs.sqlite3$extension"
-}
-New-ItemProperty -Force @a
-
-#SYSTEM
-
-mkdir "HKCR:\$extension\$appname"
-mkdir "HKCR:\$extension\$appname\ShellNew"
-$a = @{
-    Path = "HKCR:\Software\Classes\$extension\$appname\ShellNew"
-    Name = "FileName"
-    PropertyType = "String"
-    Value = "$pwd\new.logs.sqlite3$extension"
-}
-New-ItemProperty -Force @a

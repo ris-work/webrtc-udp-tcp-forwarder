@@ -25,8 +25,8 @@ namespace RV.WebRTCForwarders {
             instsoftware.ShadowStyle = ShadowStyle.Transparent;
             instsoftware.SetBorderStyle(LineStyle.Rounded );
             instsoftware.Border.BorderStyle = LineStyle.Single;
-            //var root = Path.Combine(SpecialDirectories.Programs, "rv", "rvtunsvc");
-            var root = Environment.CurrentDirectory;
+            var root = Path.Combine(SpecialDirectories.Programs, "rv", "rvtunsvc");
+            //var root = Environment.CurrentDirectory;
 
 
             instsoftware.Accept += (_, _) => {
@@ -87,7 +87,7 @@ namespace RV.WebRTCForwarders {
                 }
                 catch (System.Exception E)
                 {
-                    MessageBox.Query("Exception", $"E.ToString()", "Ok!");
+                    MessageBox.Query("Exception", $"{E.ToString()}", "Ok!");
                 }
 
             };
@@ -110,9 +110,9 @@ namespace RV.WebRTCForwarders {
             instwg.Accept += (_, _) => {
                 HttpClient HC = new HttpClient();
                 var output_wg = HC.GetStreamAsync("https://download.wireguard.com/windows-client/wireguard-installer.exe").GetAwaiter().GetResult();
-                var instwg = File.Create(Path.Combine(root, "7zinst.exe"));
+                var instwg = File.Create(Path.Combine(root, "wginst.exe"));
                 output_wg.CopyTo(instwg);
-                MessageBox.Query("LICENSE", "GNU MIT?\r\nClose if you disagree, [Esc] to agree", "Agree");
+                MessageBox.Query("LICENSE", "MIT?\r\nClose if you disagree, [Esc] to agree", "Agree");
                 output_wg.Close();
                 instwg.Close();
                 try
