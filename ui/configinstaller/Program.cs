@@ -105,7 +105,7 @@ public static class ConfigInstaller
                     UseShellExecute = true,
                 };
                 PSI_WG_INST.ArgumentList.Add("/installtunnelservice");
-                PSI_WG_INST.ArgumentList.Add(Path.Combine(TunnelsRoot, ci.PortNumber.ToString()));
+                PSI_WG_INST.ArgumentList.Add(Path.Combine(TunnelsRoot, ci.PortNumber.ToString(), $"wg.rv.{ci.PortNumber.ToString()}.conf"));
                 var PS_WG_INST = new System.Diagnostics.Process();
                 PS_WG_INST.StartInfo = PSI_WG_INST;
                 Process.Start(PSI_WG_INST);
