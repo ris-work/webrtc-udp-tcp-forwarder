@@ -12,7 +12,7 @@ using System.Diagnostics;
 
 public static class Config {
     //public static string InstallationRoot = Path.Combine(SpecialDirectories.ProgramFiles, "rv", "rvtunsvc");
-    public static string InstallationRoot = Environment.CurrentDirectory;
+    public static string InstallationRoot = Path.GetDirectoryName(System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName);
 }
 
 public static class ConfigInstaller
@@ -26,6 +26,7 @@ public static class ConfigInstaller
             MessageBox.Query("Association", "Associating files with myself, an argument is necessary otherwise.", "Ok");
             return 1;
         }
+        MessageBox.Query("Installation", $"{Config.InstallationRoot}", "Ok");
         EnterKeyForm EKF = new EnterKeyForm();
         Application.Run(EKF);
 
@@ -64,31 +65,49 @@ public static class ConfigInstaller
             FastZip FZ = new FastZip() {
                 Password = EKF.Key
             };
-            FZ.ExtractZip(args[0], Path.Combine(TunnelsRoot, ci.PortNumber.ToString()), "*");
-
-            ProcessStartInfo PSI_WINSW = new ProcessStartInfo()
+            try
             {
-                FileName = "winsw.exe"
-            };
-            PSI_WINSW.ArgumentList.Add("install");
-            PSI_WINSW.ArgumentList.Add(Path.Combine(TunnelsRoot, ci.PortNumber.ToString()));
-            var PS_WINSW = new System.Diagnostics.Process();
-            PS_WINSW.StartInfo = PSI_WINSW;
-            PS_WINSW.Start();
+                FZ.ExtractZip(args[0], Path.Combine(TunnelsRoot, ci.PortNumber.ToString()), ".*");
+            } catch (Exception E) {
+                MessageBox.Query("Exception when extracting", $"{E.ToString()}\r\n{E.StackTrace}");
+            }
 
-            ProcessStartInfo PSI_WG_INST = new ProcessStartInfo() { 
-                FileName = "wireguard.exe"
-            };
-            PSI_WG_INST.ArgumentList.Add("/installtunnelservice");
-            PSI_WG_INST.ArgumentList.Add(Path.Combine(TunnelsRoot, ci.PortNumber.ToString()));
-            var PS_WG_INST = new System.Diagnostics.Process();
-            PS_WG_INST.StartInfo = PSI_WG_INST;
-            Process.Start(PSI_WG_INST);
+            try
+            {
+                ProcessStartInfo PSI_WINSW = new ProcessStartInfo()
+                {
+                    FileName = "winsw.exe"
+                };
+                PSI_WINSW.ArgumentList.Add("install");
+                PSI_WINSW.ArgumentList.Add(Path.Combine(TunnelsRoot, ci.PortNumber.ToString()));
+                var PS_WINSW = new System.Diagnostics.Process();
+                PS_WINSW.StartInfo = PSI_WINSW;
+                PS_WINSW.Start();
+            }catch (Exception E)
+            {
+                MessageBox.Query("WinSW failed", $"{E.ToString()}\r\n{E.StackTrace}");
+            }
+
+            try
+            {
+                ProcessStartInfo PSI_WG_INST = new ProcessStartInfo()
+                {
+                    FileName = "wireguard.exe"
+                };
+                PSI_WG_INST.ArgumentList.Add("/installtunnelservice");
+                PSI_WG_INST.ArgumentList.Add(Path.Combine(TunnelsRoot, ci.PortNumber.ToString()));
+                var PS_WG_INST = new System.Diagnostics.Process();
+                PS_WG_INST.StartInfo = PSI_WG_INST;
+                Process.Start(PSI_WG_INST);
+            }catch(Exception E)
+            {
+                MessageBox.Query("Wireguard tunnel installation exception", $"{ E.ToString() }\r\n{E.StackTrace}");
+            }
 
         }
         catch (Exception E)
         {
-            MessageBox.Query("Exception", $"{E.ToString()}");
+            MessageBox.Query("Exception", $"{E.ToString()}\r\n{E.StackTrace}");
         }
 
         return 0;
@@ -123,7 +142,7 @@ public class ConfigIn
             WireguardConfigName = (string)TT["WireguardConfigName"],
             ServicePowershellScript = (string)TT["ServicePowershellScript"],
             ServiceConfigXmlFileName = (string)TT["ServiceConfigXmlFileName"],
-            PortNumber = (int)TT["PortNumber"]
+            PortNumber = (int)((long)TT["PortNumber"]),
         };
     }
 }

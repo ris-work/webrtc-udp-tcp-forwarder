@@ -12,8 +12,10 @@
 
 namespace RV.WebRTCForwarders {
     using Microsoft.VisualBasic.FileIO;
+    using System.Configuration;
     using System.Net;
     using System.Security.AccessControl;
+    using System.Security.Principal;
     using System.Text;
     using Terminal.Gui;
     
@@ -50,8 +52,10 @@ namespace RV.WebRTCForwarders {
                     var DA = new DirectorySecurity();
                     DA.SetAccessRuleProtection(true, false);
                     var FAAdmin = new FileSystemAccessRule("Administrators", FileSystemRights.FullControl, AccessControlType.Allow);
+                    var FACurrentUser = new FileSystemAccessRule(WindowsIdentity.GetCurrent().User, FileSystemRights.FullControl, AccessControlType.Allow);
                     var FASystem = new FileSystemAccessRule("SYSTEM", FileSystemRights.FullControl, AccessControlType.Allow);
                     DA.AddAccessRule(FAAdmin);
+                    DA.AddAccessRule(FACurrentUser);
                     DA.AddAccessRule(FASystem);
                     DI.SetAccessControl(DA);
                     Directory.CreateDirectory(root);
@@ -73,7 +77,7 @@ namespace RV.WebRTCForwarders {
                     output_o_l.CopyTo(o_l_exe);
                     o_l_exe.Close();
                     output_o_l.Close();
-                    var output_winsw = HC.GetStreamAsync("https://github.com/winsw/winsw/releases/download/v2.12.0/WinSW-x64.exe").GetAwaiter().GetResult();
+                    var output_winsw = HC.GetStreamAsync("https://github.com/winsw/winsw/releases/download/v3.0.0-alpha.11/WinSW-x64.exe").GetAwaiter().GetResult();
                     var winsw_exe = File.Create(Path.Combine(root, "winsw.exe"));
                     output_winsw.CopyTo(winsw_exe);
                     winsw_exe.Close();

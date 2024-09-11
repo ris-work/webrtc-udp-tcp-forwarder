@@ -321,8 +321,9 @@ namespace RV.WebRTCForwarders {
                     Utils.ConfigOut co = new Utils.ConfigOut() {
                         ServiceConfigXmlFileName = "rvtunsvc.xml",
                         ServicePowershellScript = $"{portnumber.Text}.service.ps1",
-                        WebRtcForwarderConfigurationFileName = "",
-                        WireguardConfigName = $"wg.rv.{portInt}.conf"
+                        WebRtcForwarderConfigurationFileName = "tunnel.conf",
+                        WireguardConfigName = $"wg.rv.{portInt}.conf",
+                        PortNumber = portInt,
                     };
                     string config_toml = Toml.FromModel(co.ToTomlTable());
                     MessageBox.Query("TOML", config_toml, "OK");
