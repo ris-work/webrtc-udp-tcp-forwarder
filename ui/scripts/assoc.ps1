@@ -14,7 +14,7 @@ $a = @{
     PropertyType = "String"
     Value = ""
 }
-New-ItemProperty @a
+New-ItemProperty @a -Force
 
 mkdir "HKCR:\Applications\$exename"
 $a = @{
@@ -27,7 +27,7 @@ New-ItemProperty -Force @a
 
 mkdir "HKCR:\Applications\$exename\DefaultIcon"
 $a = @{
-    Path = "HKCR:\Applications\$exename\DefaultIcon\(default)"
+    Path = "HKCR:\Applications\$exename\DefaultIcon\"
     Name = "(default)"
     PropertyType = "String"
     Value = "$working_directory\$iconpath"
@@ -39,7 +39,7 @@ $a = @{
     Path = "HKCR:\Applications\$exename\SupportedTypes\"
     Name = "$extension"
     PropertyType = "String"
-    Value = ""
+    #Value = ""
 }
 New-ItemProperty -Force @a
 mkdir "HKCR:\Applications\$exename\shell"
@@ -154,7 +154,7 @@ $a = @{
     Path = "HKCU:\Software\Classes\Applications\$exename\$exename"
     Name = "(default)"
     PropertyType = "String"
-    Value = ""
+    #Value = ""
     #Value = "$working_directory\$exename"
 }
 New-ItemProperty -Force @a
@@ -261,7 +261,7 @@ New-ItemProperty -Force @a
 
 
 
-
+mkdir "HKLM:\Software\Classes\$extension"
 mkdir "HKLM:\Software\Classes\$extension\DefaultIcon"
 $a = @{
     Path = "HKLM:\Software\Classes\$extension\DefaultIcon\"
@@ -271,32 +271,120 @@ $a = @{
 }
 New-ItemProperty -Force @a
 
-
-mkdir "HKLM:\Software\Classes\$appname\DefaultIcon"
+mkdir "HKCR:\$extension"
+mkdir "HKCR:\$extension\DefaultIcon"
 $a = @{
-    Path = "HKLM:\Software\Classes\$appname\DefaultIcon\"
+    Path = "HKCR:\$extension\DefaultIcon\"
     Name = "(default)"
     PropertyType = "String"
     Value = "$working_directory\$iconpath"
 }
 New-ItemProperty -Force @a
 
-mkdir "HKLM:\Software\Classes\$appname\shell"
-mkdir "HKLM:\Software\Classes\$appname\shell\open"
-mkdir "HKLM:\Software\Classes\$appname\shell\open\command"
+mkdir "HKLM:\Software\Classes\$extension\"
+mkdir "HKLM:\Software\Classes\$extension\DefaultIcon"
+$a = @{
+    Path = "HKLM:\Software\Classes\$extension\DefaultIcon\"
+    Name = "(default)"
+    PropertyType = "String"
+    Value = "$working_directory\$iconpath"
+}
+New-ItemProperty -Force @a
+
+mkdir "HKLM:\Software\Classes\$extension\shell"
+mkdir "HKLM:\Software\Classes\$extension\shell\open"
+mkdir "HKLM:\Software\Classes\$extension\shell\open\command"
 
 $a = @{
-    Path = "HKLM:\Software\Classes\$appname\shell\open\command"
+    Path = "HKLM:\Software\Classes\$extension\shell\open\command"
     Name = "(default)"
     PropertyType = "String"
     Value = "`"$working_directory\$exename`" `"%1`""
 }
 New-ItemProperty -Force @a
 $a = @{
-    Path = "HKLM:\Software\Classes\$appname\"
+    Path = "HKLM:\Software\Classes\$extension\"
     Name = "(default)"
     PropertyType = "String"
     Value = "$formatdesc"
 }
 New-ItemProperty -Force @a
 
+
+mkdir "HKCR:\$extension\"
+mkdir "HKCR:\$extension\DefaultIcon"
+$a = @{
+    Path = "HKCR:\$extension\DefaultIcon\"
+    Name = "(default)"
+    PropertyType = "String"
+    Value = "$working_directory\$iconpath"
+}
+New-ItemProperty -Force @a
+
+mkdir "HKCR:\$extension\shell"
+mkdir "HKCR:\$extension\shell\open"
+mkdir "HKCR:\$extension\shell\open\command"
+
+$a = @{
+    Path = "HKCR:\$extension\shell\open\command"
+    Name = "(default)"
+    PropertyType = "String"
+    Value = "`"$working_directory\$exename`" `"%1`""
+}
+New-ItemProperty -Force @a
+$a = @{
+    Path = "HKCR:\$extension\"
+    Name = "(default)"
+    PropertyType = "String"
+    Value = "$formatdesc"
+}
+New-ItemProperty -Force @a
+
+
+mkdir "HKLM:\Software\Classes\Applications\$exename"
+$a = @{
+    Path = "HKLM:\Software\Classes\Applications\$exename\"
+    Name = "(default)"
+    PropertyType = "String"
+    #Value = ""
+    #Value = "$working_directory\$exename"
+}
+New-ItemProperty -Force @a
+
+mkdir "HKLM:\Software\Classes\Applications\$exename\DefaultIcon"
+$a = @{
+    Path = "HKLM:\Software\Classes\Applications\$exename\DefaultIcon\"
+    Name = "(default)"
+    PropertyType = "String"
+    Value = "$working_directory\$iconpath"
+}
+New-ItemProperty -Force @a
+
+mkdir "HKLM:\Software\Classes\Applications\$exename\SupportedTypes"
+$a = @{
+    Path = "HKLM:\Software\Classes\Applications\$exename\SupportedTypes\"
+    Name = "$extension"
+    PropertyType = "String"
+    Value = ""
+}
+New-ItemProperty -Force @a
+mkdir "HKLM:\Software\Classes\Applications\$exename\shell"
+mkdir "HKLM:\Software\Classes\Applications\$exename\shell\open"
+mkdir "HKLM:\Software\Classes\Applications\$exename\shell\open\command"
+
+$a = @{
+    Path = "HKLM:\Software\Classes\Applications\$exename\shell\open\command"
+    Name = "(default)"
+    PropertyType = "String"
+    Value = "`"$working_directory\$exename`" `"%1`""
+}
+New-ItemProperty -Force @a
+
+mkdir "HKLM:\software\microsoft\windows\CurrentVersion\App Paths\$exename"
+$a = @{
+    Path = "HKCU:\software\microsoft\windows\CurrentVersion\App Paths\$exename"
+    Name = "(default)"
+    PropertyType = "String"
+    #Value = ""
+}
+New-ItemProperty @a -Force

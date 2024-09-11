@@ -13,6 +13,7 @@ using System.Management.Automation;
 
 
 var a = Assembly.GetExecutingAssembly();
+//System
 Console.WriteLine(a);
 if (args.Length > 0)
 {
@@ -108,7 +109,7 @@ public static class Utils
         Directory.SetCurrentDirectory(ROOT);
         string ScriptPrelude = "$exename = 'configinstaller.exe'\r\n" +
             "$extension = '.rvtunnelconfiguration'\r\n" +
-            $"$iconpath = 'configinstaller.exe'\r\n" +
+            $"$iconpath = 'configinstaller.exe,0'\r\n" +
             "$formatdesc = 'Tunnel Configuration File (ZIP, encrypted)'\r\n" +
             "$appname = 'Tunnel Configuration Installer'\r\n";
         var a = Assembly.GetExecutingAssembly();
@@ -119,10 +120,12 @@ public static class Utils
                 Directory.SetCurrentDirectory(ROOT);
                 var PSH = PowerShell.Create(RunspaceMode.NewRunspace);
                 //MessageBox.Query("Script", ScriptPrelude+Script, "Ok");
-                PSH.AddScript($"$working_directory = '{ROOT}'\r\nSet-Location '{ROOT}'\r\n" + ScriptPrelude + "\r\n" + Script);
+                PSH.AddScript($"$working_directory = '{ROOT}'\r\nSet-Location '{ROOT}'\r\n" + ScriptPrelude + "\r\n" + Script + "\r\necho \"Done\"");
                 //MessageBox.Query("Association", "Association script will run now", "Ok");
                 var output = PSH.Invoke();
                 //MessageBox.Query("Association script", $"Script exited:\r\n{String.Join("", output.Select(e => e.ToString()))}");
+                string aggout = output.Aggregate("", (a, b) => a +"\r\n"+ b.ToString(), agg => agg.ToString());
+                File.WriteAllText($"{ROOT}\\instlog.log", aggout);
             }
             catch (Exception E)
             {
