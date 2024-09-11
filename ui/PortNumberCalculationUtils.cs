@@ -272,11 +272,11 @@ namespace RV.WebRTCForwarders {
                     XW.WriteString($"powershell");
                     XW.WriteEndElement();
                     XW.WriteStartElement("arguments");
-                    XW.WriteString($"-ExecutionPolicy Bypass {portnumber.Text}.service.ps1");
+                    XW.WriteString($"-ExecutionPolicy Bypass ./{portnumber.Text}.service.ps1");
                     XW.WriteEndElement();
-                    XW.WriteStartElement("workingdirectory");
-                    XW.WriteString(Path.Combine("", "tunnels", portInt.ToString()));
-                    XW.WriteEndElement();
+                    //XW.WriteStartElement("workingdirectory");
+                    //XW.WriteString(Path.Combine("", "tunnels", portInt.ToString()));
+                    //XW.WriteEndElement();
                     XW.WriteStartElement("description");
                     XW.WriteString($"Secure WebRTC based end-to-end tunnel port: {portInt}.");
                     XW.WriteEndElement();
@@ -300,7 +300,7 @@ namespace RV.WebRTCForwarders {
                     ZOT.Write(Encoding.UTF8.GetBytes(confoutTheirs.Text));
                     ZOT.CloseEntry();
                     ZOT.PutNextEntry(ZE_PS);
-                    string runCommandTheirs = role.SelectedItem == 0 ? "..\\common\\o-l.exe" : "..\\common\\a-c.exe";
+                    string runCommandTheirs = role.SelectedItem == 0 ? "..\\..\\o-l.exe" : "..\\..\\a-c.exe";
                     string powershellScriptTheirs = "do {\r\n" +
                     $"{runCommandTheirs}\r\n" +
                     $"Start-Sleep -Seconds 2\r\n" +
@@ -332,7 +332,7 @@ namespace RV.WebRTCForwarders {
                     ZOT.CloseEntry();
                     ZOT.Close();
 
-                    var ZOO = new ZipOutputStream(File.Create($"{portnumber.Text}.tun.ourside.zip"));
+                    var ZOO = new ZipOutputStream(File.Create($"./{portnumber.Text}.tun.ourside.zip"));
                     ZOO.Password = random128bitsHumanFriendly;
                     
                     ZipEntry ZE_FW_O = new ZipEntry("tunnel.toml");
@@ -347,7 +347,7 @@ namespace RV.WebRTCForwarders {
                     ZE_PS_O.AESKeySize = 256;
                     ZOO.PutNextEntry(ZE_PS_O);
 
-                    string runCommandOurs = role.SelectedItem == 1 ? "..\\common\\o-l.exe" : "..\\common\\a-c.exe";
+                    string runCommandOurs = role.SelectedItem == 1 ? "..\\..\\o-l.exe" : "..\\..\\a-c.exe";
                     string powershellScriptOurs = "do {\r\n" +
                     $"{runCommandOurs}\r\n" +
                     $"Start-Sleep -Seconds 2\r\n" +
@@ -374,9 +374,9 @@ namespace RV.WebRTCForwarders {
                     XWO.WriteStartElement("arguments");
                     XWO.WriteString($"-ExecutionPolicy Bypass {portnumber.Text}.ours.service.ps1");
                     XWO.WriteEndElement();
-                    XWO.WriteStartElement("workingdirectory");
-                    XWO.WriteString(Path.Combine("", "tunnels", portInt.ToString()));
-                    XWO.WriteEndElement();
+                    //XWO.WriteStartElement("workingdirectory");
+                    //XWO.WriteString(Path.Combine("", "tunnels", portInt.ToString()));
+                    //XWO.WriteEndElement();
                     XWO.WriteStartElement("description");
                     XWO.WriteString($"Secure WebRTC based end-to-end tunnel port: {portInt}.");
                     XWO.WriteEndElement();
