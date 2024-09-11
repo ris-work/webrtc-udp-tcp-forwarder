@@ -86,8 +86,34 @@ public static class ConfigInstaller
                 var PS_WINSW = new System.Diagnostics.Process();
                 PS_WINSW.StartInfo = PSI_WINSW;
                 PS_WINSW.Start();
-                var PS_WINSW_stderr = PS_WINSW.StandardError.ReadToEnd();
-                var PS_WINSW_stdout = PS_WINSW.StandardOutput.ReadToEnd();
+                ProcessStartInfo PSI_WINSW_STARTI = new ProcessStartInfo()
+                {
+                    FileName = "winsw.exe",
+                    RedirectStandardError = true,
+                    RedirectStandardOutput = true,
+                };
+                PSI_WINSW_STARTI.ArgumentList.Add("start");
+                PSI_WINSW_STARTI.ArgumentList.Add(Path.Combine(TunnelsRoot, ci.PortNumber.ToString(), "rvtunsvc.xml"));
+                var PS_WINSW_START = new System.Diagnostics.Process();
+                PS_WINSW_START.StartInfo = PSI_WINSW_STARTI;
+                PS_WINSW_START.Start();
+                ProcessStartInfo PSI_WINSW_REFRESHI = new ProcessStartInfo()
+                {
+                    FileName = "winsw.exe",
+                    RedirectStandardError = true,
+                    RedirectStandardOutput = true,
+                };
+                PSI_WINSW_REFRESHI.ArgumentList.Add("refresh");
+                PSI_WINSW_REFRESHI.ArgumentList.Add(Path.Combine(TunnelsRoot, ci.PortNumber.ToString(), "rvtunsvc.xml"));
+                var PS_WINSW_REFRESH = new System.Diagnostics.Process();
+                PS_WINSW_REFRESH.StartInfo = PSI_WINSW_REFRESHI;
+                PS_WINSW_REFRESH.Start();
+                var PS_WINSW_stderr = PS_WINSW.StandardError.ReadToEnd() + Environment.NewLine 
+                    + PS_WINSW_START.StandardError.ReadToEnd() + Environment.NewLine 
+                    + PS_WINSW_REFRESH.StandardError.ReadToEnd();
+                var PS_WINSW_stdout = PS_WINSW.StandardOutput.ReadToEnd() + Environment.NewLine
+                    + PS_WINSW_START.StandardOutput.ReadToEnd() + Environment.NewLine
+                    + PS_WINSW_REFRESH.StandardOutput.ReadToEnd();
                 MessageBox.Query("Information", $"WinSW returned (stdout, stderr): \r\n" +
                     $" {PS_WINSW_stdout}, {PS_WINSW_stderr}", "Ok");
             }

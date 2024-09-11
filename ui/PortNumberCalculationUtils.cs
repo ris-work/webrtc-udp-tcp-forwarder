@@ -377,7 +377,7 @@ namespace RV.WebRTCForwarders {
                     XWO.WriteString($"powershell");
                     XWO.WriteEndElement();
                     XWO.WriteStartElement("arguments");
-                    XWO.WriteString($"-ExecutionPolicy Bypass {portnumber.Text}.ours.service.ps1");
+                    XWO.WriteString($"-ExecutionPolicy Bypass .\\{portnumber.Text}.ours.service.ps1");
                     XWO.WriteEndElement();
                     //XWO.WriteStartElement("workingdirectory");
                     //XWO.WriteString(Path.Combine("", "tunnels", portInt.ToString()));

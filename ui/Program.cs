@@ -78,7 +78,14 @@ public static class Utils
             {
                 ["URLs"] = new TomlArray()
                 {
-                    "vz.al", "stun.l.google.com:19302"
+                    "stun:vz.al"
+                }
+            },
+            new TomlTable()
+            {
+                ["URLs"] = new TomlArray()
+                {
+                    "stun:stun.l.google.com:19302"
                 }
             }
         };
