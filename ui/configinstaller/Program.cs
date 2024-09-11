@@ -11,7 +11,7 @@ using Microsoft.VisualBasic.FileIO;
 using System.Diagnostics;
 
 public static class Config {
-    //public static string InstallationRoot = Path.Combine(SpecialDirectories.ProgramFiles, "rv", "rvtunsvc");
+    ///public static string InstallationRoot = Path.Combine(SpecialDirectories.ProgramFiles, "rv", "rvtunsvc");
     public static string InstallationRoot = Path.GetDirectoryName(System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName);
 }
 
@@ -74,31 +74,42 @@ public static class ConfigInstaller
 
             try
             {
+                MessageBox.Query("Information", "Trying to register a Windows (R) service...", "Ok");
                 ProcessStartInfo PSI_WINSW = new ProcessStartInfo()
                 {
-                    FileName = "winsw.exe"
+                    FileName = "winsw.exe",
+                    RedirectStandardError = true,
+                    RedirectStandardOutput = true,
                 };
                 PSI_WINSW.ArgumentList.Add("install");
-                PSI_WINSW.ArgumentList.Add(Path.Combine(TunnelsRoot, ci.PortNumber.ToString()));
+                PSI_WINSW.ArgumentList.Add(Path.Combine(TunnelsRoot, ci.PortNumber.ToString(), "rvtunsvc.xml"));
                 var PS_WINSW = new System.Diagnostics.Process();
                 PS_WINSW.StartInfo = PSI_WINSW;
                 PS_WINSW.Start();
-            }catch (Exception E)
+                var PS_WINSW_stderr = PS_WINSW.StandardError.ReadToEnd();
+                var PS_WINSW_stdout = PS_WINSW.StandardOutput.ReadToEnd();
+                MessageBox.Query("Information", $"WinSW returned (stdout, stderr): \r\n" +
+                    $" {PS_WINSW_stdout}, {PS_WINSW_stderr}", "Ok");
+            }
+            catch (Exception E)
             {
                 MessageBox.Query("WinSW failed", $"{E.ToString()}\r\n{E.StackTrace}");
             }
 
             try
             {
+                MessageBox.Query("Information", "Trying to install WireGuard configuration...", "Ok");
                 ProcessStartInfo PSI_WG_INST = new ProcessStartInfo()
                 {
-                    FileName = "wireguard.exe"
+                    FileName = "wireguard.exe",
+                    UseShellExecute = true,
                 };
                 PSI_WG_INST.ArgumentList.Add("/installtunnelservice");
                 PSI_WG_INST.ArgumentList.Add(Path.Combine(TunnelsRoot, ci.PortNumber.ToString()));
                 var PS_WG_INST = new System.Diagnostics.Process();
                 PS_WG_INST.StartInfo = PSI_WG_INST;
                 Process.Start(PSI_WG_INST);
+                MessageBox.Query("Information", "WireGuard tunnel installation attempt completed.");
             }catch(Exception E)
             {
                 MessageBox.Query("Wireguard tunnel installation exception", $"{ E.ToString() }\r\n{E.StackTrace}");

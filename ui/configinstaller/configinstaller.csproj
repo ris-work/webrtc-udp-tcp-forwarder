@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <StartupObject>ConfigInstaller</StartupObject>
@@ -17,10 +17,23 @@
 		<PackageReference Include="ESCPOS_NET" Version="3.0.0" />
 		<PackageReference Include="Microsoft.PowerShell.SDK" Version="7.5.0-preview.4" />
 		<PackageReference Include="SharpZipLib" Version="1.4.2" />
-		<PackageReference Include="System.Management.Automation" Version="7.4.5" />
+		<PackageReference Include="System.Management.Automation" Version="7.5.0-preview.4" />
 		<PackageReference Include="Terminal.Gui" Version="2.0.0-v2-develop.2329" />
 		<PackageReference Include="Tomlyn" Version="0.17.0" />
 		<PackageReference Include="Wiry.Base32.Patched" Version="1.0.6.1" />
+	</ItemGroup>
+	<ItemGroup>
+	  <Compile Update="Properties\Resources.Designer.cs">
+	    <DesignTime>True</DesignTime>
+	    <AutoGen>True</AutoGen>
+	    <DependentUpon>Resources.resx</DependentUpon>
+	  </Compile>
+	</ItemGroup>
+	<ItemGroup>
+	  <EmbeddedResource Update="Properties\Resources.resx">
+	    <Generator>ResXFileCodeGenerator</Generator>
+	    <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+	  </EmbeddedResource>
 	</ItemGroup>
 
 </Project>

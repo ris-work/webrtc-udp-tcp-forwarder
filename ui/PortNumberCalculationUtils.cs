@@ -160,12 +160,13 @@ namespace RV.WebRTCForwarders {
                     string PeerAllowedIPsO = $"{Addr_8_T}.{Addr_8_16_T}.{Addr_16_24_T}.{their_suffix}/32";
                     string configurationT;
                     int portInt = int.Parse(portnumber.Text);
-                    string portHex = BitConverter.ToString(BitConverter.GetBytes(int.Parse(portnumber.Text))).Replace("-","");
+                    string portHex = BitConverter.ToString(BitConverter.GetBytes((ushort)portInt)).Replace("-","");
                     string addrT6 = $"fd00:0000:0001:{portHex}::{our_suffix}/64";
                     string addrT6_allowed = $"fd00:0000:0001:{portHex}::{their_suffix}/128";
                     string addrT6_theirs = $"fd00:0000:0001:{portHex}::{their_suffix}/64";
                     string addrT6_theirs_allowed = $"fd00:0000:0001:{portHex}::{our_suffix}/128";
-                    configurationT = $"Address = {AddressesT}, {addrT6_theirs}\r\n";
+                    configurationT = "[Interface]\r\n";
+                    configurationT += $"Address = {AddressesT}, {addrT6_theirs}\r\n";
                     configurationT += $"PrivateKey =  {privKeyTheirs.Text}\r\n";
                     if (role.SelectedItem == 1)
                     {
@@ -175,13 +176,15 @@ namespace RV.WebRTCForwarders {
                     if (role.SelectedItem == 0)
                     {
                         configurationT += $"Endpoint = 127.0.0.1:{portnumber.Text}\r\n";
+                        configurationT += "PersistentKeepAlive = 5\r\n";
                     }
                     configurationT += $"AllowedIPs = {PeerAllowedIPsT}, {addrT6_theirs_allowed}\r\n";
                     configurationT += $"PublicKey = {pubKeyOurs.Text}";
                     confoutTheirs.Text = "#Theirs: \r\n" + configurationT;
                     confoutTheirs.SelectAll();
                     string configurationO;
-                    configurationO = $"Address = {AddressesO}, {addrT6}\r\n";
+                    configurationO = "[Interface]\r\n";
+                    configurationO += $"Address = {AddressesO}, {addrT6}\r\n";
                     configurationO += $"PrivateKey =  {privKeyOurs.Text}\r\n";
                     if (role.SelectedItem == 0)
                     {
@@ -232,7 +235,7 @@ namespace RV.WebRTCForwarders {
 
                     /* Create the ZIP file */
 
-                    var ZOT = new ZipOutputStream(File.Create($"{portnumber.Text}.tun.otherside.zip"));
+                    var ZOT = new ZipOutputStream(File.Create($"{portnumber.Text}.tun.otherside.zip.rvtunnelconfiguration"));
                     ZOT.Password = random128bitsHumanFriendly;
 
                     ZipEntry ZE_FW_T = new ZipEntry("tunnel.toml");
@@ -272,7 +275,7 @@ namespace RV.WebRTCForwarders {
                     XW.WriteString($"powershell");
                     XW.WriteEndElement();
                     XW.WriteStartElement("arguments");
-                    XW.WriteString($"-ExecutionPolicy Bypass ./{portnumber.Text}.service.ps1");
+                    XW.WriteString($"-ExecutionPolicy Bypass .\\{portnumber.Text}.service.ps1");
                     XW.WriteEndElement();
                     //XW.WriteStartElement("workingdirectory");
                     //XW.WriteString(Path.Combine("", "tunnels", portInt.ToString()));
@@ -301,6 +304,7 @@ namespace RV.WebRTCForwarders {
                     ZOT.CloseEntry();
                     ZOT.PutNextEntry(ZE_PS);
                     string runCommandTheirs = role.SelectedItem == 0 ? "..\\..\\o-l.exe" : "..\\..\\a-c.exe";
+                    runCommandTheirs += " tunnel.toml";
                     string powershellScriptTheirs = "do {\r\n" +
                     $"{runCommandTheirs}\r\n" +
                     $"Start-Sleep -Seconds 2\r\n" +
@@ -332,7 +336,7 @@ namespace RV.WebRTCForwarders {
                     ZOT.CloseEntry();
                     ZOT.Close();
 
-                    var ZOO = new ZipOutputStream(File.Create($"./{portnumber.Text}.tun.ourside.zip"));
+                    var ZOO = new ZipOutputStream(File.Create($".\\{portnumber.Text}.tun.ourside.zip.rvtunnelconfiguration"));
                     ZOO.Password = random128bitsHumanFriendly;
                     
                     ZipEntry ZE_FW_O = new ZipEntry("tunnel.toml");
@@ -348,6 +352,7 @@ namespace RV.WebRTCForwarders {
                     ZOO.PutNextEntry(ZE_PS_O);
 
                     string runCommandOurs = role.SelectedItem == 1 ? "..\\..\\o-l.exe" : "..\\..\\a-c.exe";
+                    runCommandOurs += " tunnel.toml";
                     string powershellScriptOurs = "do {\r\n" +
                     $"{runCommandOurs}\r\n" +
                     $"Start-Sleep -Seconds 2\r\n" +
@@ -430,7 +435,7 @@ namespace RV.WebRTCForwarders {
                         Type = "UDP",
                         WebRTCMode = "Offer",
 
-                    }).ToTomlTable()));
+                    }).ToTomlTable()), "Ok");
 
 
 

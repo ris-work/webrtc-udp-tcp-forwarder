@@ -15,11 +15,17 @@ using System.Management.Automation;
 var a = Assembly.GetExecutingAssembly();
 //System
 Console.WriteLine(a);
+if(args.Length  == 0)
+{
+    Application.Run<RV.WebRTCForwarders.UtilsForm>().Dispose();
+    return 0;
+}
 if (args.Length > 0)
 {
     StartConfig.Filename = args[0];
 }
 Application.Run<RV.WebRTCForwarders.Window>().Dispose();
+return 0;
 
 
 public partial class IceServers
@@ -105,7 +111,7 @@ public static class Utils
     }
     public static void Associate() {
         string ROOT = Path.Combine(SpecialDirectories.ProgramFiles, "rv", "rvtunsvc") ;
-        var OldDir = Environment.CurrentDirectory;
+        var OldDir = Directory.GetCurrentDirectory();
         Directory.SetCurrentDirectory(ROOT);
         string ScriptPrelude = "$exename = 'configinstaller.exe'\r\n" +
             "$extension = '.rvtunnelconfiguration'\r\n" +
@@ -125,6 +131,9 @@ public static class Utils
                 var output = PSH.Invoke();
                 //MessageBox.Query("Association script", $"Script exited:\r\n{String.Join("", output.Select(e => e.ToString()))}");
                 string aggout = output.Aggregate("", (a, b) => a +"\r\n"+ b.ToString(), agg => agg.ToString());
+                Directory.SetCurrentDirectory(OldDir);
+                File.WriteAllText($"{OldDir}\\instlog.log", aggout);
+                
                 File.WriteAllText($"{ROOT}\\instlog.log", aggout);
             }
             catch (Exception E)
