@@ -8,6 +8,13 @@
     <StartupObject>ConfigInstaller</StartupObject>
     <ApplicationIcon>servicemanager_inst.ico</ApplicationIcon>
     <Platforms>AnyCPU;x64</Platforms>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+	  <Description>RV Tunnel Configuration Installer</Description>
+	  <Company>Rishi &amp; Vandana, individuals</Company>
+	  <Copyright>Rishikeshan Sulochana/Lavakumar, OSLv3</Copyright>
+	  <Version>0.2.0</Version>
+	  <PublisherName>Rishikeshan S/L</PublisherName>
+	  <ProductVersion>Built on: $([System.DateTime]::Now.ToString("o"))</ProductVersion>
   </PropertyGroup>
 
   <ItemGroup>
