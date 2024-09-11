@@ -105,10 +105,10 @@ public static class Utils
     public static void Associate() {
         string ROOT = Path.Combine(SpecialDirectories.ProgramFiles, "rv", "rvtunsvc") ;
         var OldDir = Environment.CurrentDirectory;
-        Environment.CurrentDirectory = ROOT ;
+        Directory.SetCurrentDirectory(ROOT);
         string ScriptPrelude = "$exename = 'configinstaller.exe'\r\n" +
             "$extension = '.rvtunnelconfiguration'\r\n" +
-            $"$iconpath = '{Config.InstallationRoot}/configinstaller.exe'\r\n" +
+            $"$iconpath = 'configinstaller.exe'\r\n" +
             "$formatdesc = 'Tunnel Configuration File (ZIP, encrypted)'\r\n" +
             "$appname = 'Tunnel Configuration Installer'\r\n";
         var a = Assembly.GetExecutingAssembly();
@@ -116,9 +116,10 @@ public static class Utils
         Thread T = (new Thread(() => {
             try
             {
-                var PSH = PowerShell.Create();
+                Directory.SetCurrentDirectory(ROOT);
+                var PSH = PowerShell.Create(RunspaceMode.NewRunspace);
                 //MessageBox.Query("Script", ScriptPrelude+Script, "Ok");
-                PSH.AddScript(ScriptPrelude + Script);
+                PSH.AddScript($"$working_directory = '{ROOT}'\r\nSet-Location '{ROOT}'\r\n" + ScriptPrelude + "\r\n" + Script);
                 //MessageBox.Query("Association", "Association script will run now", "Ok");
                 var output = PSH.Invoke();
                 //MessageBox.Query("Association script", $"Script exited:\r\n{String.Join("", output.Select(e => e.ToString()))}");
@@ -129,7 +130,7 @@ public static class Utils
             }
         }));
         T.Start();
-        Environment.CurrentDirectory = OldDir;
+        Directory.SetCurrentDirectory(OldDir);
 
     }
     public static string MakeItLookLikeACdKey(string text)

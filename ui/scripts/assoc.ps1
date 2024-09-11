@@ -30,7 +30,7 @@ $a = @{
     Path = "HKCR:\Applications\$exename\DefaultIcon\(default)"
     Name = "(default)"
     PropertyType = "String"
-    Value = "$pwd\$iconpath"
+    Value = "$working_directory\$iconpath"
 }
 New-ItemProperty -Force @a
 
@@ -50,7 +50,7 @@ $a = @{
     Path = "HKCR:\Applications\$exename\shell\open\command"
     Name = "(default)"
     PropertyType = "String"
-    Value = "`"$pwd\$exename`" `"%1`""
+    Value = "`"$working_directory\$exename`" `"%1`""
 }
 New-ItemProperty -Force @a
 
@@ -64,7 +64,7 @@ $a = @{
     Path = "HKCR:\$extension\shell\open\command"
     Name = "(default)"
     PropertyType = "String"
-    Value = "`"$pwd\$exename`" `"%1`""
+    Value = "`"$working_directory\$exename`" `"%1`""
 }
 New-ItemProperty -Force @a
 
@@ -89,7 +89,7 @@ $a = @{
     Name = "(default)"
     PropertyType = "String"
     Value = "$formatdesc"
-    #Value = "`"$pwd\$exename`" `"%1`""
+    #Value = "`"$working_directory\$exename`" `"%1`""
 }
 New-ItemProperty -Force @a
 
@@ -97,7 +97,7 @@ $a = @{
     Path = "HKCR:\$appname\shell\open\command"
     Name = "(default)"
     PropertyType = "String"
-    Value = "`"$pwd\$exename`" `"%1`""
+    Value = "`"$working_directory\$exename`" `"%1`""
 }
 New-ItemProperty -Force @a
 
@@ -105,7 +105,7 @@ $a = @{
     Path = "HKCR:\$appname\DefaultIcon"
     Name = "(default)"
     PropertyType = "String"
-    Value = "$pwd\$iconpath"
+    Value = "$working_directory\$iconpath"
 }
 New-ItemProperty -Force @a
 
@@ -114,7 +114,7 @@ $a = @{
     Path = "HKCR:\$extension\DefaultIcon\"
     Name = "(default)"
     PropertyType = "String"
-    Value = "$pwd\$iconpath"
+    Value = "$working_directory\$iconpath"
 }
 New-ItemProperty -Force @a
 
@@ -124,7 +124,7 @@ $a = @{
     Path = "HKCR:\$appname\DefaultIcon\"
     Name = "(default)"
     PropertyType = "String"
-    Value = "$pwd\$iconpath"
+    Value = "$working_directory\$iconpath"
 }
 New-ItemProperty -Force @a
 
@@ -144,7 +144,7 @@ $a = @{
     Path = "HKCU:\Software\Classes\$appname\shell\open\command"
     Name = "(default)"
     PropertyType = "String"
-    Value = "`"$pwd\$exename`" `"%1`""
+    Value = "`"$working_directory\$exename`" `"%1`""
 }
 New-ItemProperty -Force @a
 
@@ -155,7 +155,7 @@ $a = @{
     Name = "(default)"
     PropertyType = "String"
     Value = ""
-    #Value = "$pwd\$exename"
+    #Value = "$working_directory\$exename"
 }
 New-ItemProperty -Force @a
 
@@ -164,7 +164,7 @@ $a = @{
     Path = "HKCU:\Software\Classes\Applications\$exename\DefaultIcon\"
     Name = "(default)"
     PropertyType = "String"
-    Value = "$pwd\$iconpath"
+    Value = "$working_directory\$iconpath"
 }
 New-ItemProperty -Force @a
 
@@ -184,7 +184,7 @@ $a = @{
     Path = "HKCU:\Software\Classes\Applications\$exename\shell\open\command"
     Name = "(default)"
     PropertyType = "String"
-    Value = "`"$pwd\$exename`" `"%1`""
+    Value = "`"$working_directory\$exename`" `"%1`""
 }
 New-ItemProperty -Force @a
 
@@ -198,7 +198,7 @@ $a = @{
     Path = "HKCU:\Software\Classes\$extension\shell\open\command"
     Name = "(default)"
     PropertyType = "String"
-    Value = "`"$pwd\$exename`" `"%1`""
+    Value = "`"$working_directory\$exename`" `"%1`""
 }
 New-ItemProperty -Force @a
 
@@ -217,7 +217,7 @@ $a = @{
     Name = "(default)"
     PropertyType = "String"
     Value = "$formatdesc"
-    #Value = "`"$pwd\$exename`" `"%1`""
+    #Value = "`"$working_directory\$exename`" `"%1`""
 }
 New-ItemProperty -Force @a
 
@@ -226,7 +226,7 @@ $a = @{
     Path = "HKCU:\Software\Classes\$extension\DefaultIcon\"
     Name = "(default)"
     PropertyType = "String"
-    Value = "$pwd\$iconpath"
+    Value = "$working_directory\$iconpath"
 }
 New-ItemProperty -Force @a
 
@@ -236,7 +236,7 @@ $a = @{
     Path = "HKCU:\Software\Classes\$appname\DefaultIcon\"
     Name = "(default)"
     PropertyType = "String"
-    Value = "$pwd\$iconpath"
+    Value = "$working_directory\$iconpath"
 }
 New-ItemProperty -Force @a
 
@@ -248,7 +248,7 @@ $a = @{
     Path = "HKCU:\Software\Classes\$appname\shell\open\command"
     Name = "(default)"
     PropertyType = "String"
-    Value = "`"$pwd\$exename`" `"%1`""
+    Value = "`"$working_directory\$exename`" `"%1`""
 }
 New-ItemProperty -Force @a
 $a = @{
