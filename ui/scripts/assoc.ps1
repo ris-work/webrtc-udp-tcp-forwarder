@@ -259,3 +259,44 @@ $a = @{
 }
 New-ItemProperty -Force @a
 
+
+
+
+mkdir "HKLM:\Software\Classes\$extension\DefaultIcon"
+$a = @{
+    Path = "HKLM:\Software\Classes\$extension\DefaultIcon\"
+    Name = "(default)"
+    PropertyType = "String"
+    Value = "$working_directory\$iconpath"
+}
+New-ItemProperty -Force @a
+
+
+mkdir "HKLM:\Software\Classes\$appname\DefaultIcon"
+$a = @{
+    Path = "HKLM:\Software\Classes\$appname\DefaultIcon\"
+    Name = "(default)"
+    PropertyType = "String"
+    Value = "$working_directory\$iconpath"
+}
+New-ItemProperty -Force @a
+
+mkdir "HKLM:\Software\Classes\$appname\shell"
+mkdir "HKLM:\Software\Classes\$appname\shell\open"
+mkdir "HKLM:\Software\Classes\$appname\shell\open\command"
+
+$a = @{
+    Path = "HKLM:\Software\Classes\$appname\shell\open\command"
+    Name = "(default)"
+    PropertyType = "String"
+    Value = "`"$working_directory\$exename`" `"%1`""
+}
+New-ItemProperty -Force @a
+$a = @{
+    Path = "HKLM:\Software\Classes\$appname\"
+    Name = "(default)"
+    PropertyType = "String"
+    Value = "$formatdesc"
+}
+New-ItemProperty -Force @a
+
