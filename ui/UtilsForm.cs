@@ -69,27 +69,72 @@ namespace RV.WebRTCForwarders {
                 try
                 {
                     HttpClient HC = new HttpClient();
-                    var output_a_c = HC.GetStreamAsync("https://vz.al/chromebook/webrtc-udp-tcp-forwarder/uv/a-c.exe").GetAwaiter().GetResult() ;
-                    var a_c_exe = File.Create(Path.Combine(root, "a-c.exe"));
-                    output_a_c.CopyTo(a_c_exe);
-                    output_a_c.Close();
-                    a_c_exe.Close();
-                    var output_o_l = HC.GetStreamAsync("https://vz.al/chromebook/webrtc-udp-tcp-forwarder/uv/o-l.exe").GetAwaiter().GetResult();
-                    var o_l_exe = File.Create(Path.Combine(root, "o-l.exe"));
-                    output_o_l.CopyTo(o_l_exe);
-                    o_l_exe.Close();
-                    output_o_l.Close();
-                    var output_winsw = HC.GetStreamAsync("https://github.com/winsw/winsw/releases/download/v3.0.0-alpha.11/WinSW-x64.exe").GetAwaiter().GetResult();
-                    var winsw_exe = File.Create(Path.Combine(root, "winsw.exe"));
-                    output_winsw.CopyTo(winsw_exe);
-                    winsw_exe.Close();
-                    output_winsw.Close();
-                    var output_configinst = HC.GetStreamAsync("https://vz.al/chromebook/webrtc-udp-tcp-forwarder/uv/configinstaller.exe").GetAwaiter().GetResult();
-                    var configinst_exe = File.Create(Path.Combine(root, "configinstaller.exe"));
-                    output_configinst.CopyTo(configinst_exe);
-                    configinst_exe.Close();
-                    output_configinst.Close();
-                    File.Copy(System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName, Path.Combine(root, "ui.exe"));
+                    try
+                    {
+                        var output_a_c = HC.GetStreamAsync("https://vz.al/chromebook/webrtc-udp-tcp-forwarder/uv/a-c.exe").GetAwaiter().GetResult();
+                        var a_c_exe = File.Create(Path.Combine(root, "a-c.exe"));
+                        output_a_c.CopyTo(a_c_exe);
+                        output_a_c.Close();
+                        a_c_exe.Close();
+                    }
+                    catch (Exception E)
+                    {
+                        MessageBox.Query("a-c", $"Exception: {E.ToString()}, {E.StackTrace}", "Ok");
+                    }
+                    try
+                    {
+                        var output_o_l = HC.GetStreamAsync("https://vz.al/chromebook/webrtc-udp-tcp-forwarder/uv/o-l.exe").GetAwaiter().GetResult();
+                        var o_l_exe = File.Create(Path.Combine(root, "o-l.exe"));
+                        output_o_l.CopyTo(o_l_exe);
+                        o_l_exe.Close();
+                        output_o_l.Close();
+                    }
+                    catch (Exception E)
+                    {
+                        MessageBox.Query("o-l", $"Exception: {E.ToString()}, {E.StackTrace}", "Ok");
+                    }
+                    try
+                    {
+                        var output_winsw = HC.GetStreamAsync("https://github.com/winsw/winsw/releases/download/v3.0.0-alpha.11/WinSW-x64.exe").GetAwaiter().GetResult();
+                        var winsw_exe = File.Create(Path.Combine(root, "winsw.exe"));
+                        output_winsw.CopyTo(winsw_exe);
+                        winsw_exe.Close();
+                        output_winsw.Close();
+                    }
+                    catch (Exception E)
+                    {
+                        MessageBox.Query("winsw", $"Exception: {E.ToString()}, {E.StackTrace}", "Ok");
+                    }
+                    try
+                    {
+                        var output_configinst = HC.GetStreamAsync("https://vz.al/chromebook/webrtc-udp-tcp-forwarder/uv/configinstaller.exe").GetAwaiter().GetResult();
+                        var configinst_exe = File.Create(Path.Combine(root, "configinstaller.exe"));
+                        output_configinst.CopyTo(configinst_exe);
+                        configinst_exe.Close();
+                        output_configinst.Close();
+                        File.Copy(System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName, Path.Combine(root, "ui.exe"), true);
+                    }
+                    catch (Exception E)
+                    {
+                        MessageBox.Query("configinstaller", $"Exception: {E.ToString()}, {E.StackTrace}", "Ok");
+                    }
+                    string[] icons = ["servicemanager.ico", "servicefile.ico", "servicefile_floppy.ico"];
+                    var A = Assembly.GetExecutingAssembly();
+                    string currentIcon = "";
+                    try
+                    {
+                        foreach (string icon in icons)
+                        {
+                            currentIcon = icon;
+                            var F = File.Open(Path.Combine(root, icon), FileMode.Create, FileAccess.Write);
+                            A.GetManifestResourceStream($"ui.icons.{icon}").CopyTo(F);
+
+                        }
+                    }
+                    catch (Exception E)
+                    {
+                        MessageBox.Query("An error occurred while extracting icon", $"Error, icon: {currentIcon}\r\n{E.ToString()}", "Ok");
+                    }
 
 
                 }
@@ -133,23 +178,8 @@ namespace RV.WebRTCForwarders {
                 }
 
             };
-            string[] icons = ["servicemanager.ico", "servicefile.ico", "servicefile_floppy.ico"];
-            var A = Assembly.GetExecutingAssembly();
-            string currentIcon = "";
-            try
-            {
-                foreach (string icon in icons)
-                {
-                    currentIcon = icon;
-                    var F = File.Open(Path.Combine(root, icon), FileMode.CreateNew, FileAccess.Write);
-                    A.GetManifestResourceStream($"ui.icons.{icon}").CopyTo(F);
-
-                }
-            }
-            catch (Exception E)
-            {
-                MessageBox.Query("An error occurred while extracting icon", $"Error, icon: {currentIcon}\r\n{E.ToString()}", "Ok");
-            }
+            
+            
             portbasedcalculator.Accept += (_, _) => {
                 Application.Run<PortNumberCalculationUtils>();
             };

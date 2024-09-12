@@ -96,6 +96,8 @@ public static class Utils
         public string PublishAuthPass = "";
         public string PeerAuthType = "PSK";
         public string PeerPSK = "";
+        public bool Publish = true;
+        public long TimeoutCountMax = 3;
 
         public TomlTable ToTomlTable() {
             return new TomlTable()
@@ -104,6 +106,7 @@ public static class Utils
                 ["WebRTCMode"] = WebRTCMode,
                 ["Address"] = Address,
                 ["Port"] = Port,
+                ["Publish"] = Publish,
                 ["PublishType"] = PublishType,
                 ["PublishEndpoint"] = PublishEndpoint,
                 ["PublishAuthType"] = PublishAuthType,
@@ -112,6 +115,7 @@ public static class Utils
                 ["PeerAuthType"] = PeerAuthType,
                 ["PeerPSK"] = PeerPSK,
                 ["ICEServers"] = ICEServers,
+                ["TimeoutCountMax"] = TimeoutCountMax
                 
             };
         }

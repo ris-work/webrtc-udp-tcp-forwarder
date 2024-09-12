@@ -19,7 +19,7 @@ namespace RV.WebRTCForwarders {
     using System.Text;
     using System.Xml;
     using Tomlyn.Model;
-    using Tomlyn;
+    using Tomlyn;    
 
     public partial class PortNumberCalculationUtils {
         
@@ -34,8 +34,8 @@ namespace RV.WebRTCForwarders {
                     "and the server is 1, client is 0 for z in 10.x.y.z.", "Ok");
                 string addr = portnumber.Text;
                 string[] a = Regex.Split(addr, String.Empty);
-                int Addr_8 = int.Parse(a[0] + a[1]);
-                int Addr_8_16 = int.Parse(a[2]);
+                int Addr_8 = 10;
+                int Addr_8_16 = int.Parse(a[0]+a[1]+a[2]);
                 int Addr_16_24 = int.Parse(a[3]+a[4]);
                 int Addr_24_32 = role.SelectedItem == 0 ? 1 : 2;
                 int Addr_24_32_peer = Addr_24_32 == 1 ? 2 : 1;
@@ -95,9 +95,9 @@ namespace RV.WebRTCForwarders {
                     /* Config */
                     string addr = portnumber.Text;
                     string[] a = Regex.Split(addr, String.Empty);
-                    int Addr_8 = int.Parse(a[0] + a[1]);
-                    int Addr_8_16 = int.Parse(a[2]);
-                    int Addr_16_24 = int.Parse(a[3] + a[4]);
+                    int Addr_8 = int.Parse("10");
+                    int Addr_8_16 = int.Parse(a[1]+a[2]+a[3]);
+                    int Addr_16_24 = int.Parse(a[4] + a[5]);
                     int Addr_24_32 = role.SelectedItem == 0 ? 1 : 2;
                     int Addr_24_32_peer = Addr_24_32 == 1 ? 2 : 1;
                     string Addresses = $"{Addr_8}.{Addr_8_16}.{Addr_16_24}.{Addr_24_32}/24";
@@ -149,9 +149,9 @@ namespace RV.WebRTCForwarders {
                     string addrT = portnumber.Text;
                     portnumber.Text = (int.Parse(portnumber.Text)).ToString();
                     string[] aT = Regex.Split(addr, String.Empty);
-                    int Addr_8_T = int.Parse(a[0] + a[1]);
-                    int Addr_8_16_T = int.Parse(a[2]);
-                    int Addr_16_24_T = int.Parse(a[3] + a[4]);
+                    int Addr_8_T = int.Parse("10");
+                    int Addr_8_16_T = int.Parse(a[1] + a[2] + a[3]);
+                    int Addr_16_24_T = int.Parse(a[4] + a[5]);
                     int our_suffix = role.SelectedItem == 0 ? 1 : 2;
                     int their_suffix = Addr_24_32 == 1 ? 2 : 1;
                     string AddressesT = $"{Addr_8_T}.{Addr_8_16_T}.{Addr_16_24_T}.{their_suffix}/24";
@@ -160,7 +160,9 @@ namespace RV.WebRTCForwarders {
                     string PeerAllowedIPsO = $"{Addr_8_T}.{Addr_8_16_T}.{Addr_16_24_T}.{their_suffix}/32";
                     string configurationT;
                     int portInt = int.Parse(portnumber.Text);
-                    string portHex = BitConverter.ToString(BitConverter.GetBytes((ushort)portInt)).Replace("-","");
+                    byte[] portHex_BE = new byte[2];
+                    System.Buffers.Binary.BinaryPrimitives.WriteUInt16BigEndian(portHex_BE, (ushort)portInt);
+                    string portHex = BitConverter.ToString((portHex_BE)).Replace("-","");
                     string addrT6 = $"fd00:0000:0001:{portHex}::{our_suffix}/64";
                     string addrT6_allowed = $"fd00:0000:0001:{portHex}::{their_suffix}/128";
                     string addrT6_theirs = $"fd00:0000:0001:{portHex}::{their_suffix}/64";
@@ -377,7 +379,7 @@ namespace RV.WebRTCForwarders {
                     XWO.WriteString($"powershell");
                     XWO.WriteEndElement();
                     XWO.WriteStartElement("arguments");
-                    XWO.WriteString($"-ExecutionPolicy Bypass .\\{portnumber.Text}.ours.service.ps1");
+                    XWO.WriteString($"-ExecutionPolicy Bypass .\\{portnumber.Text}.service.ps1");
                     XWO.WriteEndElement();
                     //XWO.WriteStartElement("workingdirectory");
                     //XWO.WriteString(Path.Combine("", "tunnels", portInt.ToString()));

@@ -5,6 +5,12 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+	  	  <Description>RV Tunnel Configuration Installer</Description>
+	  <Company>Rishi &amp; Vandana, individuals</Company>
+	  <Copyright>Rishikeshan Sulochana/Lavakumar, OSLv3</Copyright>
+	  <Version>0.2.0</Version>
+	  <PublisherName>Rishikeshan S/L</PublisherName>
+	  <ProductVersion>Built on: $([System.DateTime]::Now.ToString("o"))</ProductVersion>
 	  
     <!--<PublishAot>true</PublishAot>-->
 	  
@@ -43,6 +49,7 @@
     <PackageReference Include="ESCPOS_NET" Version="3.0.0" />
     <PackageReference Include="Microsoft.PowerShell.SDK" Version="7.5.0-preview.4" />
     <PackageReference Include="SharpZipLib" Version="1.4.2" />
+    <PackageReference Include="System.Memory" Version="4.5.5" />
     <PackageReference Include="Terminal.Gui" Version="2.0.0-v2-develop.2329" />
     <PackageReference Include="Tomlyn" Version="0.17.0" />
     <PackageReference Include="Wiry.Base32.Patched" Version="1.0.6.1" />

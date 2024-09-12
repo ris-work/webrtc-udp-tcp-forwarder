@@ -86,6 +86,9 @@ public static class ConfigInstaller
                 var PS_WINSW = new System.Diagnostics.Process();
                 PS_WINSW.StartInfo = PSI_WINSW;
                 PS_WINSW.Start();
+                string PS_WINSW_STDOUT = PS_WINSW.StandardOutput.ReadToEnd();
+                string PS_WINSW_STDERR = PS_WINSW.StandardError.ReadToEnd();
+                PS_WINSW.WaitForExit();
                 ProcessStartInfo PSI_WINSW_STARTI = new ProcessStartInfo()
                 {
                     FileName = "winsw.exe",
@@ -97,6 +100,9 @@ public static class ConfigInstaller
                 var PS_WINSW_START = new System.Diagnostics.Process();
                 PS_WINSW_START.StartInfo = PSI_WINSW_STARTI;
                 PS_WINSW_START.Start();
+                var PS_WINSW_START_STDOUT = PS_WINSW_START.StandardOutput.ReadToEnd();
+                var PS_WINSW_START_STDERR = PS_WINSW_START.StandardError.ReadToEnd();
+                PS_WINSW_START.WaitForExit();
                 ProcessStartInfo PSI_WINSW_REFRESHI = new ProcessStartInfo()
                 {
                     FileName = "winsw.exe",
@@ -108,12 +114,15 @@ public static class ConfigInstaller
                 var PS_WINSW_REFRESH = new System.Diagnostics.Process();
                 PS_WINSW_REFRESH.StartInfo = PSI_WINSW_REFRESHI;
                 PS_WINSW_REFRESH.Start();
-                var PS_WINSW_stderr = PS_WINSW.StandardError.ReadToEnd() + Environment.NewLine 
-                    + PS_WINSW_START.StandardError.ReadToEnd() + Environment.NewLine 
-                    + PS_WINSW_REFRESH.StandardError.ReadToEnd();
-                var PS_WINSW_stdout = PS_WINSW.StandardOutput.ReadToEnd() + Environment.NewLine
-                    + PS_WINSW_START.StandardOutput.ReadToEnd() + Environment.NewLine
-                    + PS_WINSW_REFRESH.StandardOutput.ReadToEnd();
+                string PS_WINSW_REFRESH_STDOUT = PS_WINSW_REFRESH.StandardOutput.ReadToEnd();
+                string PS_WINSW_REFRESH_STDERR = PS_WINSW_REFRESH.StandardError.ReadToEnd();
+                PS_WINSW_REFRESH.WaitForExit();
+                var PS_WINSW_stderr = PS_WINSW_STDERR + Environment.NewLine 
+                    + PS_WINSW_START_STDERR + Environment.NewLine 
+                    + PS_WINSW_REFRESH_STDERR;
+                var PS_WINSW_stdout = PS_WINSW_STDOUT + Environment.NewLine
+                    + PS_WINSW_START_STDOUT + Environment.NewLine
+                    + PS_WINSW_REFRESH_STDOUT;
                 MessageBox.Query("Information", $"WinSW returned (stdout, stderr): \r\n" +
                     $" {PS_WINSW_stdout}, {PS_WINSW_stderr}", "Ok");
             }
@@ -133,6 +142,7 @@ public static class ConfigInstaller
                 PSI_WG_INST.ArgumentList.Add("/installtunnelservice");
                 PSI_WG_INST.ArgumentList.Add(Path.Combine(TunnelsRoot, ci.PortNumber.ToString(), $"wg.rv.{ci.PortNumber.ToString()}.conf"));
                 var PS_WG_INST = new System.Diagnostics.Process();
+                PSI_WG_INST.UseShellExecute = true;
                 PS_WG_INST.StartInfo = PSI_WG_INST;
                 Process.Start(PSI_WG_INST);
                 MessageBox.Query("Information", $"Ran: \r\n{PSI_WG_INST.FileName} {PSI_WG_INST.Arguments} as {PSI_WG_INST.UserName}", "Quit");
