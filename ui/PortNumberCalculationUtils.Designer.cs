@@ -25,6 +25,8 @@ namespace RV.WebRTCForwarders {
         
         private Terminal.Gui.ColorScheme new1;
         
+        private Terminal.Gui.ColorScheme redongrey;
+        
         private Terminal.Gui.Label label;
         
         private Terminal.Gui.TextField portnumber;
@@ -51,7 +53,10 @@ namespace RV.WebRTCForwarders {
         
         private Terminal.Gui.TextView confoutTheirs;
         
+        private Terminal.Gui.TextView whatisthis;
+        
         private void InitializeComponent() {
+            this.whatisthis = new Terminal.Gui.TextView();
             this.confoutTheirs = new Terminal.Gui.TextView();
             this.confout = new Terminal.Gui.TextView();
             this.pubKeyTheirs = new Terminal.Gui.Label();
@@ -68,6 +73,7 @@ namespace RV.WebRTCForwarders {
             this.blueOnBlack = new Terminal.Gui.ColorScheme(new Terminal.Gui.Attribute(4282087679u, 4278979596u), new Terminal.Gui.Attribute(4282087679u, 4294570405u), new Terminal.Gui.Attribute(4282029789u, 4278979596u), new Terminal.Gui.Attribute(4291611852u, 4278979596u), new Terminal.Gui.Attribute(4282029789u, 4294570405u));
             this.greenOnBlack = new Terminal.Gui.ColorScheme(new Terminal.Gui.Attribute(4279476494u, 4278979596u), new Terminal.Gui.Attribute(4279476494u, 4287109016u), new Terminal.Gui.Attribute(4279682572u, 4278979596u), new Terminal.Gui.Attribute(4291611852u, 4278979596u), new Terminal.Gui.Attribute(4279682572u, 4287109016u));
             this.new1 = new Terminal.Gui.ColorScheme(new Terminal.Gui.Attribute(4280927999u, 4291415892u), new Terminal.Gui.Attribute(4283567602u, 4282400832u), new Terminal.Gui.Attribute(4294111986u, 4278979596u), new Terminal.Gui.Attribute(4294306795u, 4289829530u), new Terminal.Gui.Attribute(4294111986u, 4278979596u));
+            this.redongrey = new Terminal.Gui.ColorScheme(new Terminal.Gui.Attribute(4294120982u, 4291069143u), new Terminal.Gui.Attribute(4294111986u, 4278979596u), new Terminal.Gui.Attribute(4294111986u, 4278979596u), new Terminal.Gui.Attribute(4294111986u, 4278979596u), new Terminal.Gui.Attribute(4294111986u, 4278979596u));
             this.Width = Dim.Fill(0);
             this.Height = Dim.Fill(0);
             this.X = 0;
@@ -95,7 +101,7 @@ namespace RV.WebRTCForwarders {
             this.portnumber.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
             this.portnumber.Secret = false;
             this.portnumber.Data = "portnumber";
-            this.portnumber.Text = "Port number";
+            this.portnumber.Text = "Port number (5 digits, e.g. 12323)";
             this.portnumber.TextAlignment = Terminal.Gui.Alignment.Start;
             this.Add(this.portnumber);
             this.role.Width = 10;
@@ -220,6 +226,21 @@ namespace RV.WebRTCForwarders {
             this.confoutTheirs.Text = "";
             this.confoutTheirs.TextAlignment = Terminal.Gui.Alignment.Start;
             this.Add(this.confoutTheirs);
+            this.whatisthis.Width = Dim.Fill(10);
+            this.whatisthis.Height = 7;
+            this.whatisthis.X = 1;
+            this.whatisthis.Y = 38;
+            this.whatisthis.Visible = true;
+            this.whatisthis.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
+            this.whatisthis.ColorScheme = this.redongrey;
+            this.whatisthis.AllowsTab = true;
+            this.whatisthis.AllowsReturn = true;
+            this.whatisthis.WordWrap = false;
+            this.whatisthis.Data = "whatisthis";
+            this.whatisthis.Text = "Port number should be 5 digits, the address will be \r\n10.<1st-3rd>.<4th-5th>.x/24" +
+                " \r\n    and \r\nfd00:addr:addr:hex_port_BE::x.";
+            this.whatisthis.TextAlignment = Terminal.Gui.Alignment.Start;
+            this.Add(this.whatisthis);
         }
     }
 }

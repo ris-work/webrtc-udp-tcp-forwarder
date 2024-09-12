@@ -27,11 +27,12 @@ namespace RV.WebRTCForwarders {
             InitializeComponent();
             portnumber.Text = "10010";
             confout.Enabled = false;
+            whatisthis.Enabled = false;
 
             calculatebutton.Accept += (_, _) => {
                 MessageBox.Query(70, 24, "What's this?", "This makes a port number into a set of IP addresses; for internal use. " +
-                    "Five digits, first two digits are 10, next one goes in the 10.x and the next two go in the y field of 10.x.y " +
-                    "and the server is 1, client is 0 for z in 10.x.y.z.", "Ok");
+                    "Five digits, first three digits go in the 10.x and the next two go in the y field of 10.x.y " +
+                    "and the server is 1, client is 2 for z in 10.x.y.z.", "Ok");
                 string addr = portnumber.Text;
                 string[] a = Regex.Split(addr, String.Empty);
                 int Addr_8 = 10;

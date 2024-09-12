@@ -39,7 +39,13 @@ namespace RV.WebRTCForwarders {
         
         private Terminal.Gui.Button inst7z;
         
+        private Terminal.Gui.Button addtvncfirewallrules;
+        
+        private Terminal.Gui.Button addtvncfirewallrulesx;
+        
         private void InitializeComponent() {
+            this.addtvncfirewallrulesx = new Terminal.Gui.Button();
+            this.addtvncfirewallrules = new Terminal.Gui.Button();
             this.inst7z = new Terminal.Gui.Button();
             this.insttvnc = new Terminal.Gui.Button();
             this.instwg = new Terminal.Gui.Button();
@@ -136,6 +142,28 @@ namespace RV.WebRTCForwarders {
             this.inst7z.TextAlignment = Terminal.Gui.Alignment.Center;
             this.inst7z.IsDefault = false;
             this.Add(this.inst7z);
+            this.addtvncfirewallrules.Width = Dim.Auto();
+            this.addtvncfirewallrules.Height = 1;
+            this.addtvncfirewallrules.X = 2;
+            this.addtvncfirewallrules.Y = 19;
+            this.addtvncfirewallrules.Visible = true;
+            this.addtvncfirewallrules.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
+            this.addtvncfirewallrules.Data = "addtvncfirewallrules";
+            this.addtvncfirewallrules.Text = "Firewall rules - TightVNC (5900) (allow from 10.0.0.0/8)";
+            this.addtvncfirewallrules.TextAlignment = Terminal.Gui.Alignment.Center;
+            this.addtvncfirewallrules.IsDefault = false;
+            this.Add(this.addtvncfirewallrules);
+            this.addtvncfirewallrulesx.Width = Dim.Auto();
+            this.addtvncfirewallrulesx.Height = 1;
+            this.addtvncfirewallrulesx.X = 2;
+            this.addtvncfirewallrulesx.Y = 21;
+            this.addtvncfirewallrulesx.Visible = true;
+            this.addtvncfirewallrulesx.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
+            this.addtvncfirewallrulesx.Data = "addtvncfirewallrulesx";
+            this.addtvncfirewallrulesx.Text = "Firewall rules - TightVNC (5900) (allow from 10.x.0.0/8)";
+            this.addtvncfirewallrulesx.TextAlignment = Terminal.Gui.Alignment.Center;
+            this.addtvncfirewallrulesx.IsDefault = false;
+            this.Add(this.addtvncfirewallrulesx);
         }
     }
 }

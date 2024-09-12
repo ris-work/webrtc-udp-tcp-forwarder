@@ -20,6 +20,7 @@ namespace RV.WebRTCForwarders {
     using System.Security.Principal;
     using System.Text;
     using Terminal.Gui;
+    using WindowsFirewallHelper;
     
     
     public partial class UtilsForm {
@@ -186,6 +187,21 @@ namespace RV.WebRTCForwarders {
             associate.Accept += (_, _) => {
                 Utils.Associate();
             };
+            addtvncfirewallrules.Accept += (_, _) => {
+                var rulePu = FirewallManager.Instance.CreatePortRule(FirewallProfiles.Public, "RVTun: TightVNC: ", FirewallAction.Allow, 5090);
+                rulePu.RemoteAddresses = new[] { WindowsFirewallHelper.Addresses.NetworkAddress.Parse("10.0.0.0/8") };
+                rulePu.Direction = FirewallDirection.Inbound;
+                var rulePr = FirewallManager.Instance.CreatePortRule(FirewallProfiles.Private, "RVTun: TightVNC: ", FirewallAction.Allow, 5090);
+                rulePr.RemoteAddresses = new[] { WindowsFirewallHelper.Addresses.NetworkAddress.Parse("10.0.0.0/8") };
+                rulePr.Direction = FirewallDirection.Inbound;
+                var ruleDo = FirewallManager.Instance.CreatePortRule(FirewallProfiles.Domain, "RVTun: TightVNC: ", FirewallAction.Allow, 5090);
+                ruleDo.RemoteAddresses = new[] { WindowsFirewallHelper.Addresses.NetworkAddress.Parse("10.0.0.0/8") };
+                ruleDo.Direction = FirewallDirection.Inbound;
+                FirewallManager.Instance.Rules.Add(rulePu);
+                FirewallManager.Instance.Rules.Add(rulePr);
+                FirewallManager.Instance.Rules.Add(ruleDo);
+            };
+            addtvncfirewallrulesx.Accept += (_, _) => { };
         }
     }
 }
