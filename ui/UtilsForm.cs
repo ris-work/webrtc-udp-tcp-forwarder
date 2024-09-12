@@ -11,9 +11,11 @@
 
 
 namespace RV.WebRTCForwarders {
+    using Microsoft.VisualBasic;
     using Microsoft.VisualBasic.FileIO;
     using System.Configuration;
     using System.Net;
+    using System.Reflection;
     using System.Security.AccessControl;
     using System.Security.Principal;
     using System.Text;
@@ -131,6 +133,23 @@ namespace RV.WebRTCForwarders {
                 }
 
             };
+            string[] icons = ["servicemanager.ico", "servicefile.ico", "servicefile_floppy.ico"];
+            var A = Assembly.GetExecutingAssembly();
+            string currentIcon = "";
+            try
+            {
+                foreach (string icon in icons)
+                {
+                    currentIcon = icon;
+                    var F = File.Open(Path.Combine(root, icon), FileMode.CreateNew, FileAccess.Write);
+                    A.GetManifestResourceStream($"ui.icons.{icon}").CopyTo(F);
+
+                }
+            }
+            catch (Exception E)
+            {
+                MessageBox.Query("An error occurred while extracting icon", $"Error, icon: {currentIcon}\r\n{E.ToString()}", "Ok");
+            }
             portbasedcalculator.Accept += (_, _) => {
                 Application.Run<PortNumberCalculationUtils>();
             };

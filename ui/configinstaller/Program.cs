@@ -135,7 +135,8 @@ public static class ConfigInstaller
                 var PS_WG_INST = new System.Diagnostics.Process();
                 PS_WG_INST.StartInfo = PSI_WG_INST;
                 Process.Start(PSI_WG_INST);
-                MessageBox.Query("Information", "WireGuard tunnel installation attempt completed.");
+                MessageBox.Query("Information", $"Ran: \r\n{PSI_WG_INST.FileName} {PSI_WG_INST.Arguments} as {PSI_WG_INST.UserName}", "Quit");
+                MessageBox.Query("Information", "WireGuard tunnel installation attempt completed.", "Quit");
             }catch(Exception E)
             {
                 MessageBox.Query("Wireguard tunnel installation exception", $"{ E.ToString() }\r\n{E.StackTrace}");

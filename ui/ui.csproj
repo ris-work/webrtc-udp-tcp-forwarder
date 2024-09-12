@@ -23,16 +23,20 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="icons\servicefile.ico" />
+    <None Remove="icons\servicefile_floppy.ico" />
     <None Remove="icons\servicemanager.ico" />
     <None Remove="scripts\assoc.ps1" />
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="icons\servicefile.ico" />
+    <EmbeddedResource Include="icons\servicefile_floppy.ico" />
     <EmbeddedResource Include="scripts\assoc.ps1" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="icons\servicemanager.ico" />
+    <EmbeddedResource Include="icons\servicemanager.ico" />
   </ItemGroup>
 
   <ItemGroup>
