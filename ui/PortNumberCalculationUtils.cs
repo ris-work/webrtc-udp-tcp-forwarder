@@ -28,7 +28,10 @@ namespace RV.WebRTCForwarders {
             portnumber.Text = "10010";
             confout.Enabled = false;
             whatisthis.Enabled = false;
-
+            calculatebutton.SetBorderStyle(LineStyle.Double);
+            calculatebutton.Border.Title = "";
+            genkeysbutton.SetBorderStyle(LineStyle.Rounded);
+            genkeysbutton.Border.Title = "";
             calculatebutton.Accept += (_, _) => {
                 MessageBox.Query(70, 24, "What's this?", "This makes a port number into a set of IP addresses; for internal use. " +
                     "Five digits, first three digits go in the 10.x and the next two go in the y field of 10.x.y " +
