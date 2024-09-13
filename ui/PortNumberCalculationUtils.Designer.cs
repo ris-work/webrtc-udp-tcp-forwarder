@@ -238,7 +238,7 @@ namespace RV.WebRTCForwarders {
             this.whatisthis.WordWrap = false;
             this.whatisthis.Data = "whatisthis";
             this.whatisthis.Text = "Port number should be 5 digits, the address will be \r\n10.<1st-3rd>.<4th-5th>.x/24" +
-                " \r\n    and \r\nfd00:addr:addr:hex_port_BE::x.";
+                " \r\n    and \r\nfd82:1822:0f01:hex_port_BE_<1st-3rd> hex_port_BE<4th-5th>::x/56.";
             this.whatisthis.TextAlignment = Terminal.Gui.Alignment.Start;
             this.Add(this.whatisthis);
         }

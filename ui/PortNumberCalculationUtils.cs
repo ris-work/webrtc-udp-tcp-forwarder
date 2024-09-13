@@ -167,10 +167,10 @@ namespace RV.WebRTCForwarders {
                     byte[] portHex_BE = new byte[2];
                     System.Buffers.Binary.BinaryPrimitives.WriteUInt16BigEndian(portHex_BE, (ushort)portInt);
                     string portHex = BitConverter.ToString((portHex_BE)).Replace("-","");
-                    string addrT6 = $"fd00:0000:0001:{portHex}::{our_suffix}/64";
-                    string addrT6_allowed = $"fd00:0000:0001:{portHex}::{their_suffix}/128";
-                    string addrT6_theirs = $"fd00:0000:0001:{portHex}::{their_suffix}/64";
-                    string addrT6_theirs_allowed = $"fd00:0000:0001:{portHex}::{our_suffix}/128";
+                    string addrT6 = $"fd82:1822:0f01:{portHex}::{our_suffix}/64";
+                    string addrT6_allowed = $"fd82:1822:0f01:{portHex}::{their_suffix}/128";
+                    string addrT6_theirs = $"fd82:1822:0f01:{portHex}::{their_suffix}/64";
+                    string addrT6_theirs_allowed = $"fd82:1822:0f01:{portHex}::{our_suffix}/128";
                     configurationT = "[Interface]\r\n";
                     configurationT += $"Address = {AddressesT}, {addrT6_theirs}\r\n";
                     configurationT += $"PrivateKey =  {privKeyTheirs.Text}\r\n";

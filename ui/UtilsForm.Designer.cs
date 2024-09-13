@@ -149,7 +149,7 @@ namespace RV.WebRTCForwarders {
             this.addtvncfirewallrules.Visible = true;
             this.addtvncfirewallrules.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
             this.addtvncfirewallrules.Data = "addtvncfirewallrules";
-            this.addtvncfirewallrules.Text = "Firewall rules - TightVNC (5900) (allow from 10.0.0.0/8)";
+            this.addtvncfirewallrules.Text = "Firewall rules - TightVNC (5900) (allow from 10.0.0.0/8, fd82:1822:0f01::/48)";
             this.addtvncfirewallrules.TextAlignment = Terminal.Gui.Alignment.Center;
             this.addtvncfirewallrules.IsDefault = false;
             this.Add(this.addtvncfirewallrules);
@@ -160,7 +160,8 @@ namespace RV.WebRTCForwarders {
             this.addtvncfirewallrulesx.Visible = true;
             this.addtvncfirewallrulesx.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
             this.addtvncfirewallrulesx.Data = "addtvncfirewallrulesx";
-            this.addtvncfirewallrulesx.Text = "Firewall rules - TightVNC (5900) (allow from 10.x.0.0/8)";
+            this.addtvncfirewallrulesx.Text = "Firewall rules - TightVNC (5900) (allow from 10.x.0.0/8, fd82:1822:0f01:xx00:/56)" +
+                ", xx is hex of first three digits";
             this.addtvncfirewallrulesx.TextAlignment = Terminal.Gui.Alignment.Center;
             this.addtvncfirewallrulesx.IsDefault = false;
             this.Add(this.addtvncfirewallrulesx);
