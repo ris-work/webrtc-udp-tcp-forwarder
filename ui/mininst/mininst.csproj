@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PublishAot>true</PublishAot>
+    <InvariantGlobalization>true</InvariantGlobalization>
+	  <Description>RV Tunnel Configuration Installer (minimal)</Description>
+	  <Company>Rishi &amp; Vandana, individuals</Company>
+	  <Copyright>Rishikeshan Sulochana/Lavakumar, OSLv3</Copyright>
+	  <Version>0.2.0</Version>
+	  <PublisherName>Rishikeshan S/L</PublisherName>
+	  <ProductVersion>Built on: $([System.DateTime]::Now.ToString("o"))</ProductVersion>
+  </PropertyGroup>
+
+</Project>

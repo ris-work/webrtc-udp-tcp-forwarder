@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ui", "ui.csproj", "{2650B77
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "configinstaller", "configinstaller\configinstaller.csproj", "{7A6896DE-EC56-4A80-82C0-5B8CE94F7626}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "mininst", "mininst\mininst.csproj", "{D038599E-5D9F-46B0-BB88-E91C7E2DFAB5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -31,6 +33,14 @@ Global
 		{7A6896DE-EC56-4A80-82C0-5B8CE94F7626}.Release|Any CPU.Build.0 = Release|Any CPU
 		{7A6896DE-EC56-4A80-82C0-5B8CE94F7626}.Release|x64.ActiveCfg = Release|x64
 		{7A6896DE-EC56-4A80-82C0-5B8CE94F7626}.Release|x64.Build.0 = Release|x64
+		{D038599E-5D9F-46B0-BB88-E91C7E2DFAB5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D038599E-5D9F-46B0-BB88-E91C7E2DFAB5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D038599E-5D9F-46B0-BB88-E91C7E2DFAB5}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D038599E-5D9F-46B0-BB88-E91C7E2DFAB5}.Debug|x64.Build.0 = Debug|Any CPU
+		{D038599E-5D9F-46B0-BB88-E91C7E2DFAB5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D038599E-5D9F-46B0-BB88-E91C7E2DFAB5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D038599E-5D9F-46B0-BB88-E91C7E2DFAB5}.Release|x64.ActiveCfg = Release|Any CPU
+		{D038599E-5D9F-46B0-BB88-E91C7E2DFAB5}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

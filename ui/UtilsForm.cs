@@ -188,20 +188,77 @@ namespace RV.WebRTCForwarders {
                 Utils.Associate();
             };
             addtvncfirewallrules.Accept += (_, _) => {
-                var rulePu = FirewallManager.Instance.CreatePortRule(FirewallProfiles.Public, "RVTun: TightVNC: ", FirewallAction.Allow, 5090);
-                rulePu.RemoteAddresses = new[] { WindowsFirewallHelper.Addresses.NetworkAddress.Parse("10.0.0.0/8") };
-                rulePu.Direction = FirewallDirection.Inbound;
-                var rulePr = FirewallManager.Instance.CreatePortRule(FirewallProfiles.Private, "RVTun: TightVNC: ", FirewallAction.Allow, 5090);
-                rulePr.RemoteAddresses = new[] { WindowsFirewallHelper.Addresses.NetworkAddress.Parse("10.0.0.0/8") };
-                rulePr.Direction = FirewallDirection.Inbound;
-                var ruleDo = FirewallManager.Instance.CreatePortRule(FirewallProfiles.Domain, "RVTun: TightVNC: ", FirewallAction.Allow, 5090);
-                ruleDo.RemoteAddresses = new[] { WindowsFirewallHelper.Addresses.NetworkAddress.Parse("10.0.0.0/8") };
-                ruleDo.Direction = FirewallDirection.Inbound;
-                FirewallManager.Instance.Rules.Add(rulePu);
-                FirewallManager.Instance.Rules.Add(rulePr);
-                FirewallManager.Instance.Rules.Add(ruleDo);
+                try
+                {
+                    var rulePu = FirewallManager.Instance.CreatePortRule(FirewallProfiles.Public, "RVTun: TightVNC: Public - v4", FirewallAction.Allow, 5090);
+                    rulePu.RemoteAddresses = new[] { WindowsFirewallHelper.Addresses.NetworkAddress.Parse("10.0.0.0/8") };
+                    rulePu.Direction = FirewallDirection.Inbound;
+                    //var rulePu6 = FirewallManager.Instance.CreatePortRule(FirewallProfiles.Public, "RVTun: TightVNC: Public - v6", FirewallAction.Allow, 5090);
+                    //rulePu6.RemoteAddresses = new[] { WindowsFirewallHelper.Addresses.NetworkAddress.Parse("fd00:0000:0001::/48") };
+                    //rulePu6.Direction = FirewallDirection.Inbound;
+                    var rulePr = FirewallManager.Instance.CreatePortRule(FirewallProfiles.Private, "RVTun: TightVNC: Private - v4", FirewallAction.Allow, 5090);
+                    rulePr.RemoteAddresses = new[] { WindowsFirewallHelper.Addresses.NetworkAddress.Parse("10.0.0.0/8") };
+                    rulePr.Direction = FirewallDirection.Inbound;
+                    //var rulePr6 = FirewallManager.Instance.CreatePortRule(FirewallProfiles.Private, "RVTun: TightVNC: Private - v6", FirewallAction.Allow, 5090);
+                    //rulePr6.RemoteAddresses = new[] { WindowsFirewallHelper.Addresses.NetworkAddress.Parse("fd00:0000:0001::/48") };
+                    //rulePr6.Direction = FirewallDirection.Inbound;
+                    var ruleDo = FirewallManager.Instance.CreatePortRule(FirewallProfiles.Domain, "RVTun: TightVNC: Domain - v4", FirewallAction.Allow, 5090);
+                    ruleDo.RemoteAddresses = new[] { WindowsFirewallHelper.Addresses.NetworkAddress.Parse("10.0.0.0/8") };
+                    ruleDo.Direction = FirewallDirection.Inbound;
+                    //var ruleDo6 = FirewallManager.Instance.CreatePortRule(FirewallProfiles.Domain, "RVTun: TightVNC: Domain - v6", FirewallAction.Allow, 5090);
+                    //ruleDo6.RemoteAddresses = new[] { WindowsFirewallHelper.Addresses.NetworkAddress.Parse("fd00:0000:0001::/48") };
+                    //ruleDo6.Direction = FirewallDirection.Inbound;
+                    FirewallManager.Instance.Rules.Add(rulePu);
+                    FirewallManager.Instance.Rules.Add(rulePr);
+                    FirewallManager.Instance.Rules.Add(ruleDo);
+                    //FirewallManager.Instance.Rules.Add(rulePu6);
+                    //FirewallManager.Instance.Rules.Add(rulePr6);
+                    //FirewallManager.Instance.Rules.Add(ruleDo6);
+                }
+                catch (Exception E)
+                {
+                    MessageBox.Query("Exception", E.ToString(), "Ok");
+                }
             };
-            addtvncfirewallrulesx.Accept += (_, _) => { };
+            addtvncfirewallrulesx.Accept += (_, _) => {
+                var x = "10";
+                byte[] b = new byte[2];
+                System.Buffers.Binary.BinaryPrimitives.WriteUInt16BigEndian(b, ushort.Parse(x));
+                string x_part6 = (Convert.ToHexString(b).Replace("-",""))[2..4] + "00";
+                MessageBox.Query("v4, v6 parts", $"{x}, {x_part6}", "Ok");
+                MessageBox.Query("v6", $"fd00:0000:0001:{x_part6}::/56", "Ok");
+                try
+                {
+                    var rulePu = FirewallManager.Instance.CreatePortRule(FirewallProfiles.Public, "RVTun: TightVNC: Public - v4", FirewallAction.Allow, 5090);
+                    rulePu.RemoteAddresses = new[] { WindowsFirewallHelper.Addresses.NetworkAddress.Parse($"10.{x}.0.0/8") };
+                    rulePu.Direction = FirewallDirection.Inbound;
+                    //var rulePu6 = FirewallManager.Instance.CreatePortRule(FirewallProfiles.Public, "RVTun: TightVNC: Public - v6", FirewallAction.Allow, 5090);
+                    //rulePu6.RemoteAddresses = new[] { WindowsFirewallHelper.Addresses.NetworkAddress.Parse($"fd00:0000:0001:{x_part6}::/56") };
+                    //rulePu6.Direction = FirewallDirection.Inbound;
+                    var rulePr = FirewallManager.Instance.CreatePortRule(FirewallProfiles.Private, "RVTun: TightVNC: Private - v4", FirewallAction.Allow, 5090);
+                    rulePr.RemoteAddresses = new[] { WindowsFirewallHelper.Addresses.NetworkAddress.Parse($"10.{x}.0.0/8") };
+                    rulePr.Direction = FirewallDirection.Inbound;
+                    //var rulePr6 = FirewallManager.Instance.CreatePortRule(FirewallProfiles.Private, "RVTun: TightVNC: Private - v6", FirewallAction.Allow, 5090);
+                    //rulePr6.RemoteAddresses = new[] { WindowsFirewallHelper.Addresses.NetworkAddress.Parse($"fd00:0000:0001:{x_part6}::/56") };
+                    //rulePr6.Direction = FirewallDirection.Inbound;
+                    var ruleDo = FirewallManager.Instance.CreatePortRule(FirewallProfiles.Domain, "RVTun: TightVNC: Domain - v4", FirewallAction.Allow, 5090);
+                    ruleDo.RemoteAddresses = new[] { WindowsFirewallHelper.Addresses.NetworkAddress.Parse($"10.{x}.0.0/8") };
+                    ruleDo.Direction = FirewallDirection.Inbound;
+                    //var ruleDo6 = FirewallManager.Instance.CreatePortRule(FirewallProfiles.Domain, "RVTun: TightVNC: Domain - v6", FirewallAction.Allow, 5090);
+                    //ruleDo6.RemoteAddresses = new[] { WindowsFirewallHelper.Addresses.NetworkAddress.Parse($"fd00:0000:0001:{x_part6}::/56") };
+                    //ruleDo6.Direction = FirewallDirection.Inbound;
+                    FirewallManager.Instance.Rules.Add(rulePu);
+                    FirewallManager.Instance.Rules.Add(rulePr);
+                    FirewallManager.Instance.Rules.Add(ruleDo);
+                    //FirewallManager.Instance.Rules.Add(rulePu6);
+                    //FirewallManager.Instance.Rules.Add(rulePr6);
+                    //FirewallManager.Instance.Rules.Add(ruleDo6);
+                }
+                catch(Exception E)
+                {
+                    MessageBox.Query("Exception", E.ToString(), "Ok");
+                }
+            };
         }
     }
 }
