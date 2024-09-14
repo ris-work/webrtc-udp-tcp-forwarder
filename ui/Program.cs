@@ -97,7 +97,7 @@ public static class Utils
         public string PeerAuthType = "PSK";
         public string PeerPSK = "";
         public bool Publish = true;
-        public long TimeoutCountMax = 3;
+        public long TimeoutCountMax = 15;
 
         public TomlTable ToTomlTable() {
             return new TomlTable()

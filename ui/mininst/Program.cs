@@ -47,7 +47,6 @@ try
     output_configinst.CopyTo(configinst_exe);
     configinst_exe.Close();
     output_configinst.Close();
-    File.Copy(System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName, Path.Combine(root, "ui.exe"), true);
 }
 catch (Exception E)
 {
