@@ -26,6 +26,9 @@
     <Compile Remove="configinstaller\**" />
     <EmbeddedResource Remove="configinstaller\**" />
     <None Remove="configinstaller\**" />
+	  <Compile Remove="AddressFilteredForwarder\**" />
+	  <EmbeddedResource Remove="AddressFilteredForwarder\**" />
+	  <None Remove="AddressFilteredForwarder\**" />
   <Compile Remove="mininst\**" />
     <EmbeddedResource Remove="mininst\**" />
     <None Remove="mininst\**" />

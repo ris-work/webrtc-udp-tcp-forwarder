@@ -3,6 +3,7 @@ using Microsoft.VisualBasic.FileIO;
 using System.Security.AccessControl;
 using System.Security.Principal;
 
+Console.Title = "RV P2P E2E encrypted tunnel system installer";
 System.Console.WriteLine("Minimal installer for RV Tunnel Services, (Ctrl+C) to exit");
 var root = Path.Combine(SpecialDirectories.ProgramFiles, "rv", "rvtunsvc");
 try

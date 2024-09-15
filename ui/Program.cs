@@ -11,7 +11,7 @@ using System.Reflection.PortableExecutable;
 using System.Security.Policy;
 using System.Management.Automation;
 
-
+Console.Title = "RV Tunnel System (Configurator)";
 var a = Assembly.GetExecutingAssembly();
 //System
 Console.WriteLine(a);

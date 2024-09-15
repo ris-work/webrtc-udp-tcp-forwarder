@@ -26,6 +26,7 @@ public static class ConfigInstaller
             MessageBox.Query("Association", "Associating files with myself, an argument is necessary otherwise.", "Ok");
             return 1;
         }
+        Console.Title = $"Installing: {Path.GetFileName(args[0])} ({args[0]})";
         MessageBox.Query("Installation", $"{Config.InstallationRoot}", "Ok");
         EnterKeyForm EKF = new EnterKeyForm();
         Application.Run(EKF);
@@ -133,6 +134,27 @@ public static class ConfigInstaller
 
             try
             {
+                MessageBox.Query("Information", "Trying to Uninstall WireGuard configuration first...", "Ok");
+                ProcessStartInfo PSI_WG_UNINST = new ProcessStartInfo()
+                {
+                    FileName = "wireguard.exe",
+                    UseShellExecute = true,
+                };
+                PSI_WG_UNINST.ArgumentList.Add("/uninstalltunnelservice");
+                PSI_WG_UNINST.ArgumentList.Add(Path.Combine(TunnelsRoot, ci.PortNumber.ToString(), Path.GetFileNameWithoutExtension($"wg.rv.{ci.PortNumber.ToString()}.conf")));
+                var PS_WG_UNINST = new System.Diagnostics.Process();
+                PSI_WG_UNINST.UseShellExecute = true;
+                PS_WG_UNINST.StartInfo = PSI_WG_UNINST;
+                Process.Start(PSI_WG_UNINST);
+                MessageBox.Query("Information", $"Ran: \r\n{PSI_WG_UNINST.FileName} {String.Join(" ", PSI_WG_UNINST.ArgumentList.ToArray())} as {PSI_WG_UNINST.UserName}", "Quit");
+                MessageBox.Query("Information", "WireGuard tunnel uninstallation attempt completed (for reinstallation).", "Ok");
+            }
+            catch (Exception E)
+            {
+                MessageBox.Query("Wireguard tunnel uninstallation exception", $"{E.ToString()}\r\n{E.StackTrace}");
+            }
+            try
+            {
                 MessageBox.Query("Information", "Trying to install WireGuard configuration...", "Ok");
                 ProcessStartInfo PSI_WG_INST = new ProcessStartInfo()
                 {
@@ -145,8 +167,8 @@ public static class ConfigInstaller
                 PSI_WG_INST.UseShellExecute = true;
                 PS_WG_INST.StartInfo = PSI_WG_INST;
                 Process.Start(PSI_WG_INST);
-                MessageBox.Query("Information", $"Ran: \r\n{PSI_WG_INST.FileName} {PSI_WG_INST.Arguments} as {PSI_WG_INST.UserName}", "Quit");
-                MessageBox.Query("Information", "WireGuard tunnel installation attempt completed.", "Quit");
+                MessageBox.Query("Information", $"Ran: \r\n{PSI_WG_INST.FileName} {String.Join(" ", PSI_WG_INST.Arguments)} as {PSI_WG_INST.UserName}", "Quit");
+                MessageBox.Query("Information", "WireGuard tunnel installation attempt completed.", "Quit ✔");
             }catch(Exception E)
             {
                 MessageBox.Query("Wireguard tunnel installation exception", $"{ E.ToString() }\r\n{E.StackTrace}");

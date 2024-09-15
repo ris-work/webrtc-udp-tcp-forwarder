@@ -28,6 +28,8 @@ namespace RV.WebRTCForwarders {
             portnumber.Text = "10010";
             confout.Enabled = false;
             whatisthis.Enabled = false;
+            confoutTheirs.Enabled = false;
+            psk.Enabled = false;
             calculatebutton.Accept += (_, _) => {
                 MessageBox.Query(70, 24, "What's this?", "This makes a port number into a set of IP addresses; for internal use. " +
                     "Five digits, first three digits go in the 10.x and the next two go in the y field of 10.x.y " +
@@ -44,6 +46,7 @@ namespace RV.WebRTCForwarders {
                 string configuration;
                 configuration = $"Address = {Addresses}\r\n";
                 configuration += $"PrivateKey = [Privkey]\r\n";
+                
                 if(role.SelectedItem == 0)
                 {
                     configuration += $"ListenPort = {portnumber.Text}\r\n";
@@ -62,15 +65,26 @@ namespace RV.WebRTCForwarders {
             genkeysbutton.Accept += (_, _) => {
                 try
                 {
+                    Console.Title = $"Current: {portnumber.Text}";
                     var PrivO = new ProcessStartInfo()
                     {
                         FileName = "wg",
                         Arguments = "genkey",
                         RedirectStandardOutput = true,
                     };
+                    var PSIPSK = new ProcessStartInfo()
+                    {
+                        FileName = "wg",
+                        Arguments = "genpsk",
+                        RedirectStandardOutput = true,
+                    };
                     var ProcessPrivO = Process.Start(PrivO);
                     string privKeyO = ProcessPrivO.StandardOutput.ReadToEnd();
                     privKeyOurs.Text = privKeyO;
+                    var PSIPSKo = Process.Start(PSIPSK);
+                    string PSKs = PSIPSKo.StandardOutput.ReadToEnd();
+                    PSKs = PSKs.Replace("\n", "").Replace("\r", "");
+                    psk.Text = PSKs;
                     var PubO = new ProcessStartInfo()
                     {
                         FileName = "wg",
@@ -116,6 +130,7 @@ namespace RV.WebRTCForwarders {
                     }
                     configuration += $"AllowedIPs = {PeerAllowedIPs}\r\n";
                     configuration += $"PublicKey = {pubKeyTheirs.Text}";
+                    configuration += $"PresharedKey = {PSKs}\r\n";
                     confout.Text = configuration;
                     confout.SelectAll();
                     confout.Copy();
@@ -170,11 +185,12 @@ namespace RV.WebRTCForwarders {
                     configurationT = "[Interface]\r\n";
                     configurationT += $"Address = {AddressesT}, {addrT6_theirs}\r\n";
                     configurationT += $"PrivateKey =  {privKeyTheirs.Text}\r\n";
+                    
                     if (role.SelectedItem == 1)
                     {
                         configurationT += $"ListenPort = {portnumber.Text}\r\n";
                     }
-                    configurationT += $"\r\n\r\n[Peer]\r\n";
+                    configurationT += $"[Peer]\r\n";
                     if (role.SelectedItem == 0)
                     {
                         configurationT += $"Endpoint = 127.0.0.1:{portnumber.Text}\r\n";
@@ -182,8 +198,8 @@ namespace RV.WebRTCForwarders {
                     }
                     configurationT += $"AllowedIPs = {PeerAllowedIPsT}, {addrT6_theirs_allowed}\r\n";
                     configurationT += $"PublicKey = {pubKeyOurs.Text}";
-                    confoutTheirs.Text = "#Theirs: \r\n" + configurationT;
-                    confoutTheirs.SelectAll();
+                    
+                    
                     string configurationO;
                     configurationO = "[Interface]\r\n";
                     configurationO += $"Address = {AddressesO}, {addrT6}\r\n";
@@ -192,15 +208,19 @@ namespace RV.WebRTCForwarders {
                     {
                         configurationO += $"ListenPort = {portnumber.Text}\r\n";
                     }
-                    configurationO += $"\r\n\r\n[Peer]\r\n";
+                    configurationO += $"[Peer]\r\n";
                     if (role.SelectedItem == 1)
                     {
                         configurationO += $"Endpoint = 127.0.0.1:{portnumber.Text}\r\n";
                     }
                     configurationO += $"AllowedIPs = {PeerAllowedIPsO}, {addrT6_allowed}\r\n";
                     configurationO += $"PublicKey = {pubKeyTheirs.Text}";
+                    configurationO += $"PresharedKey = {PSKs}\r\n";
+                    configurationT += $"PresharedKey = {PSKs}\r\n";
                     confout.Text = "#Ours:\r\n" + configurationO;
                     confout.SelectAll();
+                    confoutTheirs.Text = "#Theirs: \r\n" + configurationT;
+                    confoutTheirs.SelectAll();
 
                     string randomPeerPSK = Wiry.Base32.Base32Encoding.Standard.GetString(peerPSK);
                     string randomUsername = Wiry.Base32.Base32Encoding.Standard.GetString(randomUsernameBytes);

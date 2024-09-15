@@ -43,6 +43,10 @@ namespace RV.WebRTCForwarders {
         
         private Terminal.Gui.Label pubKeyOurs;
         
+        private Terminal.Gui.Label labelPresharedKey;
+        
+        private Terminal.Gui.TextField psk;
+        
         private Terminal.Gui.Label labelTheirs;
         
         private Terminal.Gui.Label privKeyTheirs;
@@ -62,6 +66,8 @@ namespace RV.WebRTCForwarders {
             this.pubKeyTheirs = new Terminal.Gui.Label();
             this.privKeyTheirs = new Terminal.Gui.Label();
             this.labelTheirs = new Terminal.Gui.Label();
+            this.psk = new Terminal.Gui.TextField();
+            this.labelPresharedKey = new Terminal.Gui.Label();
             this.pubKeyOurs = new Terminal.Gui.Label();
             this.privKeyOurs = new Terminal.Gui.Label();
             this.labelOurs = new Terminal.Gui.Label();
@@ -170,6 +176,27 @@ namespace RV.WebRTCForwarders {
             this.pubKeyOurs.Text = "PubKeyOurs";
             this.pubKeyOurs.TextAlignment = Terminal.Gui.Alignment.Start;
             this.Add(this.pubKeyOurs);
+            this.labelPresharedKey.Width = Dim.Auto();
+            this.labelPresharedKey.Height = 1;
+            this.labelPresharedKey.X = 9;
+            this.labelPresharedKey.Y = 9;
+            this.labelPresharedKey.Visible = true;
+            this.labelPresharedKey.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
+            this.labelPresharedKey.Data = "labelPresharedKey";
+            this.labelPresharedKey.Text = "Preshared Key";
+            this.labelPresharedKey.TextAlignment = Terminal.Gui.Alignment.Start;
+            this.Add(this.labelPresharedKey);
+            this.psk.Width = 38;
+            this.psk.Height = 1;
+            this.psk.X = 26;
+            this.psk.Y = 9;
+            this.psk.Visible = true;
+            this.psk.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
+            this.psk.Secret = false;
+            this.psk.Data = "psk";
+            this.psk.Text = "PSK appears here";
+            this.psk.TextAlignment = Terminal.Gui.Alignment.Start;
+            this.Add(this.psk);
             this.labelTheirs.Width = Dim.Auto();
             this.labelTheirs.Height = 1;
             this.labelTheirs.X = 89;
