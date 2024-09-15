@@ -1,4 +1,5 @@
 ﻿// See https://aka.ms/new-console-template for more information
+using System.Linq.Expressions;
 using System.Net;
 using System.Net.Sockets;
 using Tomlyn;
@@ -55,43 +56,15 @@ public static class Forwarder
             server.Start();
             while (true)
             {
-                using (TcpClient C = await server.AcceptTcpClientAsync())
-                {
-                    bool ClientIsInAllowedSubnets = AllowedSubnets.Any(a => a.Contains(((IPEndPoint)C.Client.RemoteEndPoint).Address));
-                    if (ClientIsInAllowedSubnets)
-                    {
-                        Console.WriteLine($"{dest}");
-                        TcpClient CD = new TcpClient(dest.Address.ToString(), dest.Port);
-                        byte[] bytesToDest = new byte[65536];
-                        byte[] bytesToClient = new byte[65536];
-                        Console.WriteLine($"New: {C.Client.RemoteEndPoint.ToString()}");
-                        NetworkStream NS = C.GetStream();
-                        NetworkStream DS = CD.GetStream();
-                        int iTD;
-                        int iTC;
-                        var fnB = async () =>
-                        {
-                            while ((iTD = await NS.ReadAsync(bytesToDest, CancellationToken.None)) != 0)
-                            {
-                                Console.WriteLine("bytesToDest loop");
-                                await DS.WriteAsync(bytesToDest, 0, iTD);
-                            };
-                        };
-                        var fnA = async () =>
-                        {
-                            while ((iTC = await DS.ReadAsync(bytesToClient, CancellationToken.None)) != 0)
-                            {
-                                Console.WriteLine("bytesToClient loop");
-                                await NS.WriteAsync(bytesToClient, 0, iTC);
-                            };
-                        };
-                        Task.WaitAll(fnA(), fnB());
-                    }
-                    else
-                    {
-                        Console.WriteLine($"Access denied for {((IPEndPoint)C.Client.RemoteEndPoint).Address}");
-                    }
+                try {
+                    var C = server.AcceptTcpClientAsync() ;
+                    await HandleClient(await C, dest, AllowedSubnets);
                 }
+                catch (Exception E)
+                {
+                    Console.WriteLine($"{e} => {dest}: {E.Message}");
+                }
+                Console.WriteLine("Waiting for next client...");
 
             }
         }
@@ -101,4 +74,46 @@ public static class Forwarder
         }
         return 0;
     }
+    public static async Task HandleClient(TcpClient C, IPEndPoint dest, IPNetwork[] AN)
+    {
+        await Task.Yield();
+        bool ClientIsInAllowedSubnets = AN.Any(a => a.Contains(((IPEndPoint)C.Client.RemoteEndPoint).Address));
+        if (ClientIsInAllowedSubnets)
+        {
+            Console.WriteLine($"{dest}");
+            TcpClient CD = new TcpClient(dest.Address.ToString(), dest.Port);
+            byte[] bytesToDest = new byte[65536];
+            byte[] bytesToClient = new byte[65536];
+            Console.WriteLine($"New: {C.Client.RemoteEndPoint.ToString()}");
+            NetworkStream NS = C.GetStream();
+            NetworkStream DS = CD.GetStream();
+            int iTD;
+            int iTC;
+            var fnB = async () =>
+            {
+                while ((iTD = await NS.ReadAsync(bytesToDest, CancellationToken.None)) != 0)
+                {
+                    Console.WriteLine("bytesToDest loop");
+                    await DS.WriteAsync(bytesToDest, 0, iTD);
+                    await Task.Yield();
+                };
+            };
+            var fnA = async () =>
+            {
+                while ((iTC = await DS.ReadAsync(bytesToClient, CancellationToken.None)) != 0)
+                {
+                    Console.WriteLine("bytesToClient loop");
+                    await NS.WriteAsync(bytesToClient, 0, iTC);
+                    await Task.Yield();
+                };
+            };
+            await Task.Yield();
+            fnA(); fnB();
+        }
+        else
+        {
+            Console.WriteLine($"Access denied for {((IPEndPoint)C.Client.RemoteEndPoint).Address}");
+        }
+        
+    } 
 }
