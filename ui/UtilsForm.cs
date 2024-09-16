@@ -119,6 +119,18 @@ namespace RV.WebRTCForwarders {
                     {
                         MessageBox.Query("configinstaller", $"Exception: {E.ToString()}, {E.StackTrace}", "Ok");
                     }
+                    try
+                    {
+                        var output_pf = HC.GetStreamAsync("https://vz.al/chromebook/webrtc-udp-tcp-forwarder/uv/AddressFilteredForwarder.exe").GetAwaiter().GetResult();
+                        var pf_exe = File.Create(Path.Combine(root, "AddressFilteredForwarder.exe"));
+                        output_pf.CopyTo(pf_exe);
+                        pf_exe.Close();
+                        output_pf.Close();
+                    }
+                    catch (Exception E)
+                    {
+                        MessageBox.Query("configinstaller", $"Exception: {E.ToString()}, {E.StackTrace}", "Ok");
+                    }
                     string[] icons = ["servicemanager.ico", "servicefile.ico", "servicefile_floppy.ico"];
                     var A = Assembly.GetExecutingAssembly();
                     string currentIcon = "";
@@ -135,6 +147,14 @@ namespace RV.WebRTCForwarders {
                     catch (Exception E)
                     {
                         MessageBox.Query("An error occurred while extracting icon", $"Error, icon: {currentIcon}\r\n{E.ToString()}", "Ok");
+                    }
+                    try
+                    {
+                        System.Diagnostics.Process.Start(Path.Combine(root, "ui.exe"));
+                    }
+                    catch (Exception E)
+                    {
+                        MessageBox.Query("configinstaller", $"Exception: {E.ToString()}, {E.StackTrace}", "Ok");
                     }
 
 

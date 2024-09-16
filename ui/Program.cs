@@ -68,6 +68,28 @@ public static class Utils
         }
     }
 
+    public class AddressFilteredPortForwarderConfigOut
+    {
+        public string DestinationAddress;
+        public int DestinationPort;
+        public TomlArray AllowedSources;
+        public TomlArray ListenAddresses;
+        public int ListenPort;
+
+        public TomlTable ToTomlTable()
+        {
+            return new TomlTable() {
+                ["DestinationAddress"] = DestinationAddress,
+                ["DestinationPort"] = DestinationPort,
+                ["AllowedSources"] = AllowedSources,
+                ["ListenAddresses"] = ListenAddresses,
+                ["ListenPort"] = ListenPort,
+
+            };
+        }
+
+    }
+
     public class ForwarderConfigOut {
         public string Type = "";
         public string WebRTCMode = "";

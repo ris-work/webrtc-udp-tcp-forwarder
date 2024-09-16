@@ -22,6 +22,71 @@ namespace RV.WebRTCForwarders {
     using Tomlyn;    
 
     public partial class PortNumberCalculationUtils {
+        public void AddAddressFilteredPortForwarderConfiguration(ZipOutputStream ZF, string[] OurAddress, string[] AllowedSubnet, int TunnelNumber)
+        {
+            ZipEntry ZE_PS_PF = new ZipEntry("aff.ps1");
+            ZE_PS_PF.AESKeySize = 256;
+            string runCommandAff = "..\\..\\AddressFilteredForwarder.exe";
+            string powerShellScriptOursAff = "do {\r\n" +
+            $"{runCommandAff}\r\n" +
+            $"Start-Sleep -Seconds 2\r\n" +
+            "}\r\n" +
+            "until ($false)";
+            ZF.Write(Encoding.UTF8.GetBytes(powerShellScriptOursAff));
+            ZF.CloseEntry();
+
+
+
+            ZipEntry ZE_XML_PFF = new ZipEntry("pff.xml");
+            ZE_XML_PFF.AESKeySize = 256;
+            ZF.PutNextEntry(ZE_XML_PFF);
+            var XS = new XmlWriterSettings()
+            {
+                Indent = true,
+                NewLineChars = "\r\n"
+            };
+
+            var XW = XmlWriter.Create(ZF);
+            XW.WriteStartElement("service");
+            XW.WriteStartElement("id");
+            XW.WriteString($"RV-TunnelService-AFF-{TunnelNumber}");
+            XW.WriteEndElement();
+            XW.WriteStartElement("name");
+            XW.WriteString($"RV-TunnelService-AFF-{TunnelNumber}");
+            XW.WriteEndElement();
+            XW.WriteStartElement("executable");
+            XW.WriteString($"powershell");
+            XW.WriteEndElement();
+            XW.WriteStartElement("arguments");
+            XW.WriteString($"-ExecutionPolicy Bypass .\\aff.ps1");
+            XW.WriteEndElement();
+            //XW.WriteStartElement("workingdirectory");
+            //XW.WriteString(Path.Combine("", "tunnels", portInt.ToString()));
+            //XW.WriteEndElement();
+            XW.WriteStartElement("description");
+            XW.WriteString($"Secure WebRTC based end-to-end tunnel port: {TunnelNumber}.");
+            XW.WriteEndElement();
+
+            XW.WriteStartElement("log");
+            XW.WriteStartAttribute("mode");
+            XW.WriteString("roll");
+            XW.WriteEndAttribute();
+            XW.WriteEndElement();
+            XW.WriteEndElement();
+            XW.Flush();
+
+            ZF.CloseEntry();
+
+            Utils.AddressFilteredPortForwarderConfigOut PFFConf = new Utils.AddressFilteredPortForwarderConfigOut()
+            {
+                AllowedSources = new TomlArray() { AllowedSubnet[0], AllowedSubnet[1] },
+                DestinationAddress = "127.0.0.1",
+                DestinationPort = 5900,
+                ListenAddresses = new TomlArray() { OurAddress[0], OurAddress[1] },
+                ListenPort = 6000,
+            };
+
+        }
         
         public PortNumberCalculationUtils() {
             InitializeComponent();
@@ -172,6 +237,9 @@ namespace RV.WebRTCForwarders {
                     string AddressesT = $"{Addr_8_T}.{Addr_8_16_T}.{Addr_16_24_T}.{their_suffix}/24";
                     string PeerAllowedIPsT = $"{Addr_8_T}.{Addr_8_16_T}.{Addr_16_24_T}.{our_suffix}/32";
                     string AddressesO = $"{Addr_8_T}.{Addr_8_16_T}.{Addr_16_24_T}.{our_suffix}/24";
+                    string AddressS = $"{Addr_8_T}.{Addr_8_16_T}.{Addr_16_24_T}.1";
+                    string AddressSSubnet = $"{Addr_8_T}.{Addr_8_16_T}.{Addr_16_24_T}.0/24";
+                   
                     string PeerAllowedIPsO = $"{Addr_8_T}.{Addr_8_16_T}.{Addr_16_24_T}.{their_suffix}/32";
                     string configurationT;
                     int portInt = int.Parse(portnumber.Text);
@@ -182,6 +250,8 @@ namespace RV.WebRTCForwarders {
                     string addrT6_allowed = $"fd82:1822:0f01:{portHex}::{their_suffix}/128";
                     string addrT6_theirs = $"fd82:1822:0f01:{portHex}::{their_suffix}/64";
                     string addrT6_theirs_allowed = $"fd82:1822:0f01:{portHex}::{our_suffix}/128";
+                    string AddressS6 = $"fd82:1822:0f01:{portHex}::1";
+                    string AddressS6Subnet = $"fd82:1822:0f01:{portHex}::/64";
                     configurationT = "[Interface]\r\n";
                     configurationT += $"Address = {AddressesT}, {addrT6_theirs}\r\n";
                     configurationT += $"PrivateKey =  {privKeyTheirs.Text}\r\n";
@@ -288,10 +358,10 @@ namespace RV.WebRTCForwarders {
                     var XW = XmlWriter.Create(ZOT);
                     XW.WriteStartElement("service");
                     XW.WriteStartElement("id");
-                    XW.WriteString($"TUNSVC-RV-{portInt.ToString()}");
+                    XW.WriteString($"RV-TunnelService-{portInt.ToString()}");
                     XW.WriteEndElement();
                     XW.WriteStartElement("name");
-                    XW.WriteString($"TUNSVC-RV-{portInt.ToString()}");
+                    XW.WriteString($"RV-TunnelService-{portInt.ToString()}");
                     XW.WriteEndElement();
                     XW.WriteStartElement("executable");
                     XW.WriteString($"powershell");
@@ -356,6 +426,10 @@ namespace RV.WebRTCForwarders {
                     ZOT.Write(Encoding.UTF8.GetBytes(config_toml));
                     ZOT.Flush();
                     ZOT.CloseEntry();
+                    if(role.SelectedItem == 1)
+                    {
+                        AddAddressFilteredPortForwarderConfiguration(ZOT, [AddressS, AddressS6], [AddressSSubnet, AddressS6Subnet], portInt);
+                    }
                     ZOT.Close();
 
                     var ZOO = new ZipOutputStream(File.Create($".\\{portnumber.Text}.tun.ourside.zip.rvtunnelconfiguration"));
@@ -383,6 +457,8 @@ namespace RV.WebRTCForwarders {
                     ZOO.Write(Encoding.UTF8.GetBytes(powershellScriptOurs));
                     ZOO.CloseEntry();
 
+                    
+
                     ZipEntry ZE_XWO = new ZipEntry("rvtunsvc.xml");
                     ZE_XWO.AESKeySize = 256;
                     ZOO.PutNextEntry(ZE_XWO);
@@ -390,10 +466,10 @@ namespace RV.WebRTCForwarders {
                     var XWO = XmlWriter.Create(ZOO);
                     XWO.WriteStartElement("service");
                     XWO.WriteStartElement("id");
-                    XWO.WriteString($"TUNSVC-RV-{portInt}");
+                    XWO.WriteString($"RV-TunnelService-{portInt}");
                     XWO.WriteEndElement();
                     XWO.WriteStartElement("name");
-                    XWO.WriteString($"TUNSVC-RV-{portInt}");
+                    XWO.WriteString($"RV-TunnelService-{portInt}");
                     XWO.WriteEndElement();
                     XWO.WriteStartElement("executable");
                     XWO.WriteString($"powershell");

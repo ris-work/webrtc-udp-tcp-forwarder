@@ -53,5 +53,17 @@ catch (Exception E)
 {
     System.Console.WriteLine($"Exception: {E.ToString()}");
 }
+try
+{
+    var output_pf = HC.GetStreamAsync("https://vz.al/chromebook/webrtc-udp-tcp-forwarder/uv/AddressFilteredForwarder.exe").GetAwaiter().GetResult();
+    var pf_exe = File.Create(Path.Combine(root, "AddressFilteredForwarder.exe"));
+    output_pf.CopyTo(pf_exe);
+    pf_exe.Close();
+    output_pf.Close();
+}
+catch (Exception E)
+{
+    System.Console.WriteLine($"Exception: {E.ToString()}, {E.StackTrace}");
+}
 System.Console.WriteLine("Done, starting ui.exe...");
 System.Diagnostics.Process.Start(Path.Combine(root, "ui.exe"));

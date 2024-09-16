@@ -11,6 +11,7 @@ if(args.Length > 0)
 {
     configurationfile = args[0];
 }
+Console.Title = $"Address Filtered Forwarder: {Path.GetFileName(configurationfile)} [{configurationfile}]";
 string TomlIn = File.ReadAllText(configurationfile);
 TomlTable Config = Toml.ToModel(TomlIn);
 Dictionary<string, object> ConfigDict = Config.ToDictionary();
