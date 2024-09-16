@@ -26,6 +26,8 @@ namespace RV.WebRTCForwarders {
         {
             ZipEntry ZE_PS_PF = new ZipEntry("aff.ps1");
             ZE_PS_PF.AESKeySize = 256;
+            ZF.PutNextEntry(ZE_PS_PF);
+
             string runCommandAff = "..\\..\\AddressFilteredForwarder.exe";
             string powerShellScriptOursAff = "do {\r\n" +
             $"{runCommandAff} .\\aff.toml\r\n" +
@@ -33,6 +35,7 @@ namespace RV.WebRTCForwarders {
             "}\r\n" +
             "until ($false)";
             ZF.Write(Encoding.UTF8.GetBytes(powerShellScriptOursAff));
+            ZF.Flush();
             ZF.CloseEntry();
 
 
@@ -74,6 +77,7 @@ namespace RV.WebRTCForwarders {
             XW.WriteEndElement();
             XW.WriteEndElement();
             XW.Flush();
+            ZF.Flush();
 
             ZF.CloseEntry();
 
@@ -90,7 +94,9 @@ namespace RV.WebRTCForwarders {
             ZE_TOML_PFF.AESKeySize = 256;
             ZF.PutNextEntry(ZE_TOML_PFF);
             ZF.Write(Encoding.UTF8.GetBytes(Toml.FromModel(PFFTomlModel)));
+            ZF.Flush();
             ZF.CloseEntry();
+            ZF.Flush();
 
         }
         
