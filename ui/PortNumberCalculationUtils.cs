@@ -99,7 +99,70 @@ namespace RV.WebRTCForwarders {
             ZF.Flush();
 
         }
-        
+
+        public void AddIcmpEchoRequestConfiguration(ZipOutputStream ZF, string[] OurAddress, int TunnelNumber)
+        {
+            ZipEntry ZE_PS_PF = new ZipEntry("icmp.ps1");
+            ZE_PS_PF.AESKeySize = 256;
+            ZF.PutNextEntry(ZE_PS_PF);
+
+            string runCommandAff = "..\\..\\AddressFilteredForwarder.exe";
+            string powerShellScriptIcmpEchoRequest = "do {\r\n" +
+            $"Test-Connection {OurAddress[0]}\r\n" +
+            $"Test-Connection {OurAddress[1]}\r\n" +
+            $"Start-Sleep -Seconds 16\r\n" +
+            "}\r\n" +
+            "until ($false)";
+            ZF.Write(Encoding.UTF8.GetBytes(powerShellScriptIcmpEchoRequest));
+            ZF.Flush();
+            ZF.CloseEntry();
+
+
+
+            ZipEntry ZE_XML_PFF = new ZipEntry("icmp.xml");
+            ZE_XML_PFF.AESKeySize = 256;
+            ZF.PutNextEntry(ZE_XML_PFF);
+            var XS = new XmlWriterSettings()
+            {
+                Indent = true,
+                NewLineChars = "\r\n"
+            };
+
+            var XW = XmlWriter.Create(ZF);
+            XW.WriteStartElement("service");
+            XW.WriteStartElement("id");
+            XW.WriteString($"RV-TunnelService-ICMP-{TunnelNumber}");
+            XW.WriteEndElement();
+            XW.WriteStartElement("name");
+            XW.WriteString($"RV-TunnelService-ICMP-{TunnelNumber}");
+            XW.WriteEndElement();
+            XW.WriteStartElement("executable");
+            XW.WriteString($"powershell");
+            XW.WriteEndElement();
+            XW.WriteStartElement("arguments");
+            XW.WriteString($"-ExecutionPolicy Bypass .\\aff.ps1");
+            XW.WriteEndElement();
+            //XW.WriteStartElement("workingdirectory");
+            //XW.WriteString(Path.Combine("", "tunnels", portInt.ToString()));
+            //XW.WriteEndElement();
+            XW.WriteStartElement("description");
+            XW.WriteString($"Secure WebRTC based end-to-end tunnel port: {TunnelNumber}.");
+            XW.WriteEndElement();
+
+            XW.WriteStartElement("log");
+            XW.WriteStartAttribute("mode");
+            XW.WriteString("roll");
+            XW.WriteEndAttribute();
+            XW.WriteEndElement();
+            XW.WriteEndElement();
+            XW.Flush();
+            ZF.Flush();
+
+            ZF.CloseEntry();
+
+
+        }
+
         public PortNumberCalculationUtils() {
             InitializeComponent();
             portnumber.Text = "10010";
@@ -443,6 +506,9 @@ namespace RV.WebRTCForwarders {
                     {
                         AddAddressFilteredPortForwarderConfiguration(ZOT, [AddressS, AddressS6], [AddressSSubnet, AddressS6Subnet], portInt);
                     }
+                    else {
+                        AddIcmpEchoRequestConfiguration(ZOT, [AddressS, AddressS6], portInt);
+                    }
                     ZOT.Close();
 
                     var ZOO = new ZipOutputStream(File.Create($".\\{portnumber.Text}.tun.ourside.zip.rvtunnelconfiguration"));
@@ -535,6 +601,10 @@ namespace RV.WebRTCForwarders {
                     if (role.SelectedItem == 0)
                     {
                         AddAddressFilteredPortForwarderConfiguration(ZOO, [AddressS, AddressS6], [AddressSSubnet, AddressS6Subnet], portInt);
+                    }
+                    else
+                    {
+                        AddIcmpEchoRequestConfiguration(ZOO, [AddressS, AddressS6], portInt);
                     }
                    
 

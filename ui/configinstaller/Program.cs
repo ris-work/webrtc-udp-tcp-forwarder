@@ -133,7 +133,7 @@ public static class ConfigInstaller
             }
             try
             {
-                MessageBox.Query("Information", "Trying to register a Windows (R) service...", "Ok");
+                MessageBox.Query("Information", "Trying to register a Windows (R) service (AFF)...", "Ok");
                 ProcessStartInfo PSI_WINSWP = new ProcessStartInfo()
                 {
                     FileName = "winsw.exe",
@@ -187,7 +187,65 @@ public static class ConfigInstaller
             }
             catch (Exception E)
             {
-                MessageBox.Query("WinSW failed", $"{E.ToString()}\r\n{E.StackTrace}");
+                MessageBox.Query("Maybe AFF not requested! Don't Panic!", $"{E.ToString()}\r\n{E.StackTrace}");
+            }
+            try
+            {
+                MessageBox.Query("Information", "Trying to register a Windows (R) service (ICMP)...", "Ok");
+                ProcessStartInfo PSI_WINSWICMP = new ProcessStartInfo()
+                {
+                    FileName = "winsw.exe",
+                    RedirectStandardError = true,
+                    RedirectStandardOutput = true,
+                };
+                PSI_WINSWICMP.ArgumentList.Add("install");
+                PSI_WINSWICMP.ArgumentList.Add(Path.Combine(TunnelsRoot, ci.PortNumber.ToString(), "icmp.xml"));
+                var PS_WINSWICMP = new System.Diagnostics.Process();
+                PS_WINSWICMP.StartInfo = PSI_WINSWICMP;
+                PS_WINSWICMP.Start();
+                string PS_WINSW_STDOUT = PS_WINSWICMP.StandardOutput.ReadToEnd();
+                string PS_WINSW_STDERR = PS_WINSWICMP.StandardError.ReadToEnd();
+                PS_WINSWICMP.WaitForExit();
+                ProcessStartInfo PSI_WINSW_STARTPIICMP = new ProcessStartInfo()
+                {
+                    FileName = "winsw.exe",
+                    RedirectStandardError = true,
+                    RedirectStandardOutput = true,
+                };
+                PSI_WINSW_STARTPIICMP.ArgumentList.Add("start");
+                PSI_WINSW_STARTPIICMP.ArgumentList.Add(Path.Combine(TunnelsRoot, ci.PortNumber.ToString(), "icmp.xml"));
+                var PS_WINSW_STARTPICMP = new System.Diagnostics.Process();
+                PS_WINSW_STARTPICMP.StartInfo = PSI_WINSW_STARTPIICMP;
+                PS_WINSW_STARTPICMP.Start();
+                var PS_WINSW_START_STDOUT = PS_WINSW_STARTPICMP.StandardOutput.ReadToEnd();
+                var PS_WINSW_START_STDERR = PS_WINSW_STARTPICMP.StandardError.ReadToEnd();
+                PS_WINSW_STARTPICMP.WaitForExit();
+                ProcessStartInfo PSI_WINSW_REFRESHPIICMP = new ProcessStartInfo()
+                {
+                    FileName = "winsw.exe",
+                    RedirectStandardError = true,
+                    RedirectStandardOutput = true,
+                };
+                PSI_WINSW_REFRESHPIICMP.ArgumentList.Add("refresh");
+                PSI_WINSW_REFRESHPIICMP.ArgumentList.Add(Path.Combine(TunnelsRoot, ci.PortNumber.ToString(), "icmp.xml"));
+                var PS_WINSW_REFRESHPICMP = new System.Diagnostics.Process();
+                PS_WINSW_REFRESHPICMP.StartInfo = PSI_WINSW_REFRESHPIICMP;
+                PS_WINSW_REFRESHPICMP.Start();
+                string PS_WINSW_REFRESH_STDOUT = PS_WINSW_REFRESHPICMP.StandardOutput.ReadToEnd();
+                string PS_WINSW_REFRESH_STDERR = PS_WINSW_REFRESHPICMP.StandardError.ReadToEnd();
+                PS_WINSW_REFRESHPICMP.WaitForExit();
+                var PS_WINSW_stderr = PS_WINSW_STDERR + Environment.NewLine
+                    + PS_WINSW_START_STDERR + Environment.NewLine
+                    + PS_WINSW_REFRESH_STDERR;
+                var PS_WINSW_stdout = PS_WINSW_STDOUT + Environment.NewLine
+                    + PS_WINSW_START_STDOUT + Environment.NewLine
+                    + PS_WINSW_REFRESH_STDOUT;
+                MessageBox.Query("Information", $"WinSW returned (stdout, stderr): \r\n" +
+                    $" {PS_WINSW_stdout}, {PS_WINSW_stderr}", "Ok");
+            }
+            catch (Exception E)
+            {
+                MessageBox.Query("Maybe ICMP not requested! Don't Panic!", $"{E.ToString()}\r\n{E.StackTrace}");
             }
 
             try
