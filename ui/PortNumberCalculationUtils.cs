@@ -40,7 +40,7 @@ namespace RV.WebRTCForwarders {
 
 
 
-            ZipEntry ZE_XML_PFF = new ZipEntry("pff.xml");
+            ZipEntry ZE_XML_PFF = new ZipEntry("aff.xml");
             ZE_XML_PFF.AESKeySize = 256;
             ZF.PutNextEntry(ZE_XML_PFF);
             var XS = new XmlWriterSettings()
@@ -90,7 +90,7 @@ namespace RV.WebRTCForwarders {
                 ListenPort = 6000,
             };
             TomlTable PFFTomlModel = PFFConf.ToTomlTable();
-            ZipEntry ZE_TOML_PFF = new ZipEntry("pff.toml");
+            ZipEntry ZE_TOML_PFF = new ZipEntry("aff.toml");
             ZE_TOML_PFF.AESKeySize = 256;
             ZF.PutNextEntry(ZE_TOML_PFF);
             ZF.Write(Encoding.UTF8.GetBytes(Toml.FromModel(PFFTomlModel)));
@@ -558,7 +558,7 @@ namespace RV.WebRTCForwarders {
                 }
                 catch (System.Exception E)
                 {
-                    MessageBox.Query(70, 24, "Exception", $"{E.ToString()}");
+                    MessageBox.Query(75, 24, "Exception", $"{E.ToString()}, {E.StackTrace}");
                 }
             };
         }
