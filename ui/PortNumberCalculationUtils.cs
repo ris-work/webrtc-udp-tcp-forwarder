@@ -294,6 +294,7 @@ namespace RV.WebRTCForwarders {
                     if (role.SelectedItem == 1)
                     {
                         configurationO += $"Endpoint = 127.0.0.1:{portnumber.Text}\r\n";
+                        configurationO += "PersistentKeepAlive = 5\r\n";
                     }
                     configurationO += $"AllowedIPs = {PeerAllowedIPsO}, {addrT6_allowed}\r\n";
                     configurationO += $"PublicKey = {pubKeyTheirs.Text}";
