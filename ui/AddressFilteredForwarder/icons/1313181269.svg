@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+<svg xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://www.w3.org/2000/svg" xmlns:cc="http://creativecommons.org/ns#" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:svg="http://www.w3.org/2000/svg" xmlns:ns1="http://sozi.baierouge.fr" xmlns:xlink="http://www.w3.org/1999/xlink" id="svg3054" sodipodi:docname="Firewall.svg" viewBox="0 0 224.1 256.04" version="1.1" inkscape:version="0.47 r22583">
+  <sodipodi:namedview id="base" bordercolor="#666666" inkscape:pageshadow="2" inkscape:window-y="0" pagecolor="#ffffff" inkscape:window-height="879" inkscape:window-maximized="1" inkscape:zoom="0.033852112" inkscape:window-x="1440" showgrid="false" borderopacity="1.0" inkscape:current-layer="layer1" inkscape:cx="-4895.0026" inkscape:cy="68.919517" inkscape:window-width="1440" inkscape:pageopacity="0.0" inkscape:document-units="px"/>
+  <g id="layer1" inkscape:label="Capa 1" inkscape:groupmode="layer" transform="translate(-470.79 -255.75)">
+    <g id="page1" class="Slide" transform="matrix(.036721 0 0 .036721 397.41 182.37)">
+      <g id="g10" class="Group">
+        <g id="g12" class="Drawing">
+          <g id="g14">
+            <g id="g16" style="fill:#c5000b">
+              <path id="path18" d="m2e3 8099v-5350l749-749h4740v5349l-750 750h-4739zm0-6099zm5489 6099z"/>
+            </g>
+            <g id="g20" style="stroke:#ffffff;fill:none">
+              <path id="path22" style="fill:none" d="m2e3 8099v-5350l749-749h4740v5349l-750 750h-4739"/>
+              <path id="path24" style="fill:none" d="m2e3 2e3"/>
+              <path id="path26" style="fill:none" d="m7489 8099"/>
+            </g>
+            <g id="g28" style="fill:#d12a33">
+              <path id="path30" d="m2e3 2749 749-749h4740l-750 749h-4739zm0-749zm5489 6099z"/>
+            </g>
+            <g id="g32" style="stroke:#ffffff;fill:none">
+              <path id="path34" style="fill:none" d="m2e3 2749 749-749h4740l-750 749h-4739"/>
+              <path id="path36" style="fill:none" d="m2e3 2e3"/>
+              <path id="path38" style="fill:none" d="m7489 8099"/>
+            </g>
+            <g id="g40" style="fill:#9e0009">
+              <path id="path42" d="m6739 8099v-5350l750-749v5349l-750 750zm-4739-6099zm5489 6099z"/>
+            </g>
+            <g id="g44" style="stroke:#ffffff;fill:none">
+              <path id="path46" style="fill:none" d="m6739 8099v-5350l750-749v5349l-750 750"/>
+              <path id="path48" style="fill:none" d="m2e3 2e3"/>
+              <path id="path50" style="fill:none" d="m7489 8099"/>
+            </g>
+            <g id="g52" style="fill:none">
+              <rect id="rect54" y="2e3" x="2e3" height="6099" width="5489"/>
+            </g>
+          </g>
+        </g>
+        <g id="g56" class="Graphic">
+          <g id="g58">
+            <g id="g60" style="fill:#e73900">
+              <path id="path62" d="m4723 8309c-1029-1580 213-1721-103-3884 777 1020 994 2272 1320 2642 225 291 336 642 306 1002-3 286 358 632 259 898-524-420-1426-146-1782-658z"/>
+            </g>
+            <g id="g64" style="fill:none">
+              <path id="path66" d="m4723 8309c-1029-1580 213-1721-103-3884 777 1020 994 2272 1320 2642 225 291 336 642 306 1002-3 286 358 632 259 898-524-420-1426-146-1782-658z"/>
+            </g>
+            <g id="g68" style="fill:#e73900">
+              <path id="path70" d="m6279 8771c6-303-360-434-507-671-244-180-321-461-327-738-20-442 375-3081 949-3789-220 1088 327 2537 664 3017 229 372 315 801 232 1223-40 337-319 539-470 841-151 182-356 199-541 117z"/>
+            </g>
+            <g id="g72" style="fill:none">
+              <path id="path74" d="m6279 8771c6-303-360-434-507-671-244-180-321-461-327-738-20-442 375-3081 949-3789-220 1088 327 2537 664 3017 229 372 315 801 232 1223-40 337-319 539-470 841-151 182-356 199-541 117z"/>
+            </g>
+            <g id="g76" style="fill:#e73900">
+              <path id="path78" d="m6487 8919c88-263-85-680-140-924-148-219-133-485-62-727 105-392 122-2241 1816-3109-1314 1290-441 2338-299 2842 83 384 40 784-147 1129-259 475-949 738-1168 789z"/>
+            </g>
+            <g id="g80" style="fill:none">
+              <path id="path82" d="m6487 8919c88-263-85-680-140-924-148-219-133-485-62-727 105-392 122-2241 1816-3109-1314 1290-441 2338-299 2842 83 384 40 784-147 1129-259 475-949 738-1168 789z"/>
+            </g>
+            <g id="g84" style="fill:#e78c00">
+              <path id="path86" d="m6209 8765c4-248-273-355-384-547-185-148-243-377-247-603-15-362 353-2272 648-3094-201 1864 316 2072 572 2463 173 304 238 654 175 999-30 275-162 525-276 772-114 149-349 77-488 10z"/>
+            </g>
+            <g id="g88" style="fill:none">
+              <path id="path90" d="m6209 8765c4-248-273-355-384-547-185-148-243-377-247-603-15-362 353-2272 648-3094-201 1864 316 2072 572 2463 173 304 238 654 175 999-30 275-162 525-276 772-114 149-349 77-488 10z"/>
+            </g>
+            <g id="g92" style="fill:#e78c00">
+              <path id="path94" d="m5147 8411c-1057-1086 95-1162-199-2652 349 702 637 1230 764 1729 187 176 835 1252 797 1447-409-233-1058-212-1362-524z"/>
+            </g>
+            <g id="g96" style="fill:none">
+              <path id="path98" d="m5147 8411c-1057-1086 95-1162-199-2652 349 702 637 1230 764 1729 187 176 835 1252 797 1447-409-233-1058-212-1362-524z"/>
+            </g>
+            <g id="g100" style="fill:#e7e100">
+              <path id="path102" d="m5358 8345c-632-600-160-953-166-1703 175 657 728 819 721 1213 91 118 569 959 529 1067-212-171-845-349-1084-577z"/>
+            </g>
+            <g id="g104" style="fill:none">
+              <path id="path106" d="m5358 8345c-632-600-160-953-166-1703 175 657 728 819 721 1213 91 118 569 959 529 1067-212-171-845-349-1084-577z"/>
+            </g>
+            <g id="g108" style="fill:#e78c00">
+              <path id="path110" d="m6374 8264c-111-164-100-364-47-546 79-294 425-1927 919-2282-357 671 113 1704 219 2083 63 287 80 628-109 846-287 330-649 522-852 568-129 90-89-486-130-669z"/>
+            </g>
+            <g id="g112" style="fill:none">
+              <path id="path114" d="m6374 8264c-111-164-100-364-47-546 79-294 425-1927 919-2282-357 671 113 1704 219 2083 63 287 80 628-109 846-287 330-649 522-852 568-129 90-89-486-130-669z"/>
+            </g>
+            <g id="g116" style="fill:#e7e100">
+              <path id="path118" d="m6196 8783c8-151-159-224-222-345-109-95-139-237-136-375 0-222-8-1603 273-1946-124 539 343 1344 490 1590 98 191 129 407 82 616-25 168-112 318-188 466-74 88-216 39-299-6z"/>
+            </g>
+            <g id="g120" style="fill:none">
+              <path id="path122" d="m6196 8783c8-151-159-224-222-345-109-95-139-237-136-375 0-222-8-1603 273-1946-124 539 343 1344 490 1590 98 191 129 407 82 616-25 168-112 318-188 466-74 88-216 39-299-6z"/>
+            </g>
+            <g id="g124" style="fill:#e7e100">
+              <path id="path126" d="m6329 8802c72-105-17-230-11-345-37-115 2-231 64-329 96-160 264-1349 615-1475-323 336 238 1233 238 1474-12 180-231 423-355 554-91 110-271 216-390 290-91-55-120-100-161-169z"/>
+            </g>
+            <g id="g128" style="fill:none">
+              <path id="path130" d="m6329 8802c72-105-17-230-11-345-37-115 2-231 64-329 96-160 264-1349 615-1475-323 336 238 1233 238 1474-12 180-231 423-355 554-91 110-271 216-390 290-91-55-120-100-161-169z"/>
+            </g>
+            <g id="g132" style="fill:#ffff9e">
+              <path id="path134" d="m6208 8682c-223-352-141-745-46-1173 44 291 224 643 326 759 70 91 104 200 95 313-1 89-46 197-77 280-164-131-187-20-298-179z"/>
+            </g>
+            <g id="g136" style="fill:none">
+              <path id="path138" d="m6208 8682c-223-352-141-745-46-1173 44 291 224 643 326 759 70 91 104 200 95 313-1 89-46 197-77 280-164-131-187-20-298-179z"/>
+            </g>
+            <g id="g140" style="fill:#ffff9e">
+              <path id="path142" d="m6459 8507c173-379 2-677 398-975-118 276 152 711 123 862-50 254-392 443-478 462 21-208-116-169-43-349z"/>
+            </g>
+            <g id="g144" style="fill:none">
+              <path id="path146" d="m6459 8507c173-379 2-677 398-975-118 276 152 711 123 862-50 254-392 443-478 462 21-208-116-169-43-349z"/>
+            </g>
+            <g id="g148" style="fill:#ffff9e">
+              <path id="path150" d="m5224 7266c930 1177 909 583 1278 1590-1758-783-969-712-1278-1590z"/>
+            </g>
+            <g id="g152" style="fill:none">
+              <path id="path154" d="m5224 7266c930 1177 909 583 1278 1590-1758-783-969-712-1278-1590z"/>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+  </g>
+  <metadata>
+    <rdf:RDF>
+      <cc:Work>
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+        <cc:license rdf:resource="http://creativecommons.org/licenses/publicdomain/"/>
+        <dc:publisher>
+          <cc:Agent rdf:about="http://openclipart.org/">
+            <dc:title>Openclipart</dc:title>
+          </cc:Agent>
+        </dc:publisher>
+        <dc:title>Firewall</dc:title>
+        <dc:date>2011-08-12T20:34:29</dc:date>
+        <dc:description>Clipart for computer and network diagrams</dc:description>
+        <dc:source>https://openclipart.org/detail/155089/firewall-by-saisyukusanagi</dc:source>
+        <dc:creator>
+          <cc:Agent>
+            <dc:title>saisyukusanagi</dc:title>
+          </cc:Agent>
+        </dc:creator>
+        <dc:subject>
+          <rdf:Bag>
+            <rdf:li>Computer</rdf:li>
+            <rdf:li>Firewall</rdf:li>
+            <rdf:li>LAN</rdf:li>
+            <rdf:li>Network</rdf:li>
+          </rdf:Bag>
+        </dc:subject>
+      </cc:Work>
+      <cc:License rdf:about="http://creativecommons.org/licenses/publicdomain/">
+        <cc:permits rdf:resource="http://creativecommons.org/ns#Reproduction"/>
+        <cc:permits rdf:resource="http://creativecommons.org/ns#Distribution"/>
+        <cc:permits rdf:resource="http://creativecommons.org/ns#DerivativeWorks"/>
+      </cc:License>
+    </rdf:RDF>
+  </metadata>
+</svg>

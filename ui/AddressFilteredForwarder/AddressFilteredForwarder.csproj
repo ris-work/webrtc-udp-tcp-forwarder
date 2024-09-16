@@ -7,7 +7,12 @@
     <Nullable>enable</Nullable>
     <PublishAot>true</PublishAot>
     <InvariantGlobalization>true</InvariantGlobalization>
+    <ApplicationIcon>icons\aff_tilt.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="icons\aff_tilt.ico" />
+  </ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="ESCPOS_NET" Version="3.0.0" />
 		<PackageReference Include="Microsoft.PowerShell.SDK" Version="7.5.0-preview.4" />
