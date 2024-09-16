@@ -28,7 +28,7 @@ namespace RV.WebRTCForwarders {
             ZE_PS_PF.AESKeySize = 256;
             string runCommandAff = "..\\..\\AddressFilteredForwarder.exe";
             string powerShellScriptOursAff = "do {\r\n" +
-            $"{runCommandAff}\r\n" +
+            $"{runCommandAff} .\\aff.toml\r\n" +
             $"Start-Sleep -Seconds 2\r\n" +
             "}\r\n" +
             "until ($false)";
@@ -85,6 +85,12 @@ namespace RV.WebRTCForwarders {
                 ListenAddresses = new TomlArray() { OurAddress[0], OurAddress[1] },
                 ListenPort = 6000,
             };
+            TomlTable PFFTomlModel = PFFConf.ToTomlTable();
+            ZipEntry ZE_TOML_PFF = new ZipEntry("pff.toml");
+            ZE_TOML_PFF.AESKeySize = 256;
+            ZF.PutNextEntry(ZE_TOML_PFF);
+            ZF.Write(Encoding.UTF8.GetBytes(Toml.FromModel(PFFTomlModel)));
+            ZF.CloseEntry();
 
         }
         
@@ -519,6 +525,12 @@ namespace RV.WebRTCForwarders {
                     ZOO.Flush();
                     
                     ZOO.CloseEntry();
+                    if (role.SelectedItem == 0)
+                    {
+                        AddAddressFilteredPortForwarderConfiguration(ZOO, [AddressS, AddressS6], [AddressSSubnet, AddressS6Subnet], portInt);
+                    }
+                   
+
                     ZOO.Close();
 
                     MessageBox.Query("Generated conf:", Toml.FromModel((new Utils.ForwarderConfigOut()
