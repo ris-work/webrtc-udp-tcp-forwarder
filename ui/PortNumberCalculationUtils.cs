@@ -108,9 +108,9 @@ namespace RV.WebRTCForwarders {
 
             string runCommandAff = "..\\..\\AddressFilteredForwarder.exe";
             string powerShellScriptIcmpEchoRequest = "do {\r\n" +
-            $"Test-Connection {OurAddress[0]}\r\n" +
-            $"Test-Connection {OurAddress[1]}\r\n" +
-            $"Start-Sleep -Seconds 16\r\n" +
+            $"Test-Connection {OurAddress[0]} | Select -Last 1\r\n" +
+            $"Test-Connection {OurAddress[1]} | Select -Last 1\r\n" +
+            $"Start-Sleep -Seconds 12\r\n" +
             "}\r\n" +
             "until ($false)";
             ZF.Write(Encoding.UTF8.GetBytes(powerShellScriptIcmpEchoRequest));
