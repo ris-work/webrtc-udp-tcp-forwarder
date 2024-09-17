@@ -9,6 +9,10 @@ using System.Text.Json.Serialization;
 using Tomlyn.Model;
 using Microsoft.VisualBasic.FileIO;
 using System.Diagnostics;
+using System.Security.Cryptography;
+using System.Text;
+using Humanizer;
+using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 
 public static class Config {
     ///public static string InstallationRoot = Path.Combine(SpecialDirectories.ProgramFiles, "rv", "rvtunsvc");
@@ -33,11 +37,23 @@ public static class ConfigInstaller
 
         ICSharpCode.SharpZipLib.Zip.ZipInputStream Z;
         ICSharpCode.SharpZipLib.Zip.ZipFile ZF;
+        var AesOutStreamConf = Aes.Create();
+        AesOutStreamConf.KeySize = 256;
+        var pwKey = KeyDerivation.Pbkdf2(EKF.Key, Encoding.UTF8.GetBytes("RVTunSvc"), KeyDerivationPrf.HMACSHA256, 100000, 32);
+        AesOutStreamConf.Key = pwKey;
+        var pwIV = KeyDerivation.Pbkdf2(EKF.Key, Encoding.UTF8.GetBytes("RVTunSvc"), KeyDerivationPrf.HMACSHA256, 10000, 16);
+        AesOutStreamConf.IV = pwIV;
+        ICryptoTransform CTT = AesOutStreamConf.CreateDecryptor();
 
+        var CSI = new CryptoStream(File.Open(args[0], FileMode.Open), CTT, CryptoStreamMode.Read);
+        MemoryStream MSI = new() ;
+        CSI.CopyTo(MSI);
+        
         try
         {
+
             //Z = new ICSharpCode.SharpZipLib.Zip.ZipInputStream(new FileStream(args[0], FileMode.Open));
-            ZF = new ICSharpCode.SharpZipLib.Zip.ZipFile(args[0]);
+            ZF = new ICSharpCode.SharpZipLib.Zip.ZipFile(MSI);
             ZF.Password = EKF.Key;
 
         }
@@ -49,6 +65,7 @@ public static class ConfigInstaller
 
         try
         {
+            
             string FileList = "";
             foreach (ZipEntry item in ZF)
             {
@@ -66,9 +83,11 @@ public static class ConfigInstaller
             FastZip FZ = new FastZip() {
                 Password = EKF.Key
             };
+
+
             try
             {
-                FZ.ExtractZip(args[0], Path.Combine(TunnelsRoot, ci.PortNumber.ToString()), ".*");
+                FZ.ExtractZip((Stream)MSI, Path.Combine(TunnelsRoot, ci.PortNumber.ToString()), FastZip.Overwrite.Always, (_) => true, ".*", ".*", true, true);
             } catch (Exception E) {
                 MessageBox.Query("Exception when extracting", $"{E.ToString()}\r\n{E.StackTrace}");
             }

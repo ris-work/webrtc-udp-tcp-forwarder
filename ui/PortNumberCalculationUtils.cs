@@ -19,7 +19,8 @@ namespace RV.WebRTCForwarders {
     using System.Text;
     using System.Xml;
     using Tomlyn.Model;
-    using Tomlyn;    
+    using Tomlyn;
+    using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 
     public partial class PortNumberCalculationUtils {
         public void AddAddressFilteredPortForwarderConfiguration(ZipOutputStream ZF, string[] OurAddress, string[] AllowedSubnet, int TunnelNumber)
@@ -140,7 +141,7 @@ namespace RV.WebRTCForwarders {
             XW.WriteString($"powershell");
             XW.WriteEndElement();
             XW.WriteStartElement("arguments");
-            XW.WriteString($"-ExecutionPolicy Bypass .\\aff.ps1");
+            XW.WriteString($"-ExecutionPolicy Bypass .\\icmp.ps1");
             XW.WriteEndElement();
             //XW.WriteStartElement("workingdirectory");
             //XW.WriteString(Path.Combine("", "tunnels", portInt.ToString()));
@@ -402,8 +403,18 @@ namespace RV.WebRTCForwarders {
                     var theirForwarderToml = role.SelectedItem == 1 ? AnswererToml : OffererToml;
 
                     /* Create the ZIP file */
+                    var AesOutStreamConf = Aes.Create();
+                    AesOutStreamConf.KeySize = 256;
+                    var pwKey = KeyDerivation.Pbkdf2(random128bitsHumanFriendly, Encoding.UTF8.GetBytes("RVTunSvc"), KeyDerivationPrf.HMACSHA256, 100000, 32);
+                    AesOutStreamConf.Key = pwKey;
+                    var pwIV = KeyDerivation.Pbkdf2(random128bitsHumanFriendly, Encoding.UTF8.GetBytes("RVTunSvc"), KeyDerivationPrf.HMACSHA256, 10000, 16);
+                    AesOutStreamConf.IV = pwIV;
+                    ICryptoTransform CTT = AesOutStreamConf.CreateEncryptor();
+                    var OCST = new CryptoStream(File.Create($"{portnumber.Text}.tun.otherside.zip.rvtunnelconfiguration"), CTT, CryptoStreamMode.Write);
+                    ICryptoTransform CTO = AesOutStreamConf.CreateEncryptor();
+                    var OCSO = new CryptoStream(File.Create($"{portnumber.Text}.tun.ourside.zip.rvtunnelconfiguration"), CTO, CryptoStreamMode.Write);
 
-                    var ZOT = new ZipOutputStream(File.Create($"{portnumber.Text}.tun.otherside.zip.rvtunnelconfiguration"));
+                    var ZOT = new ZipOutputStream(OCST);
                     ZOT.Password = random128bitsHumanFriendly;
 
                     ZipEntry ZE_FW_T = new ZipEntry("tunnel.toml");
@@ -511,7 +522,7 @@ namespace RV.WebRTCForwarders {
                     }
                     ZOT.Close();
 
-                    var ZOO = new ZipOutputStream(File.Create($".\\{portnumber.Text}.tun.ourside.zip.rvtunnelconfiguration"));
+                    var ZOO = new ZipOutputStream(OCSO);
                     ZOO.Password = random128bitsHumanFriendly;
                     
                     ZipEntry ZE_FW_O = new ZipEntry("tunnel.toml");
