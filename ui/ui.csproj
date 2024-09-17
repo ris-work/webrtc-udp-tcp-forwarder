@@ -53,6 +53,7 @@
 
   <ItemGroup>
     <PackageReference Include="ESCPOS_NET" Version="3.0.0" />
+    <PackageReference Include="Isopoh.Cryptography.Argon2" Version="2.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Cryptography.KeyDerivation" Version="9.0.0-rc.1.24452.1" />
     <PackageReference Include="Microsoft.PowerShell.SDK" Version="7.5.0-preview.4" />
     <PackageReference Include="SharpZipLib" Version="1.4.2" />

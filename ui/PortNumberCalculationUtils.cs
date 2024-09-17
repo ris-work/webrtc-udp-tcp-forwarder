@@ -21,6 +21,7 @@ namespace RV.WebRTCForwarders {
     using Tomlyn.Model;
     using Tomlyn;
     using Microsoft.AspNetCore.Cryptography.KeyDerivation;
+    using Isopoh.Cryptography.Argon2;
 
     public partial class PortNumberCalculationUtils {
         public void AddAddressFilteredPortForwarderConfiguration(ZipOutputStream ZF, string[] OurAddress, string[] AllowedSubnet, int TunnelNumber)
@@ -288,7 +289,21 @@ namespace RV.WebRTCForwarders {
                     RNG.GetBytes(randomSessionNameBytes);
                     string random128bits = Wiry.Base32.Base32Encoding.Standard.GetString(random8bytes)[0..26];
                     
+                    
                     string random128bitsHumanFriendly = Utils.MakeItLookLikeACdKey(random128bits);
+                    var ArConf = new Argon2Config() { HashLength = 48, Lanes = 4, MemoryCost = 65536, Password = Encoding.UTF8.GetBytes(random128bitsHumanFriendly) };
+                    ArConf.Salt = Encoding.UTF8.GetBytes("RVTunnelSys");
+                    var ArConf2 = new Argon2Config() { HashLength = 48, Lanes = 4, MemoryCost = 65536, Password = Encoding.UTF8.GetBytes(random128bitsHumanFriendly) };
+                    ArConf2.Salt = Encoding.UTF8.GetBytes("RVTunnelSys");
+
+                    //MessageBox.Query("Argon2 Test", $"{Argon2.Hash("Hello", 1, 65536, 1, Argon2Type.DataIndependentAddressing, 16)}\r\n" +
+                        //$"{Argon2.Hash("Hello", 1, 65536, 1, Argon2Type.DataIndependentAddressing, 16)}");
+                    MessageBox.Query("Argon2 Test", $"{Argon2.Hash(ArConf).Split("$").Last()}\r\n" +
+                       $"{Argon2.Hash(ArConf2).Split("$").Last()} :: {Argon2.Hash(ArConf2).Split("$").Last().Length}");
+                    var PBKDH = Convert.FromBase64String(Argon2.Hash(ArConf).Split("$").Last());
+                    var PBKDH_IV = PBKDH.Skip(32).Take(16).ToArray();
+                    var PBKDH_KEY = PBKDH.Take(32).ToArray();
+                    MessageBox.Query("Check values:", $"Key: {Convert.ToBase64String(PBKDH_KEY)}\r\nIV: {Convert.ToBase64String(PBKDH_IV)}", "Ok");
                     MessageBox.Query("Keep this safe!", $"You won't see this again;\r\nWrite it down: \r\n{random128bitsHumanFriendly}", "Done!");
                     MessageBox.Query("Decoded debug", $"Decoded debug: \r\n{
                         Convert.ToBase64String(
@@ -405,9 +420,9 @@ namespace RV.WebRTCForwarders {
                     /* Create the ZIP file */
                     var AesOutStreamConf = Aes.Create();
                     AesOutStreamConf.KeySize = 256;
-                    var pwKey = KeyDerivation.Pbkdf2(random128bitsHumanFriendly, Encoding.UTF8.GetBytes("RVTunSvc"), KeyDerivationPrf.HMACSHA256, 100000, 32);
+                    var pwKey = PBKDH_KEY;
                     AesOutStreamConf.Key = pwKey;
-                    var pwIV = KeyDerivation.Pbkdf2(random128bitsHumanFriendly, Encoding.UTF8.GetBytes("RVTunSvc"), KeyDerivationPrf.HMACSHA256, 10000, 16);
+                    var pwIV = PBKDH_IV;
                     AesOutStreamConf.IV = pwIV;
                     ICryptoTransform CTT = AesOutStreamConf.CreateEncryptor();
                     var OCST = new CryptoStream(File.Create($"{portnumber.Text}.tun.otherside.zip.rvtunnelconfiguration"), CTT, CryptoStreamMode.Write);
