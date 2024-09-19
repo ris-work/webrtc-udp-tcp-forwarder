@@ -13,6 +13,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Humanizer;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
+using Isopoh.Cryptography.Argon2;
 
 public static class Config {
     ///public static string InstallationRoot = Path.Combine(SpecialDirectories.ProgramFiles, "rv", "rvtunsvc");
@@ -37,13 +38,22 @@ public static class ConfigInstaller
 
         ICSharpCode.SharpZipLib.Zip.ZipInputStream Z;
         ICSharpCode.SharpZipLib.Zip.ZipFile ZF;
+        var ArConf = new Argon2Config() { HashLength = 48, Lanes = 4, MemoryCost = 65536, Password = Encoding.UTF8.GetBytes(EKF.Key) };
+        ArConf.Salt = Encoding.UTF8.GetBytes("RVTunnelSys");
+        var ArConf2 = new Argon2Config() { HashLength = 48, Lanes = 4, MemoryCost = 65536, Password = Encoding.UTF8.GetBytes(EKF.Key) };
+        ArConf2.Salt = Encoding.UTF8.GetBytes("RVTunnelSys");
+        var PBKDH = Convert.FromBase64String(Argon2.Hash(ArConf).Split("$").Last());
+        var PBKDH_IV = PBKDH.Skip(32).Take(16).ToArray();
+        var PBKDH_KEY = PBKDH.Take(32).ToArray();
+        MessageBox.Query("Key input:", $"{Argon2.Hash(ArConf).Split("$").Last()}", "Ok");
         var AesOutStreamConf = Aes.Create();
         AesOutStreamConf.KeySize = 256;
         var pwKey = KeyDerivation.Pbkdf2(EKF.Key, Encoding.UTF8.GetBytes("RVTunSvc"), KeyDerivationPrf.HMACSHA256, 100000, 32);
-        AesOutStreamConf.Key = pwKey;
+        AesOutStreamConf.Key = PBKDH_KEY;
         var pwIV = KeyDerivation.Pbkdf2(EKF.Key, Encoding.UTF8.GetBytes("RVTunSvc"), KeyDerivationPrf.HMACSHA256, 10000, 16);
-        AesOutStreamConf.IV = pwIV;
+        AesOutStreamConf.IV = PBKDH_IV;
         ICryptoTransform CTT = AesOutStreamConf.CreateDecryptor();
+        
 
         var CSI = new CryptoStream(File.Open(args[0], FileMode.Open), CTT, CryptoStreamMode.Read);
         MemoryStream MSI = new() ;

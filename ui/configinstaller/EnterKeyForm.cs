@@ -16,7 +16,7 @@ namespace RV.WebRTCForwarders {
         public EnterKeyForm() {
             InitializeComponent();
             keyentered.Accept += (_, _) => {
-                Key = keyfield.Text.ToUpperInvariant().Replace("0","O").Replace("1", "I");
+                Key = keyfield.Text.ToUpperInvariant().Replace("0","O").Replace("1", "I").Trim();
                 MessageBox.Query("Interpretation", $"Interpreted as {Key}", "");
                 this.RequestStop();
             };
