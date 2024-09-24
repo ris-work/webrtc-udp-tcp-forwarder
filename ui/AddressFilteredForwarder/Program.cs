@@ -25,11 +25,19 @@ string[] AllowedSubnetsConf = (string[])((TomlArray)ConfigDict["AllowedSources"]
 string[] ListenAddresses = (string[])(((TomlArray)ConfigDict["ListenAddresses"]).Select(a => (string)a!).ToArray());
 bool AuthenticationNeeded = (bool)ConfigDict.GetValueOrDefault("AuthenticationNeeded", false);
 bool TLSServer = (bool)ConfigDict.GetValueOrDefault("TLSServer", false);
-string TLSServerCertPath = (string)ConfigDict.GetValueOrDefault("TLSServerCertPath", "Cert.pem");
+string TLSServerCertPath = (string)ConfigDict.GetValueOrDefault("TLSServerCertPath", "cert.pem");
+string TLSServerKeyPath = (string)ConfigDict.GetValueOrDefault("TLSServerKeyPath", "privkey.pem");
 String AdditionallyValidateAgainstHostname = (String)ConfigDict.GetValueOrDefault("AdditionallyValidateAgainstHostname", null);
 bool TLSClient = (bool)ConfigDict.GetValueOrDefault("TLSClient", false);
 int ListenPort = (int)(long)ConfigDict["ListenPort"];
-X509Certificate ServerCert = X509CertificateLoader.LoadCertificateFromFile(TLSServerCertPath);
+X509Certificate2 ServerCert = null;
+if (TLSServer)
+{
+    Console.WriteLine($"Attempting to load {TLSServerCertPath}...");
+    ServerCert = X509Certificate2.CreateFromPemFile(TLSServerCertPath, TLSServerKeyPath);
+    ServerCert = X509CertificateLoader.LoadPkcs12(ServerCert.Export(X509ContentType.Pkcs12), "");
+}
+Forwarder.AdditionallyValidateAgainstHostname = AdditionallyValidateAgainstHostname;
 
 
 IPEndPoint[] IPE = ListenAddresses.Select(a => new IPEndPoint(IPAddress.Parse(a), ListenPort)).ToArray();
@@ -52,7 +60,7 @@ if (!DestinationIsAUnixSocket)
             Console.WriteLine($"Thread for: {a.Address}, {a.Port}");
             (new Thread(async () =>
             {
-                Forwarder.BeginForwarding(a, dest, AllowedSubnets).GetAwaiter().GetResult();
+                Forwarder.BeginForwarding(a, dest, AllowedSubnets, TLSServer, ServerCert, TLSClient).GetAwaiter().GetResult();
             })).Start();
             return 1;
         }
@@ -80,7 +88,7 @@ else
                         Socket S = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.IP);
                         S.Connect(new UnixDomainSocketEndPoint(DestinationAddress));
                         var NS = new NetworkStream(S, true);
-                        await Forwarder.HandleClientGenericStream(C, NS, AllowedSubnets);
+                        await Forwarder.HandleClientGenericStream(C, NS, AllowedSubnets, TLSServer, ServerCert);
                     }
                 }
                 catch (Exception E)
@@ -98,7 +106,22 @@ else
 
 public static class Forwarder
 {
-    public static async Task<int> BeginForwarding(IPEndPoint e, IPEndPoint dest, IPNetwork[] AllowedSubnets, bool TLSServer = false, X509Certificate TLSServerCert = null)
+    public static string AdditionallyValidateAgainstHostname;
+    public static bool ValidateServerCertificate(object sender, X509Certificate cert, X509Chain chain, SslPolicyErrors SPE)
+    {
+        Console.WriteLine($"Verifying TLS/SSL cert as a client... {SPE}");
+        if (SPE == SslPolicyErrors.None) return true;
+        else if(SPE == SslPolicyErrors.RemoteCertificateNameMismatch)
+        {
+            return cert.Subject == AdditionallyValidateAgainstHostname;
+        }
+        else
+        {
+            Console.Error.WriteLine($"{SPE.ToString()}");
+            return false;
+        }
+    }
+    public static async Task<int> BeginForwarding(IPEndPoint e, IPEndPoint dest, IPNetwork[] AllowedSubnets, bool TLSServer = false, X509Certificate2 TLSServerCert = null, bool TLSClient = false)
     {
         try
         {
@@ -110,14 +133,14 @@ public static class Forwarder
                     var C = server.AcceptTcpClientAsync() ;
                     if (!TLSServer)
                     { 
-                        await HandleClient(await C, dest, AllowedSubnets);
+                        await HandleClient(await C, dest, AllowedSubnets, null, TLSClient);
                     }
                     else
                     {
                         SslStream sslStream;
                         sslStream = new SslStream((await C).GetStream(), false);
                         await sslStream.AuthenticateAsServerAsync(TLSServerCert, clientCertificateRequired: false, checkCertificateRevocation: true);
-                        //await HandleClient(sslStream, dest, AllowedSubnets);
+                        await HandleClient(await C, dest, AllowedSubnets, sslStream, TLSClient);
                     }
                 }
                 catch (Exception E)
@@ -134,8 +157,11 @@ public static class Forwarder
         }
         return 0;
     }
-    public static async Task HandleClient(TcpClient C, IPEndPoint dest, IPNetwork[] AN)
+    public static async Task HandleClient(TcpClient C, IPEndPoint dest, IPNetwork[] AN, Stream s = null, bool TLSClient = false)
     {
+        if (s == null) {
+            s = C.GetStream();
+        }
         await Task.Yield();
         bool ClientIsInAllowedSubnets = AN.Any(a => a.Contains(((IPEndPoint)C.Client.RemoteEndPoint).Address));
         if (ClientIsInAllowedSubnets)
@@ -145,8 +171,18 @@ public static class Forwarder
             byte[] bytesToDest = new byte[65536];
             byte[] bytesToClient = new byte[65536];
             Console.WriteLine($"New: {C.Client.RemoteEndPoint.ToString()}");
-            NetworkStream NS = C.GetStream();
-            NetworkStream DS = CD.GetStream();
+            Stream NS = s;
+            Stream DS;
+            if (!TLSClient)
+            {
+                DS = CD.GetStream();
+            }
+            else
+            {
+                var ClientSSLStream = new SslStream(CD.GetStream(), false, new RemoteCertificateValidationCallback(ValidateServerCertificate), null);
+                ClientSSLStream.AuthenticateAsClient(AdditionallyValidateAgainstHostname);
+                DS = ClientSSLStream;
+            }
             int iTD;
             int iTC;
             var fnB = async () =>
@@ -179,7 +215,7 @@ public static class Forwarder
         }
         
     }
-    public static async Task HandleClientGenericStream(TcpClient C, Stream dest, IPNetwork[] AN)
+    public static async Task HandleClientGenericStream(TcpClient C, Stream dest, IPNetwork[] AN, bool TLSServer = false, X509Certificate2 TLSServerCert = null)
     {
         await Task.Yield();
         bool ClientIsInAllowedSubnets = AN.Any(a => a.Contains(((IPEndPoint)C.Client.RemoteEndPoint).Address));
@@ -192,7 +228,16 @@ public static class Forwarder
             NetworkStream NS = C.GetStream();
             int iTD;
             int iTC;
-            var Cst = C.GetStream();
+            Stream Cst; // = C.GetStream();
+            if (!TLSServer) {
+                Cst = C.GetStream();
+            }
+            else
+            {
+                var ServerStream = new SslStream(C.GetStream(), false, new RemoteCertificateValidationCallback(ValidateServerCertificate), null);
+                await ServerStream.AuthenticateAsServerAsync(TLSServerCert, false, System.Security.Authentication.SslProtocols.Tls12, true);
+                Cst = ServerStream;
+            }
             var Dst = dest;
             var fnB = async () =>
             {
