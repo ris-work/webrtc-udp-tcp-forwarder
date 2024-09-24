@@ -1,9 +1,12 @@
 ﻿// See https://aka.ms/new-console-template for more information
 using System.Linq.Expressions;
 using System.Net;
+using System.Net.Security;
 using System.Net.Sockets;
+using System.Security.Cryptography.X509Certificates;
 using Tomlyn;
 using Tomlyn.Model;
+
 Console.Title = "Address Filtered Forwarder";
 Console.WriteLine("This program is there to port-forward to a destination only if the source matches the given subnet(s)");
 string configurationfile = "AddressFilteredForwarderConfiguration.toml";
@@ -20,7 +23,14 @@ bool DestinationIsAUnixSocket = (bool)ConfigDict.GetValueOrDefault("DestinationI
 int DestinationPort = ((int)(long)ConfigDict.GetValueOrDefault("DestinationPort", 0));
 string[] AllowedSubnetsConf = (string[])((TomlArray)ConfigDict["AllowedSources"]).Select(a => (string)a!).ToArray();
 string[] ListenAddresses = (string[])(((TomlArray)ConfigDict["ListenAddresses"]).Select(a => (string)a!).ToArray());
+bool AuthenticationNeeded = (bool)ConfigDict.GetValueOrDefault("AuthenticationNeeded", false);
+bool TLSServer = (bool)ConfigDict.GetValueOrDefault("TLSServer", false);
+string TLSServerCertPath = (string)ConfigDict.GetValueOrDefault("TLSServerCertPath", "Cert.pem");
+String AdditionallyValidateAgainstHostname = (String)ConfigDict.GetValueOrDefault("AdditionallyValidateAgainstHostname", null);
+bool TLSClient = (bool)ConfigDict.GetValueOrDefault("TLSClient", false);
 int ListenPort = (int)(long)ConfigDict["ListenPort"];
+X509Certificate ServerCert = X509CertificateLoader.LoadCertificateFromFile(TLSServerCertPath);
+
 
 IPEndPoint[] IPE = ListenAddresses.Select(a => new IPEndPoint(IPAddress.Parse(a), ListenPort)).ToArray();
 IPNetwork[] AllowedSubnets = AllowedSubnetsConf.Select(a => IPNetwork.Parse(a)).ToArray();
@@ -88,7 +98,7 @@ else
 
 public static class Forwarder
 {
-    public static async Task<int> BeginForwarding(IPEndPoint e, IPEndPoint dest, IPNetwork[] AllowedSubnets)
+    public static async Task<int> BeginForwarding(IPEndPoint e, IPEndPoint dest, IPNetwork[] AllowedSubnets, bool TLSServer = false, X509Certificate TLSServerCert = null)
     {
         try
         {
@@ -98,7 +108,17 @@ public static class Forwarder
             {
                 try {
                     var C = server.AcceptTcpClientAsync() ;
-                    await HandleClient(await C, dest, AllowedSubnets);
+                    if (!TLSServer)
+                    { 
+                        await HandleClient(await C, dest, AllowedSubnets);
+                    }
+                    else
+                    {
+                        SslStream sslStream;
+                        sslStream = new SslStream((await C).GetStream(), false);
+                        await sslStream.AuthenticateAsServerAsync(TLSServerCert, clientCertificateRequired: false, checkCertificateRevocation: true);
+                        //await HandleClient(sslStream, dest, AllowedSubnets);
+                    }
                 }
                 catch (Exception E)
                 {
