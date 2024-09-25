@@ -3,9 +3,13 @@ using System.Linq.Expressions;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
+using System.Runtime.Intrinsics.Arm;
 using System.Security.Cryptography.X509Certificates;
 using Tomlyn;
 using Tomlyn.Model;
+using System.Security.Cryptography;
+using System.Text;
+using System.Collections;
 
 Console.Title = "Address Filtered Forwarder";
 Console.WriteLine("This program is there to port-forward to a destination only if the source matches the given subnet(s)");
@@ -23,7 +27,8 @@ bool DestinationIsAUnixSocket = (bool)ConfigDict.GetValueOrDefault("DestinationI
 int DestinationPort = ((int)(long)ConfigDict.GetValueOrDefault("DestinationPort", 0));
 string[] AllowedSubnetsConf = (string[])((TomlArray)ConfigDict["AllowedSources"]).Select(a => (string)a!).ToArray();
 string[] ListenAddresses = (string[])(((TomlArray)ConfigDict["ListenAddresses"]).Select(a => (string)a!).ToArray());
-bool AuthenticationNeeded = (bool)ConfigDict.GetValueOrDefault("AuthenticationNeeded", false);
+bool AuthenticateAsServer = (bool)ConfigDict.GetValueOrDefault("AuthenticateAsServer", false);
+bool AuthenticateAsClient = (bool)ConfigDict.GetValueOrDefault("AuthenticateAsClient", false);
 bool TLSServer = (bool)ConfigDict.GetValueOrDefault("TLSServer", false);
 string TLSServerCertPath = (string)ConfigDict.GetValueOrDefault("TLSServerCertPath", "cert.pem");
 string TLSServerKeyPath = (string)ConfigDict.GetValueOrDefault("TLSServerKeyPath", "privkey.pem");
@@ -31,6 +36,14 @@ String AdditionallyValidateAgainstHostname = (String)ConfigDict.GetValueOrDefaul
 bool TLSClient = (bool)ConfigDict.GetValueOrDefault("TLSClient", false);
 int ListenPort = (int)(long)ConfigDict["ListenPort"];
 X509Certificate2 ServerCert = null;
+string AuthenticationKeyPSK = null;
+if (AuthenticateAsServer || AuthenticateAsClient)
+{
+    AuthenticationKeyPSK = (string)ConfigDict.GetValueOrDefault("AuthenticationKeyPSK", null);
+    Forwarder.AuthenticateAsClient = AuthenticateAsClient;
+    Forwarder.AuthenticateAsServer = AuthenticateAsServer;
+    Forwarder.AuthenticationKeyPSK = SHA256.Create().ComputeHash(Encoding.UTF8.GetBytes(AuthenticationKeyPSK));
+}
 if (TLSServer)
 {
     Console.WriteLine($"Attempting to load {TLSServerCertPath}...");
@@ -107,6 +120,8 @@ else
 public static class Forwarder
 {
     public static string AdditionallyValidateAgainstHostname;
+    public static bool AuthenticateAsServer, AuthenticateAsClient;
+    public static byte[] AuthenticationKeyPSK;
     public static bool ValidateServerCertificate(object sender, X509Certificate cert, X509Chain chain, SslPolicyErrors SPE)
     {
         Console.WriteLine($"Verifying TLS/SSL cert as a client... {SPE}");
@@ -162,12 +177,79 @@ public static class Forwarder
         if (s == null) {
             s = C.GetStream();
         }
+        if (AuthenticateAsServer) {
+            var RG = new Random();
+            byte[] RandomBytes = new byte[16];
+            byte[] response = new byte[16];
+            byte[] challenge = new byte[16];
+            byte[] challengeResponse = new byte[16];
+            RG.NextBytes(RandomBytes);
+            System.Security.Cryptography.Aes aesEnc = System.Security.Cryptography.Aes.Create();
+            aesEnc.KeySize = 256;
+            aesEnc.Key = AuthenticationKeyPSK;
+            aesEnc.IV = Enumerable.Repeat((byte)0x00, 16).ToArray();
+            ICryptoTransform EncryptTransformer = aesEnc.CreateEncryptor(aesEnc.Key, aesEnc.IV);
+            ICryptoTransform DecryptTransformer = aesEnc.CreateDecryptor(aesEnc.Key, aesEnc.IV);
+            
+
+            await s.WriteAsync(RandomBytes);
+            await s.ReadExactlyAsync(response);
+            byte[] decryptedResponse = new byte[16];
+            DecryptTransformer.TransformBlock(response, 0, 16, decryptedResponse, 0);
+            IStructuralEquatable IERC = RandomBytes;
+            bool IsResponseCorrect = IERC.Equals(decryptedResponse);
+            await s.ReadExactlyAsync(challenge);
+            EncryptTransformer.TransformBlock(challenge, 0, 16, challengeResponse, 0);
+            await s.WriteAsync(challengeResponse);
+            s.Flush();
+            if (!IsResponseCorrect) {
+                Console.WriteLine($"Authentication failed for client (we are server), tunnel: {((IPEndPoint)C.Client.RemoteEndPoint).Address}");
+                s.Close();
+                return;
+            }
+
+        }
         await Task.Yield();
         bool ClientIsInAllowedSubnets = AN.Any(a => a.Contains(((IPEndPoint)C.Client.RemoteEndPoint).Address));
         if (ClientIsInAllowedSubnets)
         {
             Console.WriteLine($"{dest}");
+            
             TcpClient CD = new TcpClient(dest.Address.ToString(), dest.Port);
+            if (AuthenticateAsClient)
+            {
+                var OurCS = CD.GetStream();
+                var RG = new Random();
+                byte[] RandomBytes = new byte[16];
+                byte[] response = new byte[16];
+                byte[] challenge = new byte[16];
+                byte[] challengeResponse = new byte[16];
+                RG.NextBytes(RandomBytes);
+                System.Security.Cryptography.Aes aesEnc = System.Security.Cryptography.Aes.Create();
+                aesEnc.KeySize = 256;
+                aesEnc.Key = AuthenticationKeyPSK;
+                aesEnc.IV = Enumerable.Repeat((byte)0x00, 16).ToArray();
+                ICryptoTransform EncryptTransformer = aesEnc.CreateEncryptor(aesEnc.Key, aesEnc.IV);
+                ICryptoTransform DecryptTransformer = aesEnc.CreateDecryptor(aesEnc.Key, aesEnc.IV);
+
+                await OurCS.ReadExactlyAsync(challenge);
+                EncryptTransformer.TransformBlock(challenge, 0, 16, challengeResponse, 0);
+                await OurCS.WriteAsync(challengeResponse);
+                await OurCS.WriteAsync(RandomBytes);
+                await OurCS.ReadExactlyAsync(response);
+                byte[] decryptedResponse = new byte[16];
+                DecryptTransformer.TransformBlock(response, 0, 16, decryptedResponse, 0);
+                IStructuralEquatable IERC = RandomBytes;
+                bool IsResponseCorrect = IERC.Equals(decryptedResponse);
+                OurCS.Flush();
+                if (!IsResponseCorrect)
+                {
+                    Console.WriteLine($"Authentication failed for server (we are client), tunnel: {((IPEndPoint)C.Client.RemoteEndPoint).Address}");
+                    OurCS.Close();
+                    return;
+                }
+                
+            }
             byte[] bytesToDest = new byte[65536];
             byte[] bytesToClient = new byte[65536];
             Console.WriteLine($"New: {C.Client.RemoteEndPoint.ToString()}");
