@@ -138,6 +138,7 @@ public static class Forwarder
     }
     public static async Task<int> BeginForwarding(IPEndPoint e, IPEndPoint dest, IPNetwork[] AllowedSubnets, bool TLSServer = false, X509Certificate2 TLSServerCert = null, bool TLSClient = false)
     {
+        Console.WriteLine($"AuthenticateAsServer: {AuthenticateAsServer}, AuthenticateAsClient: {AuthenticateAsClient}, AdditionallyValidateAgainstHostname: {AdditionallyValidateAgainstHostname}.");
         try
         {
             var server = new TcpListener(e);
@@ -174,15 +175,17 @@ public static class Forwarder
     }
     public static async Task HandleClient(TcpClient C, IPEndPoint dest, IPNetwork[] AN, Stream s = null, bool TLSClient = false)
     {
+        Console.WriteLine($"AuthenticateAsServer: {AuthenticateAsServer}, AuthenticateAsClient: {AuthenticateAsClient}, AdditionallyValidateAgainstHostname: {AdditionallyValidateAgainstHostname}.");
         if (s == null) {
             s = C.GetStream();
         }
         if (AuthenticateAsServer) {
+            Console.WriteLine("Authenticating as server...");
             var RG = new Random();
-            byte[] RandomBytes = new byte[16];
-            byte[] response = new byte[16];
-            byte[] challenge = new byte[16];
-            byte[] challengeResponse = new byte[16];
+            byte[] RandomBytes = new byte[32];
+            byte[] response = new byte[32];
+            byte[] challenge = new byte[32];
+            byte[] challengeResponse = new byte[32];
             RG.NextBytes(RandomBytes);
             System.Security.Cryptography.Aes aesEnc = System.Security.Cryptography.Aes.Create();
             aesEnc.KeySize = 256;
@@ -194,19 +197,21 @@ public static class Forwarder
 
             await s.WriteAsync(RandomBytes);
             await s.ReadExactlyAsync(response);
-            byte[] decryptedResponse = new byte[16];
-            DecryptTransformer.TransformBlock(response, 0, 16, decryptedResponse, 0);
-            IStructuralEquatable IERC = RandomBytes;
-            bool IsResponseCorrect = IERC.Equals(decryptedResponse);
+            byte[] decryptedResponse = new byte[32];
+            DecryptTransformer.TransformBlock(response, 0, 32, decryptedResponse, 0);
+            IStructuralEquatable IERC = RandomBytes[0..16];
+            bool IsResponseCorrect = IERC.Equals(decryptedResponse[0..16], StructuralComparisons.StructuralEqualityComparer);
             await s.ReadExactlyAsync(challenge);
-            EncryptTransformer.TransformBlock(challenge, 0, 16, challengeResponse, 0);
+            EncryptTransformer.TransformBlock(challenge, 0, 32, challengeResponse, 0);
             await s.WriteAsync(challengeResponse);
-            s.Flush();
+            await s.FlushAsync();
             if (!IsResponseCorrect) {
+                Console.WriteLine($"Challenge auth error: Expected: {Convert.ToHexString(RandomBytes[0..16])}, Got: {Convert.ToHexString(decryptedResponse[0..16])}");
                 Console.WriteLine($"Authentication failed for client (we are server), tunnel: {((IPEndPoint)C.Client.RemoteEndPoint).Address}");
                 s.Close();
                 return;
             }
+            else Console.WriteLine("Authentication succeeded for client (we are server)");
 
         }
         await Task.Yield();
@@ -216,40 +221,7 @@ public static class Forwarder
             Console.WriteLine($"{dest}");
             
             TcpClient CD = new TcpClient(dest.Address.ToString(), dest.Port);
-            if (AuthenticateAsClient)
-            {
-                var OurCS = CD.GetStream();
-                var RG = new Random();
-                byte[] RandomBytes = new byte[16];
-                byte[] response = new byte[16];
-                byte[] challenge = new byte[16];
-                byte[] challengeResponse = new byte[16];
-                RG.NextBytes(RandomBytes);
-                System.Security.Cryptography.Aes aesEnc = System.Security.Cryptography.Aes.Create();
-                aesEnc.KeySize = 256;
-                aesEnc.Key = AuthenticationKeyPSK;
-                aesEnc.IV = Enumerable.Repeat((byte)0x00, 16).ToArray();
-                ICryptoTransform EncryptTransformer = aesEnc.CreateEncryptor(aesEnc.Key, aesEnc.IV);
-                ICryptoTransform DecryptTransformer = aesEnc.CreateDecryptor(aesEnc.Key, aesEnc.IV);
-
-                await OurCS.ReadExactlyAsync(challenge);
-                EncryptTransformer.TransformBlock(challenge, 0, 16, challengeResponse, 0);
-                await OurCS.WriteAsync(challengeResponse);
-                await OurCS.WriteAsync(RandomBytes);
-                await OurCS.ReadExactlyAsync(response);
-                byte[] decryptedResponse = new byte[16];
-                DecryptTransformer.TransformBlock(response, 0, 16, decryptedResponse, 0);
-                IStructuralEquatable IERC = RandomBytes;
-                bool IsResponseCorrect = IERC.Equals(decryptedResponse);
-                OurCS.Flush();
-                if (!IsResponseCorrect)
-                {
-                    Console.WriteLine($"Authentication failed for server (we are client), tunnel: {((IPEndPoint)C.Client.RemoteEndPoint).Address}");
-                    OurCS.Close();
-                    return;
-                }
-                
-            }
+            
             byte[] bytesToDest = new byte[65536];
             byte[] bytesToClient = new byte[65536];
             Console.WriteLine($"New: {C.Client.RemoteEndPoint.ToString()}");
@@ -264,6 +236,43 @@ public static class Forwarder
                 var ClientSSLStream = new SslStream(CD.GetStream(), false, new RemoteCertificateValidationCallback(ValidateServerCertificate), null);
                 ClientSSLStream.AuthenticateAsClient(AdditionallyValidateAgainstHostname);
                 DS = ClientSSLStream;
+            }
+            if (AuthenticateAsClient)
+            {
+                Console.WriteLine("Authenticating as client...");
+                var OurCS = DS;
+                var RG = new Random();
+                byte[] RandomBytes = new byte[32];
+                byte[] response = new byte[32];
+                byte[] challenge = new byte[32];
+                byte[] challengeResponse = new byte[32];
+                RG.NextBytes(RandomBytes);
+                System.Security.Cryptography.Aes aesEnc = System.Security.Cryptography.Aes.Create();
+                aesEnc.KeySize = 256;
+                aesEnc.Key = AuthenticationKeyPSK;
+                aesEnc.IV = Enumerable.Repeat((byte)0x00, 16).ToArray();
+                ICryptoTransform EncryptTransformer = aesEnc.CreateEncryptor(aesEnc.Key, aesEnc.IV);
+                ICryptoTransform DecryptTransformer = aesEnc.CreateDecryptor(aesEnc.Key, aesEnc.IV);
+
+                await OurCS.ReadExactlyAsync(challenge);
+                EncryptTransformer.TransformBlock(challenge, 0, 32, challengeResponse, 0);
+                await OurCS.WriteAsync(challengeResponse);
+                await OurCS.WriteAsync(RandomBytes);
+                await OurCS.ReadExactlyAsync(response);
+                byte[] decryptedResponse = new byte[32];
+                DecryptTransformer.TransformBlock(response, 0, 32, decryptedResponse, 0);
+                IStructuralEquatable IERC = RandomBytes[0..16];
+                bool IsResponseCorrect = IERC.Equals(decryptedResponse[0..16], StructuralComparisons.StructuralEqualityComparer);
+                await OurCS.FlushAsync();
+                if (!IsResponseCorrect)
+                {
+                    Console.WriteLine($"Challenge auth error: Expected: {Convert.ToHexString(RandomBytes[0..16])}, Got: {Convert.ToHexString(decryptedResponse[0..16])}");
+                    Console.WriteLine($"Authentication failed for server (we are client), tunnel: {((IPEndPoint)C.Client.RemoteEndPoint).Address}");
+                    OurCS.Close();
+                    return;
+                }
+                else Console.WriteLine("Authentication succeeded for server (we are client)");
+
             }
             int iTD;
             int iTC;
