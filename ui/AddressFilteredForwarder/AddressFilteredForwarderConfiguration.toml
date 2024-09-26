@@ -1,0 +1,6 @@
+﻿DestinationAddress = "127.0.0.1"
+DestinationPort = 80
+AllowedSources = ["127.0.0.0/8", "10.0.0.0/8"]
+#AllowedSources = ["10.0.0.0/8"]
+ListenAddresses = ["127.0.0.1", "10.0.0.1"]
+ListenPort = 8080

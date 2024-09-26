@@ -24,6 +24,9 @@
 		<PackageReference Include="Wiry.Base32.Patched" Version="1.0.6.1" />
 	</ItemGroup>
 	<ItemGroup>
+	  <None Update="AddressFilteredForwarderConfigurationFullSampleAuthAsClientFaultyPSK.toml">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </None>
 	  <None Update="AddressFilteredForwarderConfigurationFullSampleAuthAsServer.toml">
 	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 	  </None>

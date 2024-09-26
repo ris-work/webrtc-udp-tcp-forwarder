@@ -10,6 +10,7 @@ using Tomlyn.Model;
 using System.Security.Cryptography;
 using System.Text;
 using System.Collections;
+using Rishi.PairStream;
 
 Console.Title = "Address Filtered Forwarder";
 Console.WriteLine("This program is there to port-forward to a destination only if the source matches the given subnet(s)");
@@ -29,6 +30,8 @@ string[] AllowedSubnetsConf = (string[])((TomlArray)ConfigDict["AllowedSources"]
 string[] ListenAddresses = (string[])(((TomlArray)ConfigDict["ListenAddresses"]).Select(a => (string)a!).ToArray());
 bool AuthenticateAsServer = (bool)ConfigDict.GetValueOrDefault("AuthenticateAsServer", false);
 bool AuthenticateAsClient = (bool)ConfigDict.GetValueOrDefault("AuthenticateAsClient", false);
+bool EncryptAsServer = (bool)ConfigDict.GetValueOrDefault("EncryptAsServer", false);
+bool EncryptAsClient = (bool)ConfigDict.GetValueOrDefault("EncryptAsClient", false);
 bool TLSServer = (bool)ConfigDict.GetValueOrDefault("TLSServer", false);
 string TLSServerCertPath = (string)ConfigDict.GetValueOrDefault("TLSServerCertPath", "cert.pem");
 string TLSServerKeyPath = (string)ConfigDict.GetValueOrDefault("TLSServerKeyPath", "privkey.pem");
@@ -43,6 +46,12 @@ if (AuthenticateAsServer || AuthenticateAsClient)
     Forwarder.AuthenticateAsClient = AuthenticateAsClient;
     Forwarder.AuthenticateAsServer = AuthenticateAsServer;
     Forwarder.AuthenticationKeyPSK = SHA256.Create().ComputeHash(Encoding.UTF8.GetBytes(AuthenticationKeyPSK));
+    if (EncryptAsClient || EncryptAsServer)
+    {
+        Console.Error.WriteLine("Encryption requested, is not implemented.");
+        Forwarder.EncryptAsServer = EncryptAsServer;
+        Forwarder.EncryptAsClient = EncryptAsClient;
+    }
 }
 if (TLSServer)
 {
@@ -122,6 +131,7 @@ public static class Forwarder
     public static string AdditionallyValidateAgainstHostname;
     public static bool AuthenticateAsServer, AuthenticateAsClient;
     public static byte[] AuthenticationKeyPSK;
+    public static bool EncryptAsServer, EncryptAsClient;
     public static bool ValidateServerCertificate(object sender, X509Certificate cert, X509Chain chain, SslPolicyErrors SPE)
     {
         Console.WriteLine($"Verifying TLS/SSL cert as a client... {SPE}");
@@ -205,13 +215,36 @@ public static class Forwarder
             EncryptTransformer.TransformBlock(challenge, 0, 32, challengeResponse, 0);
             await s.WriteAsync(challengeResponse);
             await s.FlushAsync();
-            if (!IsResponseCorrect) {
+            if (!IsResponseCorrect)
+            {
                 Console.WriteLine($"Challenge auth error: Expected: {Convert.ToHexString(RandomBytes[0..16])}, Got: {Convert.ToHexString(decryptedResponse[0..16])}");
                 Console.WriteLine($"Authentication failed for client (we are server), tunnel: {((IPEndPoint)C.Client.RemoteEndPoint).Address}");
                 s.Close();
                 return;
             }
-            else Console.WriteLine("Authentication succeeded for client (we are server)");
+            else
+            {
+                Console.WriteLine("Authentication succeeded for client (we are server)");
+                if (EncryptAsServer)
+                {
+                    Console.WriteLine("Additional PSK based encryption is requested (server).");
+                    System.Security.Cryptography.Aes AesWriter = System.Security.Cryptography.Aes.Create();
+                    System.Security.Cryptography.Aes AesReader = System.Security.Cryptography.Aes.Create();
+                    AesWriter.IV = RandomBytes[0..16];
+                    AesReader.IV = decryptedResponse[0..16];
+                    AesWriter.Key = AuthenticationKeyPSK;
+                    AesReader.Key = AuthenticationKeyPSK;
+                    ICryptoTransform AesWriterTransform = AesWriter.CreateEncryptor();
+                    ICryptoTransform AesReaderTransform = AesWriter.CreateDecryptor();
+                    CryptoStream AesWriterStream = new CryptoStream(s, AesWriterTransform, CryptoStreamMode.Write);
+                    CryptoStream AesReaderStream = new CryptoStream(s, AesReaderTransform, CryptoStreamMode.Write);
+                    Stream PS = new Pair(AesReaderStream, AesWriterStream);
+                    s = PS;
+                }
+                else {
+                    Console.WriteLine("Additional PSK based encryption is not requested (server), proceeding...");
+                }
+            }
 
         }
         await Task.Yield();
@@ -271,7 +304,27 @@ public static class Forwarder
                     OurCS.Close();
                     return;
                 }
-                else Console.WriteLine("Authentication succeeded for server (we are client)");
+                else { 
+                    Console.WriteLine("Authentication succeeded for server (we are client)");
+                    if (EncryptAsClient)
+                    {
+                        System.Security.Cryptography.Aes AesWriter = System.Security.Cryptography.Aes.Create();
+                        System.Security.Cryptography.Aes AesReader = System.Security.Cryptography.Aes.Create();
+                        AesWriter.IV = RandomBytes[0..16];
+                        AesReader.IV = decryptedResponse[0..16];
+                        AesWriter.Key = AuthenticationKeyPSK;
+                        AesReader.Key = AuthenticationKeyPSK;
+                        ICryptoTransform AesWriterTransform = AesWriter.CreateEncryptor();
+                        ICryptoTransform AesReaderTransform = AesWriter.CreateDecryptor();
+                        CryptoStream AesWriterStream = new CryptoStream(s, AesWriterTransform, CryptoStreamMode.Write);
+                        CryptoStream AesReaderStream = new CryptoStream(s, AesReaderTransform, CryptoStreamMode.Write);
+                        Stream PS = new Pair(AesReaderStream, AesWriterStream);
+                        OurCS = PS;
+                    }
+                    else {
+                        Console.WriteLine($"Additional PSK based encryption not requested (client), proceeding...");
+                    }
+                }
 
             }
             int iTD;

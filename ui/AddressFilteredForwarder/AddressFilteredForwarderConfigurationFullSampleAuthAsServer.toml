@@ -1,0 +1,13 @@
+﻿DestinationAddress = "51.15.188.227"
+DestinationPort = 443
+AllowedSources = ["127.0.0.0/8", "10.0.0.0/8"]
+#AllowedSources = ["10.0.0.0/8"]
+ListenAddresses = ["127.0.0.1", "10.0.0.1"]
+ListenPort = 8081
+TLSServer = true
+TLSServerCertPath = "cert.pem"
+TLSServerKeyPath = "privkey.pem"
+TLSClient = true
+AdditionallyValidateAgainstHostname = "vz.al"
+AuthenticateAsServer = true
+AuthenticationKeyPSK = "hello"
