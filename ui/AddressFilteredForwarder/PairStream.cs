@@ -60,6 +60,7 @@ namespace Rishi.PairStream
         
         public override void Flush()
         {
+            Console.WriteLine("Pair: Flush called");
             _B.Flush();
         }
         public override void Close()
@@ -132,16 +133,6 @@ namespace Rishi.PairStream
             new Thread(() => A.CopyToAsync(B)).Start();
             new Thread(() => B.CopyToAsync(A)).Start();
         }
-        public new async Task<int> ReadAsync(byte[] A, Int32 B, Int32 C)
-        {
-            Console.WriteLine("Pair: ReadAsync is called.");
-            return await _A.ReadAsync(A, B, C);
-        }
-        public new async Task WriteAsync(byte[] A, Int32 B, Int32 C)
-        {
-            Console.WriteLine("Pair: WriteAsync is called.");
-            await _B.WriteAsync(A, B, C);
-        }
         public override async Task<int> ReadAsync(byte[] A, Int32 B, Int32 C, CancellationToken CT)
         {
             Console.WriteLine("Pair: ReadAsync is called.");
@@ -157,14 +148,12 @@ namespace Rishi.PairStream
             Console.WriteLine("Pair: WriteAsync is called.");
             await _B.WriteAsync(A, B, C, CT);
         }
-        public new async ValueTask ReadExactlyAsync(byte[] A, Int32 B, Int32 C, CancellationToken CT)
+        public override async ValueTask WriteAsync(ReadOnlyMemory<byte> A, CancellationToken CT)
         {
-            await _A.ReadExactlyAsync(A, B, C, CT);
+            Console.WriteLine("Pair: WriteAsync is called.");
+            await _B.WriteAsync(A, CT);
         }
-        public new async ValueTask ReadExactlyAsync(Memory<byte> A, CancellationToken CT)
-        {
-            await _A.ReadExactlyAsync(A, CT);
-        }
+
         public async ValueTask ReadExactlyAsync(Memory<byte> A)
         {
             await _A.ReadExactlyAsync(A);
@@ -173,10 +162,12 @@ namespace Rishi.PairStream
         {
             await _B.FlushAsync(CT);
         }
-        public new async ValueTask FlushAsync()
+        public override async Task CopyToAsync(Stream destination, int bufferSize, CancellationToken cancellationToken)
         {
-            await _B.FlushAsync();
+            await CopyToAsync(destination, bufferSize, cancellationToken);
+            Console.WriteLine("CopyToAsync is called.");
         }
+
     }
     ///<summary>
     /// A subclass of <c>Rishi.PairStream.pair</c> which keeps track of number of bytes transferred until Reset().

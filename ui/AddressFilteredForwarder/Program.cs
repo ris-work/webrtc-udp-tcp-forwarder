@@ -343,7 +343,7 @@ public static class Forwarder
                 while ((iTD = await NS.ReadAsync(bytesToDest, CancellationToken.None)) != 0)
                 {
                     //Console.WriteLine("bytesToDest loop");
-                    await DS.WriteAsync(bytesToDest, 0, iTD);
+                    await DS.WriteAsync(bytesToDest, 0, iTD, CancellationToken.None);
                     await DS.FlushAsync();
                     await Task.Yield();
                 };
@@ -353,7 +353,7 @@ public static class Forwarder
                 while ((iTC = await DS.ReadAsync(bytesToClient, CancellationToken.None)) != 0)
                 {
                     //Console.WriteLine("bytesToClient loop");
-                    await NS.WriteAsync(bytesToClient, 0, iTC);
+                    await NS.WriteAsync(bytesToClient, 0, iTC, CancellationToken.None);
                     await NS.FlushAsync();
                     await Task.Yield();
                 };
