@@ -48,11 +48,13 @@ namespace Rishi.PairStream
         }
         public override int Read(byte[] A, int B, int C)
         {
+            Console.WriteLine("Read() is called");
             return _A.Read(A, B, C);
         }
         public override void Write(byte[] A, int B, int C)
         {
             //Console.WriteLine(Encoding.Default.GetString(A));
+            Console.WriteLine("Write() is called");
             _B.Write(A, B, C);
         }
         
@@ -129,6 +131,51 @@ namespace Rishi.PairStream
         {
             new Thread(() => A.CopyToAsync(B)).Start();
             new Thread(() => B.CopyToAsync(A)).Start();
+        }
+        public new async Task<int> ReadAsync(byte[] A, Int32 B, Int32 C)
+        {
+            Console.WriteLine("Pair: ReadAsync is called.");
+            return await _A.ReadAsync(A, B, C);
+        }
+        public new async Task WriteAsync(byte[] A, Int32 B, Int32 C)
+        {
+            Console.WriteLine("Pair: WriteAsync is called.");
+            await _B.WriteAsync(A, B, C);
+        }
+        public override async Task<int> ReadAsync(byte[] A, Int32 B, Int32 C, CancellationToken CT)
+        {
+            Console.WriteLine("Pair: ReadAsync is called.");
+            return await _A.ReadAsync(A, B, C, CT);
+        }
+        public override async ValueTask<int> ReadAsync(Memory<byte> A, CancellationToken CT)
+        {
+            Console.WriteLine("Pair: ReadAsync is called.");
+            return await _A.ReadAsync(A, CT);
+        }
+        public override async Task WriteAsync(byte[] A, Int32 B, Int32 C, CancellationToken CT)
+        {
+            Console.WriteLine("Pair: WriteAsync is called.");
+            await _B.WriteAsync(A, B, C, CT);
+        }
+        public new async ValueTask ReadExactlyAsync(byte[] A, Int32 B, Int32 C, CancellationToken CT)
+        {
+            await _A.ReadExactlyAsync(A, B, C, CT);
+        }
+        public new async ValueTask ReadExactlyAsync(Memory<byte> A, CancellationToken CT)
+        {
+            await _A.ReadExactlyAsync(A, CT);
+        }
+        public async ValueTask ReadExactlyAsync(Memory<byte> A)
+        {
+            await _A.ReadExactlyAsync(A);
+        }
+        public override async Task FlushAsync(CancellationToken CT)
+        {
+            await _B.FlushAsync(CT);
+        }
+        public new async ValueTask FlushAsync()
+        {
+            await _B.FlushAsync();
         }
     }
     ///<summary>
