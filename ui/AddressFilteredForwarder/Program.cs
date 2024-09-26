@@ -233,11 +233,12 @@ public static class Forwarder
                     System.Security.Cryptography.Aes AesWriter = System.Security.Cryptography.Aes.Create();
                     System.Security.Cryptography.Aes AesReader = System.Security.Cryptography.Aes.Create();
                     AesWriter.IV = RandomBytes[0..16];
-                    AesReader.IV = challengeResponse[0..16];
+                    AesReader.IV = challenge[0..16];
                     Console.WriteLine($"Read IV: {Convert.ToHexString(challenge[0..16])}");
                     Console.WriteLine($"Write IV: {Convert.ToHexString(RandomBytes[0..16])}");
                     AesWriter.Key = AuthenticationKeyPSK;
                     AesReader.Key = AuthenticationKeyPSK;
+                    Console.WriteLine($"Reader, Writer Key: {Convert.ToHexString(AuthenticationKeyPSK)}");
                     ICryptoTransform AesWriterTransform = AesWriter.CreateEncryptor();
                     ICryptoTransform AesReaderTransform = AesReader.CreateDecryptor();
                     CryptoStream AesWriterStream = new CryptoStream(s, AesWriterTransform, CryptoStreamMode.Write, true);
@@ -316,17 +317,18 @@ public static class Forwarder
                         System.Security.Cryptography.Aes AesWriter = System.Security.Cryptography.Aes.Create();
                         System.Security.Cryptography.Aes AesReader = System.Security.Cryptography.Aes.Create();
                         AesWriter.IV = RandomBytes[0..16];
-                        AesReader.IV = decryptedResponse[0..16];
+                        AesReader.IV = challenge[0..16];
                         Console.WriteLine($"Read IV: {Convert.ToHexString(challenge[0..16])}");
                         Console.WriteLine($"Write IV: {Convert.ToHexString(RandomBytes[0..16])}");
                         AesWriter.Key = AuthenticationKeyPSK;
                         AesReader.Key = AuthenticationKeyPSK;
+                        Console.WriteLine($"Reader, Writer Key: {Convert.ToHexString(AuthenticationKeyPSK)}");
                         ICryptoTransform AesWriterTransform = AesWriter.CreateEncryptor();
                         ICryptoTransform AesReaderTransform = AesReader.CreateDecryptor();
                         CryptoStream AesWriterStream = new CryptoStream(s, AesWriterTransform, CryptoStreamMode.Write, true);
                         CryptoStream AesReaderStream = new CryptoStream(s, AesReaderTransform, CryptoStreamMode.Read, true);
                         Stream PS = new Pair(AesReaderStream, AesWriterStream);
-                        OurCS = PS;
+                        DS = PS;
                     }
                     else {
                         Console.WriteLine($"Additional PSK based encryption not requested (client), proceeding...");
