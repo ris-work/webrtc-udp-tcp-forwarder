@@ -11,6 +11,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Collections;
 using Rishi.PairStream;
+using Microsoft.PowerShell.Commands;
 
 Console.Title = "Address Filtered Forwarder";
 Console.WriteLine("This program is there to port-forward to a destination only if the source matches the given subnet(s)");
@@ -148,7 +149,8 @@ public static class Forwarder
     }
     public static async Task<int> BeginForwarding(IPEndPoint e, IPEndPoint dest, IPNetwork[] AllowedSubnets, bool TLSServer = false, X509Certificate2 TLSServerCert = null, bool TLSClient = false)
     {
-        Console.WriteLine($"AuthenticateAsServer: {AuthenticateAsServer}, AuthenticateAsClient: {AuthenticateAsClient}, AdditionallyValidateAgainstHostname: {AdditionallyValidateAgainstHostname}.");
+        Console.WriteLine($"AuthenticateAsServer: {AuthenticateAsServer}, AuthenticateAsClient: {AuthenticateAsClient}, AdditionallyValidateAgainstHostname: {AdditionallyValidateAgainstHostname}," +
+            $"EncryptAsServer: {EncryptAsServer}, EncryptAsClient: {EncryptAsClient}.");
         try
         {
             var server = new TcpListener(e);
@@ -231,13 +233,15 @@ public static class Forwarder
                     System.Security.Cryptography.Aes AesWriter = System.Security.Cryptography.Aes.Create();
                     System.Security.Cryptography.Aes AesReader = System.Security.Cryptography.Aes.Create();
                     AesWriter.IV = RandomBytes[0..16];
-                    AesReader.IV = decryptedResponse[0..16];
+                    AesReader.IV = challengeResponse[0..16];
+                    Console.WriteLine($"Read IV: {Convert.ToHexString(challenge[0..16])}");
+                    Console.WriteLine($"Write IV: {Convert.ToHexString(RandomBytes[0..16])}");
                     AesWriter.Key = AuthenticationKeyPSK;
                     AesReader.Key = AuthenticationKeyPSK;
                     ICryptoTransform AesWriterTransform = AesWriter.CreateEncryptor();
-                    ICryptoTransform AesReaderTransform = AesWriter.CreateDecryptor();
-                    CryptoStream AesWriterStream = new CryptoStream(s, AesWriterTransform, CryptoStreamMode.Write);
-                    CryptoStream AesReaderStream = new CryptoStream(s, AesReaderTransform, CryptoStreamMode.Write);
+                    ICryptoTransform AesReaderTransform = AesReader.CreateDecryptor();
+                    CryptoStream AesWriterStream = new CryptoStream(s, AesWriterTransform, CryptoStreamMode.Write, true);
+                    CryptoStream AesReaderStream = new CryptoStream(s, AesReaderTransform, CryptoStreamMode.Read, true);
                     Stream PS = new Pair(AesReaderStream, AesWriterStream);
                     s = PS;
                 }
@@ -308,16 +312,19 @@ public static class Forwarder
                     Console.WriteLine("Authentication succeeded for server (we are client)");
                     if (EncryptAsClient)
                     {
+                        Console.WriteLine("Additional PSK based encryption is requested (client).");
                         System.Security.Cryptography.Aes AesWriter = System.Security.Cryptography.Aes.Create();
                         System.Security.Cryptography.Aes AesReader = System.Security.Cryptography.Aes.Create();
                         AesWriter.IV = RandomBytes[0..16];
                         AesReader.IV = decryptedResponse[0..16];
+                        Console.WriteLine($"Read IV: {Convert.ToHexString(challenge[0..16])}");
+                        Console.WriteLine($"Write IV: {Convert.ToHexString(RandomBytes[0..16])}");
                         AesWriter.Key = AuthenticationKeyPSK;
                         AesReader.Key = AuthenticationKeyPSK;
                         ICryptoTransform AesWriterTransform = AesWriter.CreateEncryptor();
-                        ICryptoTransform AesReaderTransform = AesWriter.CreateDecryptor();
-                        CryptoStream AesWriterStream = new CryptoStream(s, AesWriterTransform, CryptoStreamMode.Write);
-                        CryptoStream AesReaderStream = new CryptoStream(s, AesReaderTransform, CryptoStreamMode.Write);
+                        ICryptoTransform AesReaderTransform = AesReader.CreateDecryptor();
+                        CryptoStream AesWriterStream = new CryptoStream(s, AesWriterTransform, CryptoStreamMode.Write, true);
+                        CryptoStream AesReaderStream = new CryptoStream(s, AesReaderTransform, CryptoStreamMode.Read, true);
                         Stream PS = new Pair(AesReaderStream, AesWriterStream);
                         OurCS = PS;
                     }
