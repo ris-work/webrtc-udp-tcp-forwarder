@@ -80,7 +80,7 @@ public static class ConfigInstaller
 
                 try
                 {
-
+                    string MessagesLog = "";
                     string FileList = "";
                     foreach (ZipEntry item in ZF)
                     {
@@ -92,7 +92,7 @@ public static class ConfigInstaller
                     string configuration = (new StreamReader(config_file)).ReadToEnd();
                     MessageBox.Query("Config", $"{configuration}", "OK");
                     ConfigIn ci = ConfigIn.FromTomlTable(Tomlyn.Toml.ToModel(configuration));
-                    MessageBox.Query("Config Read: ", $"{ci.PortNumber}", "OK");
+                    MessagesLog += "Config Read: " + $"{ci.PortNumber}"+ $"OK{Environment.NewLine}";
                     var TunnelsRoot = Path.Combine(Config.InstallationRoot, "tunnels");
                     Directory.CreateDirectory(Path.Combine(TunnelsRoot, ci.PortNumber.ToString()));
                     FastZip FZ = new FastZip()
@@ -107,7 +107,7 @@ public static class ConfigInstaller
                     }
                     catch (Exception E)
                     {
-                        MessageBox.Query("Exception when extracting", $"{E.ToString()}\r\n{E.StackTrace}");
+                        MessagesLog += "Exception when extracting" + $"{E.ToString()}\r\n{E.StackTrace}{Environment.NewLine}";
                     }
                     string[] verbs = new[] { "install", "start", "refresh" };
                     (string,string)[] servicefiles = new[] {
@@ -145,6 +145,7 @@ public static class ConfigInstaller
                     }
                     Messages += "Press Enter/[Esc] to continue...";
                     MessageBox.Query("Messages", Messages, "Ok");
+                    MessagesLog += Messages;
                     /*
                     try
                     {
@@ -335,12 +336,13 @@ public static class ConfigInstaller
                         PSI_WG_UNINST.UseShellExecute = true;
                         PS_WG_UNINST.StartInfo = PSI_WG_UNINST;
                         Process.Start(PSI_WG_UNINST);
-                        MessageBox.Query("Information", $"Ran: \r\n{PSI_WG_UNINST.FileName} {String.Join(" ", PSI_WG_UNINST.ArgumentList.ToArray())} as {PSI_WG_UNINST.UserName}", "Quit");
-                        MessageBox.Query("Information", "WireGuard tunnel uninstallation attempt completed (for reinstallation).", "Ok");
+                        MessagesLog += "Information: " + $"Ran: \r\n{PSI_WG_UNINST.FileName} {String.Join(" ", PSI_WG_UNINST.ArgumentList.ToArray())} as {PSI_WG_UNINST.UserName}" + $"Quit{Environment.NewLine}";
+                        MessagesLog += "Information: " + "WireGuard tunnel uninstallation attempt completed (for reinstallation)." + $"Ok{Environment.NewLine}";
                     }
                     catch (Exception E)
                     {
                         MessageBox.Query("Wireguard tunnel uninstallation exception", $"{E.ToString()}\r\n{E.StackTrace}");
+                        //File.AppendAllText($"configinstaller-{DateTime.Now.ToString("O")}.log", MessagesLog);
                     }
                     try
                     {
@@ -356,13 +358,14 @@ public static class ConfigInstaller
                         PSI_WG_INST.UseShellExecute = true;
                         PS_WG_INST.StartInfo = PSI_WG_INST;
                         Process.Start(PSI_WG_INST);
-                        MessageBox.Query("Information", $"Ran: \r\n{PSI_WG_INST.FileName} {String.Join(" ", PSI_WG_INST.Arguments)} as {PSI_WG_INST.UserName}", "Quit");
-                        MessageBox.Query("Information", "WireGuard tunnel installation attempt completed.", "Quit ✔");
+                        MessagesLog += "Information: " + $"Ran: \r\n{PSI_WG_INST.FileName} {String.Join(" ", PSI_WG_INST.Arguments)} as {PSI_WG_INST.UserName}", "Quit";
+                        MessagesLog += "Information: " + "WireGuard tunnel installation attempt completed. " + $"Quit ✔ {Environment.NewLine}";
                     }
                     catch (Exception E)
                     {
                         MessageBox.Query("Wireguard tunnel installation exception", $"{E.ToString()}\r\n{E.StackTrace}");
                     }
+                    File.AppendAllText($"configinstaller-{DateTime.Now.ToString("O")}.log", MessagesLog);
                     break;
 
                 }
