@@ -80,6 +80,7 @@ namespace RV.WebRTCForwarders {
                     foreach (var program in Programs) {
                         try
                         {
+                            Console.WriteLine($"Installing {program.Item1} from {program.Item2}...");
                             var output = HC.GetStreamAsync(program.Item2).GetAwaiter().GetResult();
                             var out_exe = File.Create(Path.Combine(root, program.Item3));
                             output.CopyTo(out_exe);
@@ -221,6 +222,23 @@ namespace RV.WebRTCForwarders {
                     MessageBox.Query("Exception", $"{E.ToString()}", "Ok!");
                 }
 
+            };
+            insttvnc.Accept += (_, _) => {
+                HttpClient HC = new HttpClient();
+                var output_tvnc = HC.GetStreamAsync("https://www.tightvnc.com/download/2.8.85/tightvnc-2.8.85-gpl-setup-64bit.msi").GetAwaiter().GetResult();
+                var insttvnc = File.Create(Path.Combine(root, "tvncinst.msi"));
+                output_tvnc.CopyTo(insttvnc);
+                MessageBox.Query("LICENSE", "GPL?\r\nClose if you disagree, [Esc] to agree", "Agree");
+                output_tvnc.Close();
+                insttvnc.Close();
+                try
+                {
+                    System.Diagnostics.Process.Start("tvncinst.msi");
+                }
+                catch (System.Exception E)
+                {
+                    MessageBox.Query("Exception", $"{E.ToString()}", "Ok!");
+                }
             };
             
             

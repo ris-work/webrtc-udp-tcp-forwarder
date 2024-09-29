@@ -109,7 +109,41 @@ public static class ConfigInstaller
                     {
                         MessageBox.Query("Exception when extracting", $"{E.ToString()}\r\n{E.StackTrace}");
                     }
-
+                    string[] verbs = new[] { "install", "start", "refresh" };
+                    (string,string)[] servicefiles = new[] {
+                        ("RV Tunnel Service", "rvtunsvc.xml"),
+                        ("Address Filtered Forwarder", "aff.xml"), 
+                        ("ICMP echo request", "icmp.xml") 
+                    };
+                    foreach((string, string) servicefile in servicefiles) {
+                        foreach (string verb in verbs) {
+                            System.Console.WriteLine($"Attempt: {servicefile.Item1}, {servicefile.Item2}, {verb}");
+                            try
+                            {
+                                ProcessStartInfo PSI_WINSW = new ProcessStartInfo()
+                                {
+                                    FileName = "winsw.exe",
+                                    RedirectStandardError = true,
+                                    RedirectStandardOutput = true,
+                                };
+                                PSI_WINSW.ArgumentList.Add(verb);
+                                PSI_WINSW.ArgumentList.Add(Path.Combine(TunnelsRoot, ci.PortNumber.ToString(), servicefile.Item2));
+                                var PS_WINSW = new System.Diagnostics.Process();
+                                PS_WINSW.StartInfo = PSI_WINSW;
+                                PS_WINSW.Start();
+                                string PS_WINSW_STDOUT = PS_WINSW.StandardOutput.ReadToEnd();
+                                string PS_WINSW_STDERR = PS_WINSW.StandardError.ReadToEnd();
+                                PS_WINSW.WaitForExit();
+                            }
+                            catch(Exception E)
+                            {
+                                Console.WriteLine($"Exception: {E.ToString()}, {E.StackTrace}");
+                            }
+                        }
+                    }
+                    System.Console.WriteLine("Press Enter/[Return] to continue...");
+                    System.Console.ReadLine();
+                    /*
                     try
                     {
                         MessageBox.Query("Information", "Trying to register a Windows (R) service...", "Ok");
@@ -284,7 +318,7 @@ public static class ConfigInstaller
                     {
                         MessageBox.Query("Maybe ICMP not requested! Don't Panic!", $"{E.ToString()}\r\n{E.StackTrace}");
                     }
-
+                    */
                     try
                     {
                         MessageBox.Query("Information", "Trying to Uninstall WireGuard configuration first...", "Ok");
