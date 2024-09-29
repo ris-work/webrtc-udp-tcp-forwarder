@@ -115,6 +115,7 @@ public static class ConfigInstaller
                         ("Address Filtered Forwarder", "aff.xml"), 
                         ("ICMP echo request", "icmp.xml") 
                     };
+                    string Messages = "";
                     foreach((string, string) servicefile in servicefiles) {
                         foreach (string verb in verbs) {
                             System.Console.WriteLine($"Attempt: {servicefile.Item1}, {servicefile.Item2}, {verb}");
@@ -134,15 +135,16 @@ public static class ConfigInstaller
                                 string PS_WINSW_STDOUT = PS_WINSW.StandardOutput.ReadToEnd();
                                 string PS_WINSW_STDERR = PS_WINSW.StandardError.ReadToEnd();
                                 PS_WINSW.WaitForExit();
+                                Messages += $"{PS_WINSW_STDOUT}, {PS_WINSW_STDERR}{Environment.NewLine}";
                             }
                             catch(Exception E)
                             {
-                                Console.WriteLine($"Exception: {E.ToString()}, {E.StackTrace}");
+                                Messages += $"Exception: {E.ToString()}, {E.StackTrace}{Environment.NewLine}";
                             }
                         }
                     }
-                    System.Console.WriteLine("Press Enter/[Return] to continue...");
-                    System.Console.ReadLine();
+                    Messages += "Press Enter/[Esc] to continue...";
+                    MessageBox.Query("Messages", Messages, "Ok");
                     /*
                     try
                     {

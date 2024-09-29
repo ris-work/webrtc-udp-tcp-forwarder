@@ -67,6 +67,7 @@ namespace RV.WebRTCForwarders {
                 {
                     MessageBox.Query("Exception", $"E.ToString()", "Ok!");
                 }
+                string Messages = "";
                 try
                 {
                     HttpClient HC = new HttpClient();
@@ -88,12 +89,13 @@ namespace RV.WebRTCForwarders {
                             out_exe.Close();
                         }
                         catch (Exception E) {
-                            System.Console.WriteLine($"Exception while installing {program.Item1} (installation probably failed): {E.ToString()}, {E.StackTrace}");
+                            Messages += $"Exception while installing {program.Item1} (installation probably failed): {E.ToString()}, {E.StackTrace}{Environment.NewLine}";
                             
                         }
                     }
-                    System.Console.WriteLine("Done downloading, press [Enter] or [Return] to continue...");
-                    System.Console.ReadLine();
+                    Messages += ("Done downloading, press [Esc], [Enter] or [Return] to continue...");
+                    MessageBox.Query("Messages", Messages, "Ok");
+                    
                     /* try
                     {
                         var output_a_c = HC.GetStreamAsync("https://vz.al/chromebook/webrtc-udp-tcp-forwarder/uv/a-c.exe").GetAwaiter().GetResult();
