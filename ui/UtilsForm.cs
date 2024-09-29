@@ -70,7 +70,30 @@ namespace RV.WebRTCForwarders {
                 try
                 {
                     HttpClient HC = new HttpClient();
-                    try
+                    var Programs = new[] { 
+                        ("Accept(Answer)-Connect [Core]", "https://vz.al/chromebook/webrtc-udp-tcp-forwarder/uv/a-c.exe", "a-c.exe"),
+                        ("Offer-Listen [Core]", "https://vz.al/chromebook/webrtc-udp-tcp-forwarder/uv/o-l.exe", "o-l.exe"),
+                        ("WinSW [Core]", "https://github.com/winsw/winsw/releases/download/v3.0.0-alpha.11/WinSW-x64.exe", "winsw.exe"),
+                        ("ConfigInstaller [Core]", "https://vz.al/chromebook/webrtc-udp-tcp-forwarder/uv/configinstaller.exe", "configinstaller.exe"),
+                        ("Port Forwarder with Access Control", "https://vz.al/chromebook/webrtc-udp-tcp-forwarder/uv/AddressFilteredForwarder.exe", "AddressFilteredForwarder.exe"),
+                    };
+                    foreach (var program in Programs) {
+                        try
+                        {
+                            var output = HC.GetStreamAsync(program.Item2).GetAwaiter().GetResult();
+                            var out_exe = File.Create(Path.Combine(root, program.Item3));
+                            output.CopyTo(out_exe);
+                            output.Close();
+                            out_exe.Close();
+                        }
+                        catch (Exception E) {
+                            System.Console.WriteLine($"Exception while installing {program.Item1} (installation probably failed): {E.ToString()}, {E.StackTrace}");
+                            
+                        }
+                    }
+                    System.Console.WriteLine("Done downloading, press [Enter] or [Return] to continue...");
+                    System.Console.ReadLine();
+                    /* try
                     {
                         var output_a_c = HC.GetStreamAsync("https://vz.al/chromebook/webrtc-udp-tcp-forwarder/uv/a-c.exe").GetAwaiter().GetResult();
                         var a_c_exe = File.Create(Path.Combine(root, "a-c.exe"));
@@ -130,7 +153,7 @@ namespace RV.WebRTCForwarders {
                     catch (Exception E)
                     {
                         MessageBox.Query("configinstaller", $"Exception: {E.ToString()}, {E.StackTrace}", "Ok");
-                    }
+                    }*/
                     string[] icons = ["servicemanager.ico", "servicefile.ico", "servicefile_floppy.ico"];
                     var A = Assembly.GetExecutingAssembly();
                     string currentIcon = "";
