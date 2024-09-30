@@ -299,7 +299,7 @@ namespace RV.WebRTCForwarders {
                     //MessageBox.Query("Argon2 Test", $"{Argon2.Hash("Hello", 1, 65536, 1, Argon2Type.DataIndependentAddressing, 16)}\r\n" +
                         //$"{Argon2.Hash("Hello", 1, 65536, 1, Argon2Type.DataIndependentAddressing, 16)}");
                     MessageBox.Query("Argon2 Test", $"{Argon2.Hash(ArConf).Split("$").Last()}\r\n" +
-                       $"{Argon2.Hash(ArConf2).Split("$").Last()} :: {Argon2.Hash(ArConf2).Split("$").Last().Length}");
+                       $"{Argon2.Hash(ArConf2).Split("$").Last()}{Environment.NewLine}Length: {Argon2.Hash(ArConf2).Split("$").Last().Length}", "OK");
                     var PBKDH = Convert.FromBase64String(Argon2.Hash(ArConf).Split("$").Last());
                     var PBKDH_IV = PBKDH.Skip(32).Take(16).ToArray();
                     var PBKDH_KEY = PBKDH.Take(32).ToArray();

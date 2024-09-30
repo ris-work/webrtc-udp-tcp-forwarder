@@ -86,11 +86,12 @@ public static class ConfigInstaller
                     {
                         FileList += item.Name + Environment.NewLine;
                     }
-                    MessageBox.Query("File List", FileList, "Ok");
+                    MessagesLog += $"File List{Environment.NewLine}" +  FileList + $"Ok{Environment.NewLine}";
+                    MessageBox.Query($"File List{Environment.NewLine}", FileList , $"Ok{Environment.NewLine}");
                     var config_file = ZF.GetInputStream(ZF.GetEntry("config.toml"));
 
                     string configuration = (new StreamReader(config_file)).ReadToEnd();
-                    MessageBox.Query("Config", $"{configuration}", "OK");
+                    MessagesLog += $"Config {configuration}" + $"OK{Environment.NewLine}";
                     ConfigIn ci = ConfigIn.FromTomlTable(Tomlyn.Toml.ToModel(configuration));
                     MessagesLog += "Config Read: " + $"{ci.PortNumber}"+ $"OK{Environment.NewLine}";
                     var TunnelsRoot = Path.Combine(Config.InstallationRoot, "tunnels");
@@ -341,12 +342,12 @@ public static class ConfigInstaller
                     }
                     catch (Exception E)
                     {
-                        MessageBox.Query("Wireguard tunnel uninstallation exception", $"{E.ToString()}\r\n{E.StackTrace}");
+                        MessagesLog += "Wireguard tunnel uninstallation exception: " + $"{E.ToString()}\r\n{E.StackTrace}{Environment.NewLine}";
                         //File.AppendAllText($"configinstaller-{DateTime.Now.ToString("O")}.log", MessagesLog);
                     }
                     try
                     {
-                        MessageBox.Query("Information", "Trying to install WireGuard configuration...", "Ok");
+                        MessagesLog += ("Information" + "Trying to install WireGuard configuration... " + "Ok");
                         ProcessStartInfo PSI_WG_INST = new ProcessStartInfo()
                         {
                             FileName = "wireguard.exe",
@@ -358,12 +359,12 @@ public static class ConfigInstaller
                         PSI_WG_INST.UseShellExecute = true;
                         PS_WG_INST.StartInfo = PSI_WG_INST;
                         Process.Start(PSI_WG_INST);
-                        MessagesLog += "Information: " + $"Ran: \r\n{PSI_WG_INST.FileName} {String.Join(" ", PSI_WG_INST.Arguments)} as {PSI_WG_INST.UserName}", "Quit";
+                        MessagesLog += "Information: " + $"Ran: \r\n{PSI_WG_INST.FileName} {String.Join(" ", PSI_WG_INST.Arguments)} as {PSI_WG_INST.UserName}" + "Quit";
                         MessagesLog += "Information: " + "WireGuard tunnel installation attempt completed. " + $"Quit ✔ {Environment.NewLine}";
                     }
                     catch (Exception E)
                     {
-                        MessageBox.Query("Wireguard tunnel installation exception", $"{E.ToString()}\r\n{E.StackTrace}");
+                        MessagesLog += "Wireguard tunnel installation exception: " + $"{E.ToString()}\r\n{E.StackTrace}{Environment.NewLine}";
                     }
                     File.AppendAllText($"configinstaller-{DateTime.Now.ToString("O")}.log", MessagesLog);
                     break;
