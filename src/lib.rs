@@ -29,6 +29,7 @@ pub struct Config {
     pub PeerAuthType: Option<String>,
     pub PeerPSK: Option<String>,
     pub nsTimeout: Option<u64>, //TODO
+    pub sTimeTolerance: Option<u64>,
     pub TimeoutCountMax: Option<u64>,
     pub PinnedCores: Option<[usize; 4]>,
     //[tokio WebRTC receiver -> queue, queue -> tokio WebRTC send,
@@ -106,16 +107,16 @@ pub mod message {
         Timestamp: String,
         Message: String,
     }
-    pub fn ConstructMessage(Message: String) -> TimedMessage {
+    pub fn ConstructMessage(Message: String, config: crate::Config) -> TimedMessage {
         return TimedMessage {
             Timestamp: Utc::now().naive_utc().timestamp_micros().to_string(),
             Message: Message,
         };
     }
-    pub fn CheckAndReturn(Timed: TimedMessage) -> stdResult<String, Box<dyn Error>> {
+    pub fn CheckAndReturn(Timed: TimedMessage, config: crate::Config) -> stdResult<String, Box<dyn Error>> {
         let I_Timestamp: i64 = Timed.Timestamp.parse()?;
         //TODO:
-        if (I_Timestamp > Utc::now().naive_utc().timestamp_micros() - 15 * 1000 * 1000) {
+        if ((I_Timestamp - Utc::now().naive_utc().timestamp_micros()).abs() > (config.sTimeTolerance.unwrap_or(30u64) * 1000 * 1000).try_into().unwrap()) {
             return Ok(Timed.Message);
         } else {
             Err(Box::new(MessageTooOldOrTooNewError))

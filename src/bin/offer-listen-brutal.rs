@@ -571,14 +571,14 @@ fn write_offer_and_read_answer_ws(local: Option<RTCSessionDescription>, config: 
     let _ = client.stream_ref().as_tcp().set_write_timeout(Some(Duration::from_secs(config.TimeoutCountMax.unwrap_or(10))));
     if let Some(ref PeerAuthType) = config.PeerAuthType {
         if PeerAuthType == "PSK" {
-            let tmessage: TimedMessage = ConstructMessage(encode(&json_str));
+            let tmessage: TimedMessage = ConstructMessage(encode(&json_str), config.clone());
             let amessage: HashAuthenticatedMessage = ConstructAuthenticatedMessage(tmessage, config.clone());
             let message = websocket::Message::text(serde_json::to_string(&amessage).expect("Serialization error"));
             client.send_message(&message).expect("WS: Unable to send.");
             let aanswer = client.recv_message().expect("WS: Unable to receive.");
             if let Text(aanswer) = aanswer {
                 let AuthenticatedMessage: HashAuthenticatedMessage = serde_json::from_str(&aanswer).expect("Deserialization error.");
-                let answer = CheckAndReturn(VerifyAndReturn(AuthenticatedMessage, config).expect("An error occured while deserializing.")).expect("Authentication error.");
+                let answer = CheckAndReturn(VerifyAndReturn(AuthenticatedMessage, config.clone()).expect("An error occured while deserializing."), config.clone()).expect("Authentication error.");
                 Some(answer)
             } else {
                 log::error!("Malformed response received from the WS endpoint");
@@ -589,14 +589,14 @@ fn write_offer_and_read_answer_ws(local: Option<RTCSessionDescription>, config: 
             None
         }
     } else {
-        let tmessage: TimedMessage = ConstructMessage(encode(&json_str));
+        let tmessage: TimedMessage = ConstructMessage(encode(&json_str), config.clone());
         let amessage: HashAuthenticatedMessage = ConstructAuthenticatedMessage(tmessage, config.clone());
         let message = websocket::Message::text(serde_json::to_string(&amessage).expect("Serialization error"));
         client.send_message(&message).expect("WS: Unable to send.");
         let aanswer = client.recv_message().expect("WS: Unable to receive.");
         if let Text(aanswer) = aanswer {
             let AuthenticatedMessage: HashAuthenticatedMessage = serde_json::from_str(&aanswer).expect("Deserialization error.");
-            let answer = CheckAndReturn(VerifyAndReturn(AuthenticatedMessage, config).expect("An error occured while deserializing.")).expect("Authentication error.");
+            let answer = CheckAndReturn(VerifyAndReturn(AuthenticatedMessage, config.clone()).expect("An error occured while deserializing."), config.clone()).expect("Authentication error.");
             Some(answer)
         } else {
             log::error!("Malformed response received from the WS endpoint");
