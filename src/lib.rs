@@ -67,9 +67,16 @@ pub mod hmac {
         pub MessageWithTime: String,
         pub MAC: String,
     }
-    pub fn ConstructAuthenticatedMessage(Timed: TimedMessage, config: Config) -> HashAuthenticatedMessage {
-        let SerializedMessage: String = serde_json::to_string(&Timed).expect("Unable to serialize.");
-        let mut MacGen = Hmac::<Sha256>::new_from_slice(config.PeerPSK.expect("No peer PSK provided.").as_bytes()).expect("Unable to load the MAC generator.");
+    pub fn ConstructAuthenticatedMessage(
+        Timed: TimedMessage,
+        config: Config,
+    ) -> HashAuthenticatedMessage {
+        let SerializedMessage: String =
+            serde_json::to_string(&Timed).expect("Unable to serialize.");
+        let mut MacGen = Hmac::<Sha256>::new_from_slice(
+            config.PeerPSK.expect("No peer PSK provided.").as_bytes(),
+        )
+        .expect("Unable to load the MAC generator.");
         MacGen.update(SerializedMessage.as_bytes());
         let Mac = MacGen.finalize();
         HashAuthenticatedMessage {
@@ -77,9 +84,14 @@ pub mod hmac {
             MAC: String::from(hex::encode(Mac.into_bytes())),
         }
     }
-    pub fn VerifyAndReturn(Msg: HashAuthenticatedMessage, config: Config) -> stdResult<TimedMessage, Box<dyn Error>> {
+    pub fn VerifyAndReturn(
+        Msg: HashAuthenticatedMessage,
+        config: Config,
+    ) -> stdResult<TimedMessage, Box<dyn Error>> {
         let MAC = hex::decode(Msg.MAC)?;
-        let mut MacGen = Hmac::<Sha256>::new_from_slice(config.PeerPSK.expect("No peer PSK provided.").as_bytes())?;
+        let mut MacGen = Hmac::<Sha256>::new_from_slice(
+            config.PeerPSK.expect("No peer PSK provided.").as_bytes(),
+        )?;
         MacGen.update(Msg.MessageWithTime.as_bytes());
         MacGen.verify_slice(&MAC[..])?;
         let Timed: TimedMessage = serde_json::from_str(&Msg.MessageWithTime)?;
@@ -107,16 +119,26 @@ pub mod message {
         Timestamp: String,
         Message: String,
     }
-    pub fn ConstructMessage(Message: String, config: crate::Config) -> TimedMessage {
+    pub fn ConstructMessage(
+        Message: String,
+        config: crate::Config,
+    ) -> TimedMessage {
         return TimedMessage {
             Timestamp: Utc::now().naive_utc().timestamp_micros().to_string(),
             Message: Message,
         };
     }
-    pub fn CheckAndReturn(Timed: TimedMessage, config: crate::Config) -> stdResult<String, Box<dyn Error>> {
+    pub fn CheckAndReturn(
+        Timed: TimedMessage,
+        config: crate::Config,
+    ) -> stdResult<String, Box<dyn Error>> {
         let I_Timestamp: i64 = Timed.Timestamp.parse()?;
         //TODO:
-        if ((I_Timestamp - Utc::now().naive_utc().timestamp_micros()).abs() < (config.sTimeTolerance.unwrap_or(30u64) * 1000 * 1000).try_into().unwrap()) {
+        if ((I_Timestamp - Utc::now().naive_utc().timestamp_micros()).abs()
+            < (config.sTimeTolerance.unwrap_or(30u64) * 1000 * 1000)
+                .try_into()
+                .unwrap())
+        {
             return Ok(Timed.Message);
         } else {
             Err(Box::new(MessageTooOldOrTooNewError))
@@ -135,7 +157,9 @@ pub mod AlignedMessage {
 pub mod Pinning {
     pub fn Try(maybe_cpus: Option<[usize; 4]>, index: usize) {
         if let Some(cpus) = maybe_cpus {
-            let _ = core_affinity::set_for_current(core_affinity::CoreId { id: cpus[index] });
+            let _ = core_affinity::set_for_current(core_affinity::CoreId {
+                id: cpus[index],
+            });
         }
     }
 }

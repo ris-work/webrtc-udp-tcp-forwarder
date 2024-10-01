@@ -67,8 +67,12 @@ use webrtc::peer_connection::peer_connection_state::RTCPeerConnectionState;
 use webrtc::peer_connection::sdp::session_description::RTCSessionDescription;
 use webrtc::peer_connection::RTCPeerConnection;
 
-use webrtc_udp_forwarder::hmac::{ConstructAuthenticatedMessage, HashAuthenticatedMessage, VerifyAndReturn};
-use webrtc_udp_forwarder::message::{CheckAndReturn, ConstructMessage, TimedMessage};
+use webrtc_udp_forwarder::hmac::{
+    ConstructAuthenticatedMessage, HashAuthenticatedMessage, VerifyAndReturn,
+};
+use webrtc_udp_forwarder::message::{
+    CheckAndReturn, ConstructMessage, TimedMessage,
+};
 use webrtc_udp_forwarder::AlignedMessage::AlignedMessage;
 use webrtc_udp_forwarder::Config;
 use webrtc_udp_forwarder::Pinning;
@@ -136,7 +140,8 @@ async fn accept_WebRTC_offer(
     let mut m = MediaEngine::default();
 
     // Register default codecs
-    m.register_default_codecs().expect("Could not register the default codecs.");
+    m.register_default_codecs()
+        .expect("Could not register the default codecs.");
 
     // Create a InterceptorRegistry. This is the user configurable RTP/RTCP Pipeline.
     // This provides NACKs, RTCP Reports and other features. If you use `webrtc.NewPeerConnection`
@@ -145,14 +150,23 @@ async fn accept_WebRTC_offer(
     let mut registry = Registry::new();
 
     // Use the default set of Interceptors
-    registry = register_default_interceptors(registry, &mut m).expect("Could not register the interceptor!");
+    registry = register_default_interceptors(registry, &mut m)
+        .expect("Could not register the interceptor!");
 
     // Create the API object with the MediaEngine
     let mut s = SettingEngine::default();
     if let Some(AddressPort) = config.clone().ICEListenAddressPort {
-        s.set_udp_network(UDPNetwork::Muxed(UDPMuxDefault::new(UDPMuxParams::new(tokio::net::UdpSocket::bind(AddressPort).await.unwrap()))));
+        s.set_udp_network(UDPNetwork::Muxed(UDPMuxDefault::new(
+            UDPMuxParams::new(
+                tokio::net::UdpSocket::bind(AddressPort).await.unwrap(),
+            ),
+        )));
     }
-    let api = APIBuilder::new().with_media_engine(m).with_setting_engine(s).with_interceptor_registry(registry).build();
+    let api = APIBuilder::new()
+        .with_media_engine(m)
+        .with_setting_engine(s)
+        .with_interceptor_registry(registry)
+        .build();
 
     // Prepare the configuration
     let mut ice_servers: Vec<RTCIceServer> = vec![];
@@ -161,7 +175,10 @@ async fn accept_WebRTC_offer(
             Some(Username) => ice_servers.push(RTCIceServer {
                 urls: ICEServer.URLs.clone(),
                 username: Username.clone(),
-                credential: ICEServer.Credential.clone().expect("Empty credentials are not allowed."),
+                credential: ICEServer
+                    .Credential
+                    .clone()
+                    .expect("Empty credentials are not allowed."),
                 ..Default::default()
             }),
             None => ice_servers.push(RTCIceServer {
@@ -178,7 +195,8 @@ async fn accept_WebRTC_offer(
 
     // Create a new RTCPeerConnection
     let peer_connection = Arc::new(api.new_peer_connection(config).await?);
-    let (cb_done_tx, cb_done_rx): (Sender<bool>, Receiver<bool>) = bounded::<bool>(4);
+    let (cb_done_tx, cb_done_rx): (Sender<bool>, Receiver<bool>) =
+        bounded::<bool>(4);
 
     // Create a datachannel with label 'data'
     let data_channel = peer_connection
@@ -200,32 +218,34 @@ async fn accept_WebRTC_offer(
 
     // Set the handler for Peer connection state
     // This will notify you when the peer has connected/disconnected
-    peer_connection.on_peer_connection_state_change(Box::new(move |s: RTCPeerConnectionState| {
-        info!("Peer Connection State has changed: {s}");
+    peer_connection.on_peer_connection_state_change(Box::new(
+        move |s: RTCPeerConnectionState| {
+            info!("Peer Connection State has changed: {s}");
 
-        if s == RTCPeerConnectionState::Failed {
-            // Wait until PeerConnection has had no network activity for 30 seconds or another failure. It may be reconnected using an ICE Restart.
-            // Use webrtc.PeerConnectionStateDisconnected if you are interested in detecting faster timeout.
-            // Note that the PeerConnection may come back from PeerConnectionStateDisconnected.
-            info!("Peer Connection has gone to failed exiting");
-            //std::process::exit(0);
-            cb_done_tx.send(true);
-            cb_done_tx.send(true);
-            cb_done_tx.send(true);
-            cb_done_tx.send(true);
-            let _ = done_tx.try_send(());
-        } else if s == RTCPeerConnectionState::Disconnected {
-            info!("Peer Connection has disconnected");
-            //std::process::exit(0);
-            cb_done_tx.send(true);
-            cb_done_tx.send(true);
-            cb_done_tx.send(true);
-            cb_done_tx.send(true);
-            let _ = done_tx.try_send(());
-        }
+            if s == RTCPeerConnectionState::Failed {
+                // Wait until PeerConnection has had no network activity for 30 seconds or another failure. It may be reconnected using an ICE Restart.
+                // Use webrtc.PeerConnectionStateDisconnected if you are interested in detecting faster timeout.
+                // Note that the PeerConnection may come back from PeerConnectionStateDisconnected.
+                info!("Peer Connection has gone to failed exiting");
+                //std::process::exit(0);
+                cb_done_tx.send(true);
+                cb_done_tx.send(true);
+                cb_done_tx.send(true);
+                cb_done_tx.send(true);
+                let _ = done_tx.try_send(());
+            } else if s == RTCPeerConnectionState::Disconnected {
+                info!("Peer Connection has disconnected");
+                //std::process::exit(0);
+                cb_done_tx.send(true);
+                cb_done_tx.send(true);
+                cb_done_tx.send(true);
+                cb_done_tx.send(true);
+                let _ = done_tx.try_send(());
+            }
 
-        Box::pin(async {})
-    }));
+            Box::pin(async {})
+        },
+    ));
 
     // Sets the RemoteDescription, and starts our UDP listeners
     peer_connection.set_remote_description(offer).await?;
@@ -233,9 +253,12 @@ async fn accept_WebRTC_offer(
     let answer = peer_connection.create_answer(None).await?;
 
     // Create channel that is blocked until ICE Gathering is complete
-    let mut gather_complete = peer_connection.gathering_complete_promise().await;
+    let mut gather_complete =
+        peer_connection.gathering_complete_promise().await;
 
-    peer_connection.set_local_description(answer.clone()).await?;
+    peer_connection
+        .set_local_description(answer.clone())
+        .await?;
 
     // Block until ICE Gathering is complete, disabling trickle ICE
     // we do this because we only can exchange one signaling message
@@ -308,8 +331,12 @@ async fn configure_send_receive_udp(
 ) -> (Arc<RTCDataChannel>, UdpSocket) /*, Box<dyn error::Error>>*/ {
     // Register channel opening handling
     let d1 = Arc::clone(&RTCDC);
-    let mut ClonedSocketRecv = OtherSocket.try_clone().expect("Unable to clone the TCP socket. :(");
-    let mut ClonedSocketSend = OtherSocket.try_clone().expect("Unable to clone the TCP socket. :(");
+    let mut ClonedSocketRecv = OtherSocket
+        .try_clone()
+        .expect("Unable to clone the TCP socket. :(");
+    let mut ClonedSocketSend = OtherSocket
+        .try_clone()
+        .expect("Unable to clone the TCP socket. :(");
     Pinning::Try(config.PinnedCores, 0);
     let config2 = config.clone();
     let config3 = config.clone();
@@ -580,7 +607,8 @@ async fn handle_offer(
     peer_connection: Arc<RTCPeerConnection>,
     data_channel: Arc<RTCDataChannel>,
     session_description: RTCSessionDescription,
-) -> Result<(Arc<RTCPeerConnection>, Arc<RTCDataChannel>), Box<dyn error::Error>> {
+) -> Result<(Arc<RTCPeerConnection>, Arc<RTCDataChannel>), Box<dyn error::Error>>
+{
     let conn = Arc::clone(&peer_connection);
     Ok((peer_connection, data_channel))
 }
@@ -609,16 +637,24 @@ fn read_offer_stdio(config: Config) -> String {
                 let mut line: String;
                 let mut buf: Vec<u8> = vec![];
                 BufReader::new(io::stdin()).read_until(b'/', &mut buf);
-                let lines: String = String::from(std::str::from_utf8(&buf).expect("Input not UTF-8"));
-                line = String::from(lines.replace("\n", "").replace("\r", "").replace(" ", ""));
+                let lines: String = String::from(
+                    std::str::from_utf8(&buf).expect("Input not UTF-8"),
+                );
+                line = String::from(
+                    lines.replace("\n", "").replace("\r", "").replace(" ", ""),
+                );
                 let _ = line.pop();
                 offerBase64Text = line;
             } else {
-                let _ = io::stdin().read_line(&mut offerBase64Text).expect("Cannot read the offer!");
+                let _ = io::stdin()
+                    .read_line(&mut offerBase64Text)
+                    .expect("Cannot read the offer!");
             }
         }
         None => {
-            let _ = io::stdin().read_line(&mut offerBase64Text).expect("Cannot read the offer!");
+            let _ = io::stdin()
+                .read_line(&mut offerBase64Text)
+                .expect("Cannot read the offer!");
         }
     }
     offerBase64Text
@@ -634,27 +670,50 @@ fn read_offer_ws(config: Config) -> Option<String> {
     }
     if (AuthType == "Basic") {
         headers.set(Authorization(Basic {
-            username: config.PublishAuthUser.clone().expect("No user specified for WS(S) basic auth."),
+            username: config
+                .PublishAuthUser
+                .clone()
+                .expect("No user specified for WS(S) basic auth."),
             password: config.PublishAuthPass.clone(),
         }));
     } else if (AuthType == "Bearer") {
         headers.set(Authorization(Bearer {
-            token: config.PublishAuthUser.clone().expect("No user specified for WS(S) basic auth."),
+            token: config
+                .PublishAuthUser
+                .clone()
+                .expect("No user specified for WS(S) basic auth."),
         }));
     }
-    let mut client = ClientBuilder::new(&config.PublishEndpoint.clone().expect("No WS(S) endpoint specified."))
-        .unwrap()
-        .custom_headers(&headers)
-        .connect(None)
-        .unwrap();
-    let _ = client.stream_ref().as_tcp().set_read_timeout(Some(Duration::from_secs(config.TimeoutCountMax.unwrap_or(10))));
-    let _ = client.stream_ref().as_tcp().set_write_timeout(Some(Duration::from_secs(config.TimeoutCountMax.unwrap_or(10))));
+    let mut client = ClientBuilder::new(
+        &config
+            .PublishEndpoint
+            .clone()
+            .expect("No WS(S) endpoint specified."),
+    )
+    .unwrap()
+    .custom_headers(&headers)
+    .connect(None)
+    .unwrap();
+    let _ = client.stream_ref().as_tcp().set_read_timeout(Some(
+        Duration::from_secs(config.TimeoutCountMax.unwrap_or(10)),
+    ));
+    let _ = client.stream_ref().as_tcp().set_write_timeout(Some(
+        Duration::from_secs(config.TimeoutCountMax.unwrap_or(10)),
+    ));
     if let Some(ref PeerAuthType) = config.PeerAuthType {
         if PeerAuthType == "PSK" {
-            let aanswer = client.recv_message().expect("WS: Unable to receive.");
+            let aanswer =
+                client.recv_message().expect("WS: Unable to receive.");
             if let Text(aanswer) = aanswer {
-                let AuthenticatedMessage: HashAuthenticatedMessage = serde_json::from_str(&aanswer).expect("Deserialization error.");
-                let answer = CheckAndReturn(VerifyAndReturn(AuthenticatedMessage, config.clone()).expect("An error occured while deserializing."), config.clone()).expect("Authentication error.");
+                let AuthenticatedMessage: HashAuthenticatedMessage =
+                    serde_json::from_str(&aanswer)
+                        .expect("Deserialization error.");
+                let answer = CheckAndReturn(
+                    VerifyAndReturn(AuthenticatedMessage, config.clone())
+                        .expect("An error occured while deserializing."),
+                    config.clone(),
+                )
+                .expect("Authentication error.");
                 Some(answer)
             } else {
                 log::error!("Malformed response received from the WS endpoint");
@@ -668,7 +727,10 @@ fn read_offer_ws(config: Config) -> Option<String> {
         None
     }
 }
-fn write_answer(local: Option<RTCSessionDescription>, config: Config) -> Result<(), Box<dyn error::Error>> {
+fn write_answer(
+    local: Option<RTCSessionDescription>,
+    config: Config,
+) -> Result<(), Box<dyn error::Error>> {
     if let Some(true) = config.Publish {
         if let Some(ref ptype) = config.PublishType {
             match (ptype.as_str()) {
@@ -689,12 +751,20 @@ fn write_answer(local: Option<RTCSessionDescription>, config: Config) -> Result<
         ))); */
     }
 }
-fn write_answer_stdio(local: Option<RTCSessionDescription>, config: Config) -> () {
-    let json_str = serde_json::to_string(&(local.expect("Empty local SD."))).expect("Could not serialize the localDescription to JSON");
+fn write_answer_stdio(
+    local: Option<RTCSessionDescription>,
+    config: Config,
+) -> () {
+    let json_str = serde_json::to_string(&(local.expect("Empty local SD.")))
+        .expect("Could not serialize the localDescription to JSON");
     println! {"{}", encode(&json_str)};
 }
-fn write_answer_ws(local: Option<RTCSessionDescription>, config: Config) -> Result<(), Box<dyn Error>> {
-    let json_str = serde_json::to_string(&(local.expect("Empty local SD."))).expect("Could not serialize the localDescription to JSON");
+fn write_answer_ws(
+    local: Option<RTCSessionDescription>,
+    config: Config,
+) -> Result<(), Box<dyn Error>> {
+    let json_str = serde_json::to_string(&(local.expect("Empty local SD.")))
+        .expect("Could not serialize the localDescription to JSON");
     let mut offerBase64Text: String = String::new();
     let mut headers = Headers::new();
     let AuthType: String;
@@ -705,34 +775,56 @@ fn write_answer_ws(local: Option<RTCSessionDescription>, config: Config) -> Resu
     }
     if (AuthType == "Basic") {
         headers.set(Authorization(Basic {
-            username: config.PublishAuthUser.clone().expect("No user specified for WS(S) basic auth."),
+            username: config
+                .PublishAuthUser
+                .clone()
+                .expect("No user specified for WS(S) basic auth."),
             password: config.PublishAuthPass.clone(),
         }));
     } else if (AuthType == "Bearer") {
         headers.set(Authorization(Bearer {
-            token: config.PublishAuthUser.clone().expect("No user specified for WS(S) basic auth."),
+            token: config
+                .PublishAuthUser
+                .clone()
+                .expect("No user specified for WS(S) basic auth."),
         }));
     }
-    let mut client = ClientBuilder::new(&config.PublishEndpoint.clone().expect("No WS(S) endpoint specified."))
-        .unwrap()
-        .custom_headers(&headers)
-        .connect(None)
-        .unwrap();
+    let mut client = ClientBuilder::new(
+        &config
+            .PublishEndpoint
+            .clone()
+            .expect("No WS(S) endpoint specified."),
+    )
+    .unwrap()
+    .custom_headers(&headers)
+    .connect(None)
+    .unwrap();
     if let Some(ref PeerAuthType) = config.PeerAuthType {
         if PeerAuthType == "PSK" {
-            let tmessage: TimedMessage = ConstructMessage(encode(&json_str), config.clone());
-            let amessage: HashAuthenticatedMessage = ConstructAuthenticatedMessage(tmessage, config.clone());
-            let message = websocket::Message::text(serde_json::to_string(&amessage).expect("Serialization error"));
+            let tmessage: TimedMessage =
+                ConstructMessage(encode(&json_str), config.clone());
+            let amessage: HashAuthenticatedMessage =
+                ConstructAuthenticatedMessage(tmessage, config.clone());
+            let message = websocket::Message::text(
+                serde_json::to_string(&amessage).expect("Serialization error"),
+            );
             client.send_message(&message).expect("WS: Unable to send.");
             Ok(())
         } else {
             log::error! {"Unsupported peer authentication type: {}", PeerAuthType};
-            Err(Box::new(ioError::new(ErrorKind::InvalidInput, "Invalid PeerAuthType.")))
+            Err(Box::new(ioError::new(
+                ErrorKind::InvalidInput,
+                "Invalid PeerAuthType.",
+            )))
         }
     } else {
-        let tmessage: TimedMessage = ConstructMessage(encode(&json_str), config.clone());
-        let amessage: HashAuthenticatedMessage = ConstructAuthenticatedMessage(tmessage, config.clone());
-        let message = websocket::Message::text(serde_json::to_string(&amessage).expect("Serialization error"));
+        let tmessage: TimedMessage =
+            ConstructMessage(encode(&json_str), config.clone());
+        let amessage: HashAuthenticatedMessage =
+            ConstructAuthenticatedMessage(tmessage, config.clone());
+        let message = websocket::Message::text(
+            serde_json::to_string(&amessage).expect("Serialization error"),
+        );
         client.send_message(&message).expect("WS: Unable to send.");
         Ok(())
     }
@@ -786,12 +878,33 @@ fn main() {
 
         let offerBase64TextTrimmed = read_offer(config.clone());
         info! {"Read offer: {}", offerBase64TextTrimmed};
-        let offer = decode(&offerBase64TextTrimmed).expect("base64 conversion error");
-        let offerRTCSD = serde_json::from_str::<RTCSessionDescription>(&offer).expect("Error parsing the offer!");
-        let (mut data_channel, mut peer_connection, mut answer, local_description, done_rx, done_tx, cb_done_rx, cb_done_tx) =
-            rt.block_on(accept_WebRTC_offer(offerRTCSD, &config)).expect("Failed creating a WebRTC Data Channel.");
-        (peer_connection, data_channel) = rt.block_on(handle_offer(peer_connection, data_channel, (*answer).clone())).expect("Error acccepting offer!");
-        let ConnectAddress = config.Address.clone().expect("Binding address not specified");
+        let offer =
+            decode(&offerBase64TextTrimmed).expect("base64 conversion error");
+        let offerRTCSD = serde_json::from_str::<RTCSessionDescription>(&offer)
+            .expect("Error parsing the offer!");
+        let (
+            mut data_channel,
+            mut peer_connection,
+            mut answer,
+            local_description,
+            done_rx,
+            done_tx,
+            cb_done_rx,
+            cb_done_tx,
+        ) = rt
+            .block_on(accept_WebRTC_offer(offerRTCSD, &config))
+            .expect("Failed creating a WebRTC Data Channel.");
+        (peer_connection, data_channel) = rt
+            .block_on(handle_offer(
+                peer_connection,
+                data_channel,
+                (*answer).clone(),
+            ))
+            .expect("Error acccepting offer!");
+        let ConnectAddress = config
+            .Address
+            .clone()
+            .expect("Binding address not specified");
         let Watchdog = thread::Builder::new().name("Watchdog".to_string()).spawn(move || {
             debug! {"Inactivity monitoring watchdog has started"}
             loop {
@@ -818,9 +931,11 @@ fn main() {
         let mut buf = [0; PKT_SIZE];
         if (config.Type == "UDP") {
             info! {"UDP socket requested"};
-            let ConnectPort = config.Port.clone().expect("Connecting port not specified");
+            let ConnectPort =
+                config.Port.clone().expect("Connecting port not specified");
             info! {"Connecting to UDP to address {} port {}", ConnectAddress, ConnectPort};
-            let mut OtherSocket = UdpSocket::bind("0.0.0.0:0").expect("UDP Socket: unable to bind: 0.0.0.0:0.");
+            let mut OtherSocket = UdpSocket::bind("0.0.0.0:0")
+                .expect("UDP Socket: unable to bind: 0.0.0.0:0.");
             /*.connect(format! {"{}:{}", ConnectAddress, ConnectPort})
             .expect(&format! {
                 "Could not connect to UDP port: {}:{}", &ConnectAddress, &ConnectPort
@@ -828,31 +943,39 @@ fn main() {
             info! {"Connected UDP on address {} port {}", ConnectAddress, ConnectPort};
             OtherSocket
                 .connect(format!("{}:{}", ConnectAddress, ConnectPort))
-                .expect(&format! {"UDP connect error: connect() to {}", format!{
-                    "{}:{}", ConnectAddress, ConnectPort
-                }});
+                .expect(
+                    &format! {"UDP connect error: connect() to {}", format!{
+                        "{}:{}", ConnectAddress, ConnectPort
+                    }},
+                );
             OtherSocket.set_read_timeout(Some(Duration::from_secs(1)));
             STREAM_LAST_ACTIVE_TIME.store(
                 chrono::Utc::now().timestamp().try_into().expect("This software is not supposed to be used before UNIX was invented."),
                 Ordering::Relaxed,
             );
-            (data_channel, OtherSocket) = rt.block_on(configure_send_receive_udp(
-                data_channel,
-                peer_connection,
-                OtherSocket,
-                done_rx,
-                done_tx,
-                cb_done_rx,
-                cb_done_tx,
-                config.clone(),
-            ));
+            (data_channel, OtherSocket) =
+                rt.block_on(configure_send_receive_udp(
+                    data_channel,
+                    peer_connection,
+                    OtherSocket,
+                    done_rx,
+                    done_tx,
+                    cb_done_rx,
+                    cb_done_tx,
+                    config.clone(),
+                ));
         } else if (config.Type == "TCP") {
             #[cfg(feature = "tcp")]
             {
                 info! {"TCP socket requested"};
-                let ConnectPort = config.Port.clone().expect("Connecting port not specified");
+                let ConnectPort =
+                    config.Port.clone().expect("Connecting port not specified");
                 info! {"Connecting TCP on address {} port {}", ConnectAddress, ConnectPort};
-                let mut OtherSocket = TcpStream::connect(format!("{}:{}", ConnectAddress, ConnectPort)).expect("Error getting the TCP stream");
+                let mut OtherSocket = TcpStream::connect(format!(
+                    "{}:{}",
+                    ConnectAddress, ConnectPort
+                ))
+                .expect("Error getting the TCP stream");
                 debug! {"Attempting to write the send buffer: {:?}", &OtherSocketSendBuf.lock()};
                 OtherSocket.write(&OtherSocketSendBuf.lock());
                 info! {"Connected to TCP: address {} port {}", ConnectAddress, ConnectPort};
@@ -864,7 +987,12 @@ fn main() {
                     chrono::Utc::now().timestamp().try_into().expect("This software is not supposed to be used before UNIX was invented."),
                     Ordering::Relaxed,
                 );
-                (data_channel, OtherSocket) = rt.block_on(configure_send_receive_tcp(data_channel, peer_connection, OtherSocket));
+                (data_channel, OtherSocket) =
+                    rt.block_on(configure_send_receive_tcp(
+                        data_channel,
+                        peer_connection,
+                        OtherSocket,
+                    ));
             }
             #[cfg(not(feature = "tcp"))]
             {
@@ -874,8 +1002,14 @@ fn main() {
             #[cfg(feature = "uds")]
             {
                 info! {"Unix Domain Socket requested."};
-                let mut OtherSocket = UnixStream::connect(ConnectAddress).expect("UDS connect error");
-                (data_channel, OtherSocket) = rt.block_on(configure_send_receive_uds(data_channel, peer_connection, OtherSocket));
+                let mut OtherSocket = UnixStream::connect(ConnectAddress)
+                    .expect("UDS connect error");
+                (data_channel, OtherSocket) =
+                    rt.block_on(configure_send_receive_uds(
+                        data_channel,
+                        peer_connection,
+                        OtherSocket,
+                    ));
             }
             #[cfg(not(feature = "uds"))]
             {
