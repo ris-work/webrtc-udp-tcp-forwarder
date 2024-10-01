@@ -22,7 +22,7 @@ use std::file;
 use std::time::Duration;
 use tokio::net::TcpSocket;
 
-use crossbeam_channel::{Receiver, Sender, unbounded, bounded};
+use crossbeam_channel::{bounded, unbounded, Receiver, Sender};
 use std::error::Error;
 use std::fs::read_to_string;
 use std::io;
@@ -856,7 +856,8 @@ fn main() {
                 );
                 debug! {"Attempting to write the send buffer: {:?}", &OtherSocketSendBuf.lock()};
                 OtherSocket.write(&OtherSocketSendBuf.lock());
-                let mut OSCastedReliableOrderedStream: OrderedReliableStream = OrderedReliableStream::Tcp(OtherSocket);
+                let mut OSCastedReliableOrderedStream: OrderedReliableStream =
+                    OrderedReliableStream::Tcp(OtherSocket);
                 (data_channel, OSCastedReliableOrderedStream) =
                     rt.block_on(configure_send_receive_tcp(
                         data_channel,
@@ -865,7 +866,7 @@ fn main() {
                         done_tx,
                         cb_done_rx,
                         cb_done_tx,
-                        config.clone()
+                        config.clone(),
                     ));
             }
             #[cfg(not(feature = "tcp"))]

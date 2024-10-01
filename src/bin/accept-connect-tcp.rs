@@ -22,7 +22,7 @@ use std::error;
 use std::error::Error;
 use std::file;
 
-use crossbeam_channel::{Receiver, Sender, unbounded, bounded};
+use crossbeam_channel::{bounded, unbounded, Receiver, Sender};
 use std::fs::read_to_string;
 use std::io;
 use std::io::Read;
@@ -930,7 +930,7 @@ fn main() {
         });
         let mut buf = [0; PKT_SIZE];
         if (config.Type == "UDP") {
-            panic!{"UDP requested. Wrong TOOL!"};
+            panic! {"UDP requested. Wrong TOOL!"};
         } else if (config.Type == "TCP") {
             //#[cfg(feature = "tcp")]
             {
@@ -963,7 +963,7 @@ fn main() {
                         done_tx,
                         cb_done_rx,
                         cb_done_tx,
-                        config.clone()
+                        config.clone(),
                     ));
             }
             #[cfg(not(feature = "tcp"))]

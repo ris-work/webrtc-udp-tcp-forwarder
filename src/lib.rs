@@ -166,19 +166,25 @@ pub mod Pinning {
 
 pub enum OrderedReliableStream {
     Tcp(TcpStream),
-    Uds(UnixStream)
+    Uds(UnixStream),
 }
-pub trait ClonableSendableReceivable{
-    fn try_clone(&self) -> Result<Self, std::io::Error> where Self: Sized;
+pub trait ClonableSendableReceivable {
+    fn try_clone(&self) -> Result<Self, std::io::Error>
+    where
+        Self: Sized;
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, std::io::Error>;
     fn flush(&mut self) -> Result<()>;
     fn write(&mut self, buf: &[u8]) -> Result<usize, std::io::Error>;
 }
-impl ClonableSendableReceivable for OrderedReliableStream{
-    fn try_clone(&self) ->  Result<Self, std::io::Error> {
+impl ClonableSendableReceivable for OrderedReliableStream {
+    fn try_clone(&self) -> Result<Self, std::io::Error> {
         match self {
-            OrderedReliableStream::Tcp(t) => Ok(OrderedReliableStream::Tcp(t.try_clone()?)),
-            OrderedReliableStream::Uds(u) => Ok(OrderedReliableStream::Uds(u.try_clone()?)),
+            OrderedReliableStream::Tcp(t) => {
+                Ok(OrderedReliableStream::Tcp(t.try_clone()?))
+            }
+            OrderedReliableStream::Uds(u) => {
+                Ok(OrderedReliableStream::Uds(u.try_clone()?))
+            }
         }
     }
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, std::io::Error> {
