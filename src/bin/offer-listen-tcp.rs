@@ -280,15 +280,51 @@ async fn create_WebRTC_offer(
         cb_done_tx_2,
     ))
 }
+pub enum OrderedReliableStream {
+    Tcp(TcpStream),
+    Uds(UnixStream)
+}
+pub trait ClonableSendableReceivable{
+    fn try_clone(&self) -> Result<Self, std::io::Error> where Self: Sized;
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, std::io::Error>;
+    fn flush(&mut self) -> Result<()>;
+    fn write(&mut self, buf: &[u8]) -> Result<usize, std::io::Error>;
+}
+impl ClonableSendableReceivable for OrderedReliableStream{
+    fn try_clone(&self) ->  Result<Self, std::io::Error> {
+        match self {
+            OrderedReliableStream::Tcp(t) => Ok(OrderedReliableStream::Tcp(t.try_clone()?)),
+            OrderedReliableStream::Uds(u) => Ok(OrderedReliableStream::Uds(u.try_clone()?)),
+        }
+    }
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, std::io::Error> {
+        match self {
+            OrderedReliableStream::Tcp(t) => t.read(buf),
+            OrderedReliableStream::Uds(u) => u.read(buf),
+        }
+    }
+    fn write(&mut self, buf: &[u8]) -> Result<usize, std::io::Error> {
+        match self {
+            OrderedReliableStream::Tcp(t) => t.write(buf),
+            OrderedReliableStream::Uds(u) => u.write(buf),
+        }
+    }
+    fn flush(&mut self) -> Result<()> {
+        match self {
+            OrderedReliableStream::Tcp(ref mut t) => Ok(t.flush()?),
+            OrderedReliableStream::Uds(ref mut u) => Ok(u.flush()?),
+        }
+    }
+}
 async fn configure_send_receive_tcp(
     RTCDC: Arc<RTCDataChannel>,
-    OtherSocket: TcpStream,
+    OtherSocket: OrderedReliableStream,
     mut done_rx: tokio::sync::mpsc::Receiver<()>,
     mut done_tx: tokio::sync::mpsc::Sender<()>,
     Done_rx: crossbeam_channel::Receiver<bool>,
     cb_done_tx: crossbeam_channel::Sender<bool>,
     config: Config,
-) -> (Arc<RTCDataChannel>, TcpStream) /*, Box<dyn error::Error>>*/
+) -> (Arc<RTCDataChannel>, OrderedReliableStream) /*, Box<dyn error::Error>>*/
 {
     // Register channel opening handling
     info! {"Configuring UDP<=>RTCDC..."};
@@ -855,10 +891,11 @@ fn main() {
                 );
                 debug! {"Attempting to write the send buffer: {:?}", &OtherSocketSendBuf.lock()};
                 OtherSocket.write(&OtherSocketSendBuf.lock());
-                (data_channel, OtherSocket) =
+                let mut OSCastedReliableOrderedStream: OrderedReliableStream = OrderedReliableStream::Tcp(OtherSocket);
+                (data_channel, OSCastedReliableOrderedStream) =
                     rt.block_on(configure_send_receive_tcp(
                         data_channel,
-                        OtherSocket,
+                        OSCastedReliableOrderedStream,
                         done_rx,
                         done_tx,
                         cb_done_rx,
