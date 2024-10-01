@@ -59,7 +59,6 @@ use webrtc::data_channel::data_channel_message::DataChannelMessage;
 use webrtc::data_channel::RTCDataChannel;
 use webrtc::ice::udp_mux::{UDPMuxDefault, UDPMuxParams};
 use webrtc::ice::udp_network::UDPNetwork;
-use webrtc::ice_transport::ice_credential_type::RTCIceCredentialType;
 use webrtc::ice_transport::ice_server::RTCIceServer;
 use webrtc::interceptor::registry::Registry;
 use webrtc::peer_connection::configuration::RTCConfiguration;
@@ -163,7 +162,6 @@ async fn accept_WebRTC_offer(
                 urls: ICEServer.URLs.clone(),
                 username: Username.clone(),
                 credential: ICEServer.Credential.clone().expect("Empty credentials are not allowed."),
-                credential_type: RTCIceCredentialType::Password,
                 ..Default::default()
             }),
             None => ice_servers.push(RTCIceServer {

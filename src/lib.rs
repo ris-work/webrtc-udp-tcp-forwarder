@@ -116,7 +116,7 @@ pub mod message {
     pub fn CheckAndReturn(Timed: TimedMessage, config: crate::Config) -> stdResult<String, Box<dyn Error>> {
         let I_Timestamp: i64 = Timed.Timestamp.parse()?;
         //TODO:
-        if ((I_Timestamp - Utc::now().naive_utc().timestamp_micros()).abs() > (config.sTimeTolerance.unwrap_or(30u64) * 1000 * 1000).try_into().unwrap()) {
+        if ((I_Timestamp - Utc::now().naive_utc().timestamp_micros()).abs() < (config.sTimeTolerance.unwrap_or(30u64) * 1000 * 1000).try_into().unwrap()) {
             return Ok(Timed.Message);
         } else {
             Err(Box::new(MessageTooOldOrTooNewError))
