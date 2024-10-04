@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
 	<!--<PublishAot>true</PublishAot>
 	<PublishTrimmed>true</PublishTrimmed>-->
     <ImplicitUsings>enable</ImplicitUsings>
@@ -10,6 +10,7 @@
     <InvariantGlobalization>true</InvariantGlobalization>
     <EnableUnsafeUTF7Encoding>false</EnableUnsafeUTF7Encoding>
     <DebuggerSupport>false</DebuggerSupport>
+	  
 
     <Nullable>enable</Nullable>
 

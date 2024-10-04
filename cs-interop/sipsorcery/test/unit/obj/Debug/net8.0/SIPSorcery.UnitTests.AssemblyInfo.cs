@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SIPSorcery.UnitTests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9a55dc02fec272f53230aa1e60fb6272a7a1f204")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b4c1869e5ba39ac0c382568b3f8a9e7cf32cbf87")]
 [assembly: System.Reflection.AssemblyProductAttribute("SIPSorcery.UnitTests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SIPSorcery.UnitTests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
