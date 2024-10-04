@@ -99,6 +99,11 @@ namespace demo
 			Console.WriteLine("Starting web socket client...");
 			var clientSock = new ClientWebSocket();
 			//string socketPath = String.Join('/', ((string)model["PublishEndpoint"]).Split('/').Skip(2).ToArray());
+			string webrtcMode = (string)model["WebRTCMode"];
+			if(webrtcMode != "Accept") {
+				System.Console.Error.WriteLine("Wrong TOOL: Wrong WebRTCMode");
+				return;
+			}
 			string socketPathRaw = (string)model["PublishEndpoint"];
 			string user = (string)model["PublishAuthUser"];
 			string password = (string)model["PublishAuthPass"];

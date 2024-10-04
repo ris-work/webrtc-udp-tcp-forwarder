@@ -182,29 +182,23 @@ namespace SIPSorcery.Net
         public string RequestTransactionID 
         { 
             get 
-            {
-                lock (_cachedRequestTransactionIDs)
-                {
-                    return _cachedRequestTransactionIDs?.Count > 0 ? _cachedRequestTransactionIDs[0] : null;
-                }
+            { 
+                return _cachedRequestTransactionIDs?.Count > 0 ? _cachedRequestTransactionIDs[0] : null; 
             }
             set
             {
-                lock (_cachedRequestTransactionIDs)
+                var currentValue = _cachedRequestTransactionIDs?.Count > 0 ? _cachedRequestTransactionIDs[0] : null;
+                if (value != currentValue)
                 {
-                    var currentValue = _cachedRequestTransactionIDs?.Count > 0 ? _cachedRequestTransactionIDs[0] : null;
-                    if (value != currentValue)
+                    const int MAX_CACHED_REQUEST_IDS = 30;
+                    while (_cachedRequestTransactionIDs.Count >= MAX_CACHED_REQUEST_IDS && _cachedRequestTransactionIDs.Count > 0)
                     {
-                        const int MAX_CACHED_REQUEST_IDS = 30;
-                        while (_cachedRequestTransactionIDs.Count >= MAX_CACHED_REQUEST_IDS && _cachedRequestTransactionIDs.Count > 0)
-                        {
-                            _cachedRequestTransactionIDs.RemoveAt(_cachedRequestTransactionIDs.Count - 1);
-                        }
+                        _cachedRequestTransactionIDs.RemoveAt(_cachedRequestTransactionIDs.Count - 1);
+                    }
 
-                        if (MAX_CACHED_REQUEST_IDS > 0)
-                        {
-                            _cachedRequestTransactionIDs.Insert(0, value);
-                        }
+                    if (MAX_CACHED_REQUEST_IDS > 0)
+                    {
+                        _cachedRequestTransactionIDs.Insert(0, value);
                     }
                 }
             }

@@ -1,11 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <Compile Remove="net\DtlsSrtp\Transform\ITransformEngine.cs" />
-    <Compile Remove="net\DtlsSrtp\Transform\RawPacket.cs" />
-    <Compile Remove="net\DtlsSrtp\Transform\SrtcpTransformer.cs" />
-    <Compile Remove="net\DtlsSrtp\Transform\SrtpTransformEngine.cs" />
-    <Compile Remove="net\DtlsSrtp\Transform\SrtpTransformer.cs" />
     <Compile Remove="net\RTSP\RTSPClient.cs" />
     <Compile Remove="net\RTSP\RTSPConnection.cs" />
     <Compile Remove="net\RTSP\RTSPServer.cs" />
@@ -16,26 +11,26 @@
     <None Remove="core\SIPEvents\Presence\PIDFSchema.xsd" />
     <None Remove="media\Macroform_-_Simplicity.raw" />
     <None Remove="media\testpattern.i420" />
-    <CSFile Include="*.cs" Exclude="..\test\*" />
     <EmbeddedResource Include="media\Macroform_-_Simplicity.raw" />
     <EmbeddedResource Include="media\testpattern.i420" />
     <None Include="icon.png" Pack="true" PackagePath="" />
   </ItemGroup>
 
   <ItemGroup>
-		  <!--<PackageReference Include="BouncyCastle.Cryptography" Version="2.3.0" />-->
-    <PackageReference Include="DnsClient" Version="1.7.0" />
     <PackageReference Include="Portable.BouncyCastle" Version="1.9.0" />
+    <PackageReference Include="DnsClient" Version="1.7.0" />
     <PackageReference Include="SIPSorcery.WebSocketSharp" Version="0.0.1" />
     <PackageReference Include="SIPSorceryMedia.Abstractions" Version="1.2.1" />
-    <PackageReference Include="Small" Version="0.0.2" />
     <PackageReference Include="System.Net.WebSockets.Client" Version="4.3.2" />
   </ItemGroup>
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;net461;net6.0;net8.0</TargetFrameworks>
-    <LangVersion>12</LangVersion>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <TargetFrameworks>netstandard2.0;netstandard2.1;netcoreapp3.1;net461;net5.0;net6.0;net8.0</TargetFrameworks>
+    <SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>
+    <NoWarn>$(NoWarn);SYSLIB0050</NoWarn>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- Disable warning for missing XML doc comments. -->
+    <NoWarn>$(NoWarn);CS1591;CS1573;CS1587</NoWarn>
     <Authors>Aaron Clauson, Christophe Irles, Rafael Soares &amp; Contributors</Authors>
     <Copyright>Copyright © 2010-2024 Aaron Clauson</Copyright>
     <PackageLicenseExpression>BSD-3-Clause</PackageLicenseExpression>
@@ -46,6 +41,7 @@
     <Company>SIP Sorcery PTY LTD</Company>
     <Product>SIPSorcery</Product>
     <PackageId>SIPSorcery</PackageId>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageProjectUrl>https://sipsorcery-org.github.io/sipsorcery/</PackageProjectUrl>
     <PackageIconUrl>http://www.sipsorcery.com/mainsite/favicon.ico</PackageIconUrl>
     <PackageIcon>icon.png</PackageIcon>
@@ -84,8 +80,8 @@
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
 
     <!-- Optional: Build symbol package (.snupkg) to distribute the PDB containing Source Link -->
-    <DebugType>Embedded</DebugType>
     <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
   </PropertyGroup>
 

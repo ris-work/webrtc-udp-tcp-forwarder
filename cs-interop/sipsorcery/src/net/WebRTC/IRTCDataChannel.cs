@@ -36,7 +36,7 @@ using System;
 
 namespace SIPSorcery.Net
 {
-    public delegate void OnDataChannelMessageDelegate(RTCDataChannel dc, DataChannelPayloadProtocols protocol, ReadOnlySpan<byte> data);
+    public delegate void OnDataChannelMessageDelegate(RTCDataChannel dc, DataChannelPayloadProtocols protocol, byte[] data);
 
     public enum RTCDataChannelState
     {
@@ -161,7 +161,7 @@ namespace SIPSorcery.Net
 
         string binaryType { get; set; }
         void send(string data);
-        void send(ReadOnlySpan<byte> data);
+        void send(byte[] data);
     };
 
     public class RTCDataChannelInit

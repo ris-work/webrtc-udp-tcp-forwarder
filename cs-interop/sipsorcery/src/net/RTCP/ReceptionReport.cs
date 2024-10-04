@@ -33,7 +33,6 @@
 //-----------------------------------------------------------------------------
 
 using System;
-using System.Buffers.Binary;
 using SIPSorcery.Sys;
 
 namespace SIPSorcery.Net
@@ -112,16 +111,28 @@ namespace SIPSorcery.Net
             DelaySinceLastSenderReport = delaySinceLastSR;
         }
 
-        public ReceptionReportSample(ReadOnlySpan<byte> packet)
+        public ReceptionReportSample(byte[] packet)
         {
-            SSRC = BinaryPrimitives.ReadUInt32BigEndian(packet.Slice(0, 4));
-            FractionLost = packet[4];
-            Span<byte> packetsLost = stackalloc byte[] { 0x00, packet[5], packet[6], packet[7] };
-            PacketsLost = BinaryPrimitives.ReadInt32BigEndian(packetsLost);
-            ExtendedHighestSequenceNumber = BinaryPrimitives.ReadUInt32BigEndian(packet.Slice(8));
-            Jitter = BinaryPrimitives.ReadUInt32BigEndian(packet.Slice(12));
-            LastSenderReportTimestamp = BinaryPrimitives.ReadUInt32BigEndian(packet.Slice(16));
-            DelaySinceLastSenderReport = BinaryPrimitives.ReadUInt32BigEndian(packet.Slice(20));
+            if (BitConverter.IsLittleEndian)
+            {
+                SSRC = NetConvert.DoReverseEndian(BitConverter.ToUInt32(packet, 0));
+                FractionLost = packet[4];
+                PacketsLost = NetConvert.DoReverseEndian(BitConverter.ToInt32(new byte[] { 0x00, packet[5], packet[6], packet[7] }, 0));
+                ExtendedHighestSequenceNumber = NetConvert.DoReverseEndian(BitConverter.ToUInt32(packet, 8));
+                Jitter = NetConvert.DoReverseEndian(BitConverter.ToUInt32(packet, 12));
+                LastSenderReportTimestamp = NetConvert.DoReverseEndian(BitConverter.ToUInt32(packet, 16));
+                DelaySinceLastSenderReport = NetConvert.DoReverseEndian(BitConverter.ToUInt32(packet, 20));
+            }
+            else
+            {
+                SSRC = BitConverter.ToUInt32(packet, 4);
+                FractionLost = packet[4];
+                PacketsLost = BitConverter.ToInt32(new byte[] { 0x00, packet[5], packet[6], packet[7] }, 0);
+                ExtendedHighestSequenceNumber = BitConverter.ToUInt32(packet, 8);
+                Jitter = BitConverter.ToUInt32(packet, 12);
+                LastSenderReportTimestamp = BitConverter.ToUInt32(packet, 16);
+                DelaySinceLastSenderReport = BitConverter.ToUInt32(packet, 20);
+            }
         }
 
         /// <summary>

@@ -9,6 +9,10 @@ import * as net from "net";
 import * as b64 from "nodejs-base64";
 
 console.assert(conf.WebRTCMode == "Offer");
+if(conf.WebRTCMode != "Offer"){
+	console.error("Wrong TOOL: Wrong WebRTCMode");
+	process.exit(2);
+}
 console.assert(conf.PublishType == "ws");
 
 let connected = false;

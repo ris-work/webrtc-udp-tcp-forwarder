@@ -93,19 +93,19 @@ namespace SIPSorcery.Net
         /// </returns>
         public virtual bool IsPortAgnostic => false;
 
-        public abstract void Send(string associationID, ReadOnlySpan<byte> buffer);
+        public abstract void Send(string associationID, byte[] buffer, int offset, int length);
 
         static SctpTransport()
         {
             Crypto.GetRandomBytes(_hmacKey);
         }
 
-        protected void GotInit(SctpPacketView initPacket, IPEndPoint remoteEndPoint)
+        protected void GotInit(SctpPacket initPacket, IPEndPoint remoteEndPoint)
         {
             // INIT packets have specific processing rules in order to prevent resource exhaustion.
             // See Section 5 of RFC 4960 https://tools.ietf.org/html/rfc4960#section-5 "Association Initialization".
 
-            var initChunk = initPacket.GetChunk(SctpChunkType.INIT);
+            SctpInitChunk initChunk = initPacket.Chunks.Single(x => x.KnownType == SctpChunkType.INIT) as SctpInitChunk;
 
             if (initChunk.InitiateTag == 0 ||
                 initChunk.NumberInboundStreams == 0 ||
@@ -130,27 +130,9 @@ namespace SIPSorcery.Net
             }
             else
             {
-                var initAckPacket = GetInitAck(initPacket.AsPacket(), remoteEndPoint);
-                Send(null, initAckPacket);
-            }
-        }
-
-        /// <summary>
-        /// Sends an SCTP packet to the remote peer.
-        /// </summary>
-        /// <param name="pkt">The packet to send.</param>
-        internal void Send(string? ID, SctpPacket pkt)
-        {
-            Span<byte> span = stackalloc byte[4 * 1024];
-            if (pkt.GetBytes(span) is { } size and >= 0)
-            {
-                Send(ID, span.Slice(0, size));
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine("SCTP packet too large to send without allocation.");
-                byte[] buffer = pkt.GetBytes();
-                Send(ID, buffer.AsSpan());
+                var initAckPacket = GetInitAck(initPacket, remoteEndPoint);
+                var buffer = initAckPacket.GetBytes();
+                Send(null, buffer, 0, buffer.Length);
             }
         }
 
@@ -200,7 +182,7 @@ namespace SIPSorcery.Net
         /// <returns>An SCTP packet with a single INIT ACK chunk.</returns>
         protected SctpPacket GetInitAck(SctpPacket initPacket, IPEndPoint remoteEP)
         {
-            var initChunk = (SctpInitChunk)initPacket.GetChunk(SctpChunkType.INIT);
+            SctpInitChunk initChunk = initPacket.Chunks.Single(x => x.KnownType == SctpChunkType.INIT) as SctpInitChunk;
 
             SctpPacket initAckPacket = new SctpPacket(
                 initPacket.Header.DestinationPort,
@@ -251,11 +233,11 @@ namespace SIPSorcery.Net
         /// <param name="sctpPacket">The packet containing the COOKIE ECHO chunk received from the remote party.</param>
         /// <returns>If the state cookie in the chunk is valid a new SCTP association will be returned. IF
         /// it's not valid an empty cookie will be returned and an error response gets sent to the peer.</returns>
-        protected SctpTransportCookie GetCookie(SctpPacketView sctpPacket)
+        protected SctpTransportCookie GetCookie(SctpPacket sctpPacket)
         {
-            var cookieEcho = sctpPacket.GetChunk(SctpChunkType.COOKIE_ECHO);
-            var cookieBuffer = cookieEcho.Value;
-            var cookie = JSONParser.FromJson<SctpTransportCookie>(cookieBuffer.ToString(Encoding.UTF8));
+            var cookieEcho = sctpPacket.Chunks.Single(x => x.KnownType == SctpChunkType.COOKIE_ECHO);
+            var cookieBuffer = cookieEcho.ChunkValue;
+            var cookie = JSONParser.FromJson<SctpTransportCookie>(Encoding.UTF8.GetString(cookieBuffer));
 
             logger.LogDebug($"Cookie: {cookie.ToJson()}");
 
@@ -295,9 +277,9 @@ namespace SIPSorcery.Net
         /// </summary>
         /// <param name="buffer">The buffer holding the state cookie.</param>
         /// <returns>True if the cookie is determined as valid, false if not.</returns>
-        protected string GetCookieHMAC(ReadOnlySpan<byte> buffer)
+        protected string GetCookieHMAC(byte[] buffer)
         {
-            var cookie = JSONParser.FromJson<SctpTransportCookie>(buffer.ToString(Encoding.UTF8));
+            var cookie = JSONParser.FromJson<SctpTransportCookie>(Encoding.UTF8.GetString(buffer));
             string hmacCalculated = null;
             cookie.HMAC = string.Empty;
 
@@ -315,8 +297,8 @@ namespace SIPSorcery.Net
         /// <summary>
         /// Send an SCTP packet with one of the error type chunks (ABORT or ERROR) to the remote peer.
         /// </summary>
-        /// <param name=isAbort">Set to true to use an ABORT chunk otherwise an ERROR chunk will be used.</param>
-        /// <param name="desintationPort">The SCTP destination port.</param>
+        /// <param name="isAbort">Set to true to use an ABORT chunk otherwise an ERROR chunk will be used.</param>
+        /// <param name="destinationPort">The SCTP destination port.</param>
         /// <param name="sourcePort">The SCTP source port.</param>
         /// <param name="initiateTag">If available the initial tag for the remote peer.</param>
         /// <param name="error">The error to send.</param>
@@ -336,7 +318,8 @@ namespace SIPSorcery.Net
             errorChunk.AddErrorCause(error);
             errorPacket.AddChunk(errorChunk);
 
-            Send(null, errorPacket);
+            var buffer = errorPacket.GetBytes();
+            Send(null, buffer, 0, buffer.Length);
         }
 
         /// <summary>

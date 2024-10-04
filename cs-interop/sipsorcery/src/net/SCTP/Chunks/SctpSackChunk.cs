@@ -17,10 +17,8 @@
 // BSD 3-Clause "New" or "Revised" License, see included LICENSE.md file.
 //-----------------------------------------------------------------------------
 
-using System;
+using System.Collections.Generic;
 using SIPSorcery.Sys;
-using Small.Collections;
-using TypeNum;
 
 namespace SIPSorcery.Net
 {
@@ -33,8 +31,8 @@ namespace SIPSorcery.Net
     public class SctpSackChunk : SctpChunk
     {
         public const int FIXED_PARAMETERS_LENGTH = 12;
-        internal const int GAP_REPORT_LENGTH = 4;
-        internal const int DUPLICATE_TSN_LENGTH = 4;
+        private const int GAP_REPORT_LENGTH = 4;
+        private const int DUPLICATE_TSN_LENGTH = 4;
 
         /// <summary>
         /// This parameter contains the TSN of the last chunk received in
@@ -52,13 +50,13 @@ namespace SIPSorcery.Net
         /// The gap ACK blocks. Each entry represents a gap in the forward out of order
         /// TSNs received.
         /// </summary>
-        public SmallList<N8<SctpTsnGapBlock>, SctpTsnGapBlock> GapAckBlocks = new ();
+        public List<SctpTsnGapBlock> GapAckBlocks = new List<SctpTsnGapBlock>();
 
         /// <summary>
         /// Indicates the number of times a TSN was received in duplicate
         /// since the last SACK was sent.
         /// </summary>
-        public SmallList<N8<uint>, uint> DuplicateTSN = new();
+        public List<uint> DuplicateTSN = new List<uint>();
 
         private SctpSackChunk() : base(SctpChunkType.SACK)
         { }
@@ -97,7 +95,7 @@ namespace SIPSorcery.Net
         /// must have the required space already allocated.</param>
         /// <param name="posn">The position in the buffer to write to.</param>
         /// <returns>The number of bytes, including padding, written to the buffer.</returns>
-        public override ushort WriteTo(Span<byte> buffer, int posn)
+        public override ushort WriteTo(byte[] buffer, int posn)
         {
             WriteChunkHeader(buffer, posn);
 
@@ -131,7 +129,7 @@ namespace SIPSorcery.Net
         /// </summary>
         /// <param name="buffer">The buffer holding the serialised chunk.</param>
         /// <param name="posn">The position to start parsing at.</param>
-        public static SctpSackChunk ParseChunk(ReadOnlySpan<byte> buffer, int posn)
+        public static SctpSackChunk ParseChunk(byte[] buffer, int posn)
         {
             var sackChunk = new SctpSackChunk();
             ushort chunkLen = sackChunk.ParseFirstWord(buffer, posn);

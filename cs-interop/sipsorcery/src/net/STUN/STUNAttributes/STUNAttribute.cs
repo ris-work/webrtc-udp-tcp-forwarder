@@ -161,19 +161,13 @@ namespace SIPSorcery.Net
 
         public static List<STUNAttribute> ParseMessageAttributes(byte[] buffer, int startIndex, int endIndex, STUNHeader header)
         {
-            if (buffer.Length > startIndex && buffer.Length >= endIndex)
+            if (buffer != null && buffer.Length > startIndex && buffer.Length >= endIndex)
             {
+                List<STUNAttribute> attributes = new List<STUNAttribute>();
                 int startAttIndex = startIndex;
 
                 while (startAttIndex < endIndex)
                 {
-                    int remainingBytes = endIndex - startAttIndex;
-                    if (remainingBytes < 4)
-                    {
-                        logger.LogWarning("The remaining number of bytes in the STUN message was less than the minimum attribute length 4. Remaining bytes: {RemainingBytes}.", remainingBytes);
-                        break;
-                    }
-
                     UInt16 stunAttributeType = NetConvert.ParseUInt16(buffer, startAttIndex);
                     UInt16 stunAttributeLength = NetConvert.ParseUInt16(buffer, startAttIndex + 2);
                     byte[] stunAttributeValue = null;
@@ -189,7 +183,7 @@ namespace SIPSorcery.Net
                         else
                         {
                             stunAttributeValue = new byte[stunAttributeLength];
-                            buffer.Slice(startAttIndex + 4, stunAttributeLength).CopyTo(stunAttributeValue);
+                            Buffer.BlockCopy(buffer, startAttIndex + 4, stunAttributeValue, 0, stunAttributeLength);
                         }
                     }
 
@@ -231,12 +225,11 @@ namespace SIPSorcery.Net
                     startAttIndex = startAttIndex + 4 + stunAttributeLength + padding;
                 }
 
-                return true;
+                return attributes;
             }
             else
             {
-                logger.LogWarning("Bad STUN attribute parse request. Start: {Start}; End: {End}; Length: {Length}.", startIndex, endIndex, buffer.Length);
-                return false;
+                return null;
             }
         }
 

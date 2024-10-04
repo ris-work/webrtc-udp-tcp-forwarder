@@ -60,7 +60,7 @@ namespace SIPSorcery.Net
         /// Creates a new RTCP compound packet from a serialised buffer.
         /// </summary>
         /// <param name="packet">The serialised RTCP compound packet to parse.</param>
-        public RTCPCompoundPacket(ReadOnlySpan<byte> packet)
+        public RTCPCompoundPacket(byte[] packet)
         {
             int offset = 0;
             while (offset < packet.Length)
@@ -72,7 +72,7 @@ namespace SIPSorcery.Net
                 }
                 else
                 {
-                    var buffer = packet.Slice(offset);
+                    var buffer = packet.Skip(offset).ToArray();
 
                     // The payload type field is the second byte in the RTCP header.
                     byte packetTypeID = buffer[1];
