@@ -54,7 +54,7 @@ namespace SIPSorcery.Net.IntegrationTests
             logger.LogDebug("--> " + System.Reflection.MethodBase.GetCurrentMethod().Name);
             logger.BeginScope(System.Reflection.MethodBase.GetCurrentMethod().Name);
 
-            DtlsSrtpTransport dtlsTransport = new DtlsSrtpTransport(new DtlsSrtpServer(new BcTlsCrypto()));
+            DtlsSrtpTransport dtlsTransport = new DtlsSrtpTransport(new DtlsSrtpSecureServer());
 
             Assert.NotNull(dtlsTransport);
         }
@@ -69,8 +69,8 @@ namespace SIPSorcery.Net.IntegrationTests
             logger.LogDebug("--> " + System.Reflection.MethodBase.GetCurrentMethod().Name);
             logger.BeginScope(System.Reflection.MethodBase.GetCurrentMethod().Name);
 
-            var dtlsClient = new DtlsSrtpClient(new BcTlsCrypto());
-            var dtlsServer = new DtlsSrtpServer(new BcTlsCrypto());
+            var dtlsClient = new DtlsSrtpClient();
+            var dtlsServer = new DtlsSrtpSecureServer();
 
             DtlsSrtpTransport dtlsClientTransport = new DtlsSrtpTransport(dtlsClient);
             dtlsClientTransport.TimeoutMilliseconds = 5000;
@@ -102,8 +102,8 @@ namespace SIPSorcery.Net.IntegrationTests
             logger.LogDebug($"DTLS server fingerprint       : {dtlsServer.Fingerprint}.");
             //logger.LogDebug($"DTLS server client fingerprint: {dtlsServer.ClientFingerprint}.");
 
-            Assert.NotNull(dtlsClient.GetRemoteCertificate());
-            Assert.NotNull(dtlsServer.GetRemoteCertificate());
+            Assert.NotNull(dtlsClient.RemoteCertificate);
+            Assert.NotNull(dtlsServer.RemoteCertificate);
             //Assert.Equal(dtlsServer.Fingerprint.algorithm, dtlsClient.ServerFingerprint.algorithm);
             //Assert.Equal(dtlsServer.Fingerprint.value, dtlsClient.ServerFingerprint.value);
             //Assert.Equal(dtlsClient.Fingerprint.algorithm, dtlsServer.ClientFingerprint.algorithm);
@@ -136,7 +136,7 @@ namespace SIPSorcery.Net.IntegrationTests
             logger.LogDebug("--> " + System.Reflection.MethodBase.GetCurrentMethod().Name);
             logger.BeginScope(System.Reflection.MethodBase.GetCurrentMethod().Name);
 
-            DtlsSrtpTransport dtlsServerTransport = new DtlsSrtpTransport(new DtlsSrtpServer(new BcTlsCrypto()));
+            DtlsSrtpTransport dtlsServerTransport = new DtlsSrtpTransport(new DtlsSrtpSecureServer());
             dtlsServerTransport.TimeoutMilliseconds = 2000;
 
             var result = await Task.Run<bool>(() => dtlsServerTransport.DoHandshake(out _));

@@ -1,5 +1,7 @@
 is_global = true
 build_property.RootNamespace = SIPSorcery.UnitTests
-build_property.ProjectDir = /root/interop/cs-interop/sipsorcery/test/unit/
+build_property.ProjectDir = C:\Users\Rishi\webrtc-udp-tcp-forwarder\cs-interop\sipsorcery\test\unit\
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 
+build_property.EffectiveAnalysisLevelStyle = 
+build_property.EnableCodeStyleSeverity = 

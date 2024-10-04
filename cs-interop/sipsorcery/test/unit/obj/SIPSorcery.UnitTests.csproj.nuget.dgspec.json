@@ -5,7 +5,7 @@
   },
   "projects": {
     "C:\\Users\\Rishi\\webrtc-udp-tcp-forwarder\\cs-interop\\sipsorcery\\src\\SIPSorcery.csproj": {
-      "version": "7.0.0-PacketView-24.3.20.6",
+      "version": "8.0.0",
       "restore": {
         "projectUniqueName": "C:\\Users\\Rishi\\webrtc-udp-tcp-forwarder\\cs-interop\\sipsorcery\\src\\SIPSorcery.csproj",
         "projectName": "SIPSorcery",
@@ -59,17 +59,14 @@
         "restoreAuditProperties": {
           "enableAudit": "true",
           "auditLevel": "low",
-          "auditMode": "direct"
-        }
+          "auditMode": "all"
+        },
+        "SdkAnalysisLevel": "9.0.100"
       },
       "frameworks": {
         "net6.0": {
           "targetAlias": "net6.0",
           "dependencies": {
-            "BouncyCastle.Cryptography": {
-              "target": "Package",
-              "version": "[2.3.0, )"
-            },
             "DnsClient": {
               "target": "Package",
               "version": "[1.7.0, )"
@@ -78,6 +75,10 @@
               "suppressParent": "All",
               "target": "Package",
               "version": "[8.0.0, )"
+            },
+            "Portable.BouncyCastle": {
+              "target": "Package",
+              "version": "[1.9.0, )"
             },
             "SIPSorcery.WebSocketSharp": {
               "target": "Package",
@@ -112,15 +113,11 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.204\\RuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.100-rc.1.24452.12\\RuntimeIdentifierGraph.json"
         },
         "net8.0": {
           "targetAlias": "net8.0",
           "dependencies": {
-            "BouncyCastle.Cryptography": {
-              "target": "Package",
-              "version": "[2.3.0, )"
-            },
             "DnsClient": {
               "target": "Package",
               "version": "[1.7.0, )"
@@ -129,6 +126,10 @@
               "suppressParent": "All",
               "target": "Package",
               "version": "[8.0.0, )"
+            },
+            "Portable.BouncyCastle": {
+              "target": "Package",
+              "version": "[1.9.0, )"
             },
             "SIPSorcery.WebSocketSharp": {
               "target": "Package",
@@ -163,15 +164,11 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.204/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.100-rc.1.24452.12/PortableRuntimeIdentifierGraph.json"
         },
         "net461": {
           "targetAlias": "net461",
           "dependencies": {
-            "BouncyCastle.Cryptography": {
-              "target": "Package",
-              "version": "[2.3.0, )"
-            },
             "DnsClient": {
               "target": "Package",
               "version": "[1.7.0, )"
@@ -187,6 +184,10 @@
               "target": "Package",
               "version": "[8.0.0, )"
             },
+            "Portable.BouncyCastle": {
+              "target": "Package",
+              "version": "[1.9.0, )"
+            },
             "SIPSorcery.WebSocketSharp": {
               "target": "Package",
               "version": "[0.0.1, )"
@@ -204,15 +205,11 @@
               "version": "[4.3.2, )"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.204\\RuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.100-rc.1.24452.12\\RuntimeIdentifierGraph.json"
         },
         "netstandard2.0": {
           "targetAlias": "netstandard2.0",
           "dependencies": {
-            "BouncyCastle.Cryptography": {
-              "target": "Package",
-              "version": "[2.3.0, )"
-            },
             "DnsClient": {
               "target": "Package",
               "version": "[1.7.0, )"
@@ -227,6 +224,10 @@
               "target": "Package",
               "version": "[2.0.3, )",
               "autoReferenced": true
+            },
+            "Portable.BouncyCastle": {
+              "target": "Package",
+              "version": "[1.9.0, )"
             },
             "SIPSorcery.WebSocketSharp": {
               "target": "Package",
@@ -256,7 +257,7 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.204\\RuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.100-rc.1.24452.12\\RuntimeIdentifierGraph.json"
         }
       }
     },
@@ -304,8 +305,9 @@
         "restoreAuditProperties": {
           "enableAudit": "true",
           "auditLevel": "low",
-          "auditMode": "direct"
-        }
+          "auditMode": "all"
+        },
+        "SdkAnalysisLevel": "9.0.100"
       },
       "frameworks": {
         "net8.0": {
@@ -360,7 +362,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.204/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.100-rc.1.24452.12/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

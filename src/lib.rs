@@ -10,6 +10,13 @@ use chrono::naive::NaiveDateTime;
 use chrono::Utc;
 use core_affinity;
 use serde::Deserialize;
+use std::net::TcpStream;
+#[cfg(unix)]
+use std::os::unix::net::{UnixListener, UnixStream};
+#[cfg(windows)]
+use uds_windows::{UnixListener, UnixStream};
+use std::io::{Read, Write};
+
 pub const PKT_SIZE: u16 = 2046;
 #[derive(Deserialize, Clone)]
 pub struct Config {
@@ -173,7 +180,7 @@ pub trait ClonableSendableReceivable {
     where
         Self: Sized;
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, std::io::Error>;
-    fn flush(&mut self) -> Result<()>;
+    fn flush(&mut self) -> Result<(), std::io::Error>;
     fn write(&mut self, buf: &[u8]) -> Result<usize, std::io::Error>;
 }
 impl ClonableSendableReceivable for OrderedReliableStream {
@@ -199,7 +206,7 @@ impl ClonableSendableReceivable for OrderedReliableStream {
             OrderedReliableStream::Uds(u) => u.write(buf),
         }
     }
-    fn flush(&mut self) -> Result<()> {
+    fn flush(&mut self) -> Result<(), std::io::Error> {
         match self {
             OrderedReliableStream::Tcp(ref mut t) => Ok(t.flush()?),
             OrderedReliableStream::Uds(ref mut u) => Ok(u.flush()?),

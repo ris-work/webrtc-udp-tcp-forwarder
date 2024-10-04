@@ -1,7 +1,9 @@
+cargo-features=["rename-dependency"]
 [package]
 name = "webrtc-udp-forwarder"
 version = "0.1.0"
 edition = "2021"
+
 
 [profile.release]
 opt-level=3
@@ -38,14 +40,17 @@ tokio = "1.40.0"
 toml = "0.8.19"
 uds_windows = "1.1.0"
 webrtc =  "0.11.0"
+webrtc_cc = {package = "webrtc", version="0.10.0"}
 websocket = "0.27.1"
 [target.'cfg(target_env="musl")'.dependencies]
 openssl = {version = "0.10", features = ["vendored"]}
 [target.'cfg(target_os="netbsd")'.dependencies]
 openssl = {version = "0.10", features = ["vendored"]}
 
+
 [patch.crates-io]
 webrtc = {path = "webrtc/webrtc/"}
+
 
 [features]
 tcp=[]
