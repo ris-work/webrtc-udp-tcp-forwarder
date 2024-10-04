@@ -18,6 +18,7 @@ console.assert(conf.PublishType == "ws");
 
 let offerUnvalidated;
 let connected = false;
+let completeWS=false;
 
 let to_dc = (x) => {
 	to_dc_queue.push(x);
@@ -47,7 +48,7 @@ console.log(wsurl);
 let sigSocket = new WebSocket(wsurl);
 sigSocket.addEventListener("close", (e) => {
 	console.warn("Websocket: closed");
-	if (!connected) process.exit(1);
+	if (!completeWS) process.exit(1);
 });
 sigSocket.addEventListener("open", (e) => {
 	proceedToWebRTC();
@@ -216,6 +217,7 @@ dc.addEventListener('close', dc_close);
 	function sendAnswer(hmacMessage) {
 		console.log(hmacMessage);
 		sigSocket.send(JSON.stringify(hmacMessage));
+		completeWS = true;
 	}
 }
 

@@ -199,7 +199,7 @@ async fn create_WebRTC_offer(
             "data",
             Some(RTCDataChannelInit {
                 ordered: Some(false),
-                max_packet_life_time: Some(0),
+                max_packet_life_time: None,
                 max_retransmits: Some(0),
                 protocol: Some("raw".to_string()),
                 negotiated: None,

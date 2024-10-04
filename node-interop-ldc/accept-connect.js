@@ -195,7 +195,7 @@ dc.addEventListener('close', dc_close);
 			);
 		setTimeout(
 			() => doneGeneratingAnswer(JSON.stringify(pc.localDescription)),
-			2500
+			1500
 		);
 	};
 
