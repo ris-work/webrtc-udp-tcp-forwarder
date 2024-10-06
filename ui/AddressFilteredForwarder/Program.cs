@@ -12,6 +12,7 @@ using System.Text;
 using System.Collections;
 using Rishi.PairStream;
 using Microsoft.PowerShell.Commands;
+using System.Runtime.CompilerServices;
 
 Console.Title = "Address Filtered Forwarder";
 Console.WriteLine("This program is there to port-forward to a destination only if the source matches the given subnet(s)");
@@ -127,115 +128,140 @@ else
     );
 }
 
-public static class Library
+namespace RV.AFF
 {
-    public struct StreamWithParameters
+    public static class Library
     {
-        public Stream stream;
-        public bool IsPSKAuthenticated;
-        public bool IsTLSAuthenticated;
-    }
-    public class Parameters
-    {
-        public string DestinationAddress;
-        public bool DestinationIsAUnixSocket;
-        public int DestinationPort;
-        public bool AuthenticateAsClient;
-        public string AdditionallyValidateAgainstHostname;
-        public bool TLSClient;
-        public int ListenPort;
-        public string AuthenticationKeyPSK;
-        public string ToTomlString() {
-            TomlTable TT = new TomlTable()
+        public struct StreamWithParameters
+        {
+            public Stream stream;
+            public bool IsPSKAuthenticated;
+            public bool IsTLSAuthenticated;
+            public async Task<StreamWithParameters> ConnectAsync()
             {
-                ["DestinationAddress"] = DestinationAddress,
-                ["DestinationIsAUnixSocket"] = DestinationIsAUnixSocket,
-                ["DestinationPort"] = DestinationPort,
-                ["AuthenticateAsClient"] = AuthenticateAsClient,
-                ["AdditionallyValidateAgainstHostname"] = AdditionallyValidateAgainstHostname,
-                ["TLSClient"] = TLSClient,
-                ["ListenPort"] = ListenPort,
-                ["AuthenticationKeyPSK"] = AuthenticationKeyPSK
+                return this;
+            }
+        }
+        public class AffParameters
+        {
+            public string DestinationAddress;
+            public bool DestinationIsAUnixSocket;
+            public int DestinationPort;
+            public bool AuthenticateAsClient;
+            public string AdditionallyValidateAgainstHostname;
+            public bool TLSClient;
+            public string AuthenticationKeyPSK;
+            public byte[] AuthenticationKeyPSKBytes;
+            public string ToTomlString()
+            {
+                TomlTable TT = new TomlTable()
+                {
+                    ["DestinationAddress"] = DestinationAddress,
+                    ["DestinationIsAUnixSocket"] = DestinationIsAUnixSocket,
+                    ["DestinationPort"] = (long)DestinationPort,
+                    ["AuthenticateAsClient"] = AuthenticateAsClient,
+                    ["AdditionallyValidateAgainstHostname"] = AdditionallyValidateAgainstHostname,
+                    ["TLSClient"] = TLSClient,
+                    ["AuthenticationKeyPSK"] = AuthenticationKeyPSK
+                };
+                return Toml.FromModel(TT);
+            }
+            public AffParameters() { }
+            public AffParameters(TomlTable TT)
+            {
+                Dictionary<string, object> ConfigDict = TT.ToDictionary();
+                DestinationAddress = (string)ConfigDict.GetValueOrDefault("DestinationAddress", "127.0.0.1");
+                DestinationIsAUnixSocket = (bool)ConfigDict.GetValueOrDefault("DestinationIsAUnixSocket", false); ;
+                DestinationPort = ((int)(long)ConfigDict.GetValueOrDefault("DestinationPort", 0));
+                AuthenticateAsClient = (bool)ConfigDict.GetValueOrDefault("AuthenticateAsClient", false);
+                AdditionallyValidateAgainstHostname = (String)ConfigDict.GetValueOrDefault("AdditionallyValidateAgainstHostname", "");
+                TLSClient = (bool)ConfigDict.GetValueOrDefault("TLSClient", false);
+                AuthenticationKeyPSK = "";
+                AuthenticationKeyPSKBytes = null;
+                if (AuthenticateAsClient)
+                {
+                    AuthenticationKeyPSK = (string)ConfigDict.GetValueOrDefault("AuthenticationKeyPSK", null);
+                    AuthenticationKeyPSKBytes = SHA256.Create().ComputeHash(Encoding.UTF8.GetBytes(AuthenticationKeyPSK));
+                }
+
+            }
+        }
+        public static async Task<StreamWithParameters> CreateStream(string TomlString)
+        {
+            TomlTable Config = Toml.ToModel(TomlString);
+            Dictionary<string, object> ConfigDict = Config.ToDictionary();
+            string DestinationAddress = (string)ConfigDict.GetValueOrDefault("DestinationAddress", "127.0.0.1");
+            bool DestinationIsAUnixSocket = (bool)ConfigDict.GetValueOrDefault("DestinationIsAUnixSocket", false); ;
+            int DestinationPort = ((int)(long)ConfigDict.GetValueOrDefault("DestinationPort", 0));
+            bool AuthenticateAsClient = (bool)ConfigDict.GetValueOrDefault("AuthenticateAsClient", false);
+            String AdditionallyValidateAgainstHostname = (String)ConfigDict.GetValueOrDefault("AdditionallyValidateAgainstHostname", null);
+            bool TLSClient = (bool)ConfigDict.GetValueOrDefault("TLSClient", false);
+            string AuthenticationKeyPSK = null;
+            byte[]? AuthenticationKeyPSKBytes = null;
+            if (AuthenticateAsClient)
+            {
+                AuthenticationKeyPSK = (string)ConfigDict.GetValueOrDefault("AuthenticationKeyPSK", null);
+                AuthenticationKeyPSKBytes = SHA256.Create().ComputeHash(Encoding.UTF8.GetBytes(AuthenticationKeyPSK));
+            }
+
+            Stream outStream;
+            IPEndPoint dest = new IPEndPoint(IPAddress.Parse(DestinationAddress), DestinationPort);
+            Console.WriteLine($"Destination: {DestinationAddress}, {DestinationPort}");
+            TcpClient CD = new TcpClient(dest.Address.ToString(), dest.Port);
+            Stream DS;
+            if (!TLSClient)
+            {
+                DS = CD.GetStream();
+            }
+            else
+            {
+                var ClientSSLStream = new SslStream(CD.GetStream(), false, new RemoteCertificateValidationCallback(ValidateServerCertificate), null);
+                ClientSSLStream.AuthenticateAsClient(AdditionallyValidateAgainstHostname);
+                DS = ClientSSLStream;
+            }
+            if (AuthenticateAsClient)
+            {
+                Console.WriteLine("Authenticating as client...");
+                var OurCS = DS;
+                var RG = new Random();
+                byte[] RandomBytes = new byte[32];
+                byte[] response = new byte[32];
+                byte[] challenge = new byte[32];
+                byte[] challengeResponse = new byte[32];
+                RG.NextBytes(RandomBytes);
+                System.Security.Cryptography.Aes aesEnc = System.Security.Cryptography.Aes.Create();
+                aesEnc.KeySize = 256;
+                aesEnc.Key = AuthenticationKeyPSKBytes;
+                aesEnc.IV = Enumerable.Repeat((byte)0x00, 16).ToArray();
+                ICryptoTransform EncryptTransformer = aesEnc.CreateEncryptor(aesEnc.Key, aesEnc.IV);
+                ICryptoTransform DecryptTransformer = aesEnc.CreateDecryptor(aesEnc.Key, aesEnc.IV);
+
+                await OurCS.ReadExactlyAsync(challenge);
+                EncryptTransformer.TransformBlock(challenge, 0, 32, challengeResponse, 0);
+                await OurCS.WriteAsync(challengeResponse);
+                await OurCS.WriteAsync(RandomBytes);
+                await OurCS.ReadExactlyAsync(response);
+                byte[] decryptedResponse = new byte[32];
+                DecryptTransformer.TransformBlock(response, 0, 32, decryptedResponse, 0);
+                IStructuralEquatable IERC = RandomBytes[0..16];
+                bool IsResponseCorrect = IERC.Equals(decryptedResponse[0..16], StructuralComparisons.StructuralEqualityComparer);
+                await OurCS.FlushAsync();
+            }
+            outStream = DS;
+            return new StreamWithParameters()
+            {
+                stream = outStream,
+                IsPSKAuthenticated = AuthenticateAsClient,
+                IsTLSAuthenticated = TLSClient
             };
-            return Toml.FromModel(TT);
-        }
-    }
-    public static async Task<StreamWithParameters> CreateStream(string TomlString)
-    {
-        TomlTable Config = Toml.ToModel(TomlString);
-        Dictionary<string, object> ConfigDict = Config.ToDictionary();
-        string DestinationAddress = (string)ConfigDict.GetValueOrDefault("DestinationAddress", "127.0.0.1");
-        bool DestinationIsAUnixSocket = (bool)ConfigDict.GetValueOrDefault("DestinationIsAUnixSocket", false); ;
-        int DestinationPort = ((int)(long)ConfigDict.GetValueOrDefault("DestinationPort", 0));
-        bool AuthenticateAsClient = (bool)ConfigDict.GetValueOrDefault("AuthenticateAsClient", false);
-        String AdditionallyValidateAgainstHostname = (String)ConfigDict.GetValueOrDefault("AdditionallyValidateAgainstHostname", null);
-        bool TLSClient = (bool)ConfigDict.GetValueOrDefault("TLSClient", false);
-        int ListenPort = (int)(long)ConfigDict["ListenPort"];
-        X509Certificate2 ServerCert = null;
-        string AuthenticationKeyPSK = null;
-        byte[]? AuthenticationKeyPSKBytes = null;
-        if (AuthenticateAsClient)
-        {
-            AuthenticationKeyPSK = (string)ConfigDict.GetValueOrDefault("AuthenticationKeyPSK", null);
-            AuthenticationKeyPSKBytes = SHA256.Create().ComputeHash(Encoding.UTF8.GetBytes(AuthenticationKeyPSK));
         }
 
-        Stream outStream;
-        IPEndPoint dest = new IPEndPoint(IPAddress.Parse(DestinationAddress), DestinationPort);
-        Console.WriteLine($"Destination: {DestinationAddress}, {DestinationPort}");
-        TcpClient CD = new TcpClient(dest.Address.ToString(), dest.Port);
-        Stream DS;
-        if (!TLSClient)
+        public static bool ValidateServerCertificate(object sender, X509Certificate cert, X509Chain chain, SslPolicyErrors SPE)
         {
-            DS = CD.GetStream();
+            Console.WriteLine($"Verifying TLS/SSL cert as a client... {SPE}");
+            if (SPE == SslPolicyErrors.None) return true;
+            return false;
         }
-        else
-        {
-            var ClientSSLStream = new SslStream(CD.GetStream(), false, new RemoteCertificateValidationCallback(ValidateServerCertificate), null);
-            ClientSSLStream.AuthenticateAsClient(AdditionallyValidateAgainstHostname);
-            DS = ClientSSLStream;
-        }
-        if (AuthenticateAsClient)
-        {
-            Console.WriteLine("Authenticating as client...");
-            var OurCS = DS;
-            var RG = new Random();
-            byte[] RandomBytes = new byte[32];
-            byte[] response = new byte[32];
-            byte[] challenge = new byte[32];
-            byte[] challengeResponse = new byte[32];
-            RG.NextBytes(RandomBytes);
-            System.Security.Cryptography.Aes aesEnc = System.Security.Cryptography.Aes.Create();
-            aesEnc.KeySize = 256;
-            aesEnc.Key = AuthenticationKeyPSKBytes;
-            aesEnc.IV = Enumerable.Repeat((byte)0x00, 16).ToArray();
-            ICryptoTransform EncryptTransformer = aesEnc.CreateEncryptor(aesEnc.Key, aesEnc.IV);
-            ICryptoTransform DecryptTransformer = aesEnc.CreateDecryptor(aesEnc.Key, aesEnc.IV);
-
-            await OurCS.ReadExactlyAsync(challenge);
-            EncryptTransformer.TransformBlock(challenge, 0, 32, challengeResponse, 0);
-            await OurCS.WriteAsync(challengeResponse);
-            await OurCS.WriteAsync(RandomBytes);
-            await OurCS.ReadExactlyAsync(response);
-            byte[] decryptedResponse = new byte[32];
-            DecryptTransformer.TransformBlock(response, 0, 32, decryptedResponse, 0);
-            IStructuralEquatable IERC = RandomBytes[0..16];
-            bool IsResponseCorrect = IERC.Equals(decryptedResponse[0..16], StructuralComparisons.StructuralEqualityComparer);
-            await OurCS.FlushAsync();
-        }
-        outStream = DS;
-        return new StreamWithParameters()
-        {
-            stream = outStream,
-            IsPSKAuthenticated = AuthenticateAsClient,
-            IsTLSAuthenticated = TLSClient
-        };
-    }
-    public static bool ValidateServerCertificate(object sender, X509Certificate cert, X509Chain chain, SslPolicyErrors SPE)
-    {
-        Console.WriteLine($"Verifying TLS/SSL cert as a client... {SPE}");
-        if (SPE == SslPolicyErrors.None) return true;
-        return false;
     }
 }
 public static class Forwarder
