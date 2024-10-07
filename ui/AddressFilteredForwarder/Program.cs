@@ -219,7 +219,7 @@ namespace RV.AFF
                 ClientSSLStream.AuthenticateAsClient(AdditionallyValidateAgainstHostname);
                 DS = ClientSSLStream;
             }
-            if (AuthenticateAsClient)
+            if (AuthenticateAsClient && false)
             {
                 Console.WriteLine("Authenticating as client...");
                 var OurCS = DS;
