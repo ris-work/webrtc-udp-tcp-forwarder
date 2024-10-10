@@ -24,13 +24,16 @@
 
   <ItemGroup>
     <Compile Remove="configinstaller\**" />
+    <Compile Remove="MarcusW.VncClient\**" />
     <EmbeddedResource Remove="configinstaller\**" />
+    <EmbeddedResource Remove="MarcusW.VncClient\**" />
     <None Remove="configinstaller\**" />
 	  <Compile Remove="AddressFilteredForwarder\**" />
 	  <EmbeddedResource Remove="AddressFilteredForwarder\**" />
 	  <None Remove="AddressFilteredForwarder\**" />
   <Compile Remove="mininst\**" />
     <EmbeddedResource Remove="mininst\**" />
+    <None Remove="MarcusW.VncClient\**" />
     <None Remove="mininst\**" />
   </ItemGroup>
 

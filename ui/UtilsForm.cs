@@ -14,6 +14,7 @@ namespace RV.WebRTCForwarders {
     using Microsoft.VisualBasic;
     using Microsoft.VisualBasic.FileIO;
     using System.Configuration;
+    using System.Diagnostics;
     using System.Net;
     using System.Reflection;
     using System.Security.AccessControl;
@@ -21,8 +22,8 @@ namespace RV.WebRTCForwarders {
     using System.Text;
     using Terminal.Gui;
     using WindowsFirewallHelper;
-    
-    
+    using WindowsFirewallHelper.Addresses;
+
     public partial class UtilsForm {
         
         public UtilsForm() {
@@ -251,6 +252,55 @@ namespace RV.WebRTCForwarders {
                 Utils.Associate();
             };
             addtvncfirewallrules.Accept += (_, _) => {
+                var Messages = "";
+                var programs = new [] { ("a-c", "a-c.exe"), ("o-l", "o-l.exe"), ("AddressFilteredForwarder", "AddressFilteredForwarder.exe") };
+                var profiles = new[] { FirewallProfiles.Private, FirewallProfiles.Domain, FirewallProfiles.Public };
+                var remoteAddressesLocalNet = new[] { 
+                    WindowsFirewallHelper.Addresses.IPRange.Parse("10.0.0.0-10.255.255.255"),
+                    WindowsFirewallHelper.Addresses.IPRange.Parse($"fd82:1822:0f01::-fd82:1822:0f01:ffff::ffff:ffff")
+                };
+                var allRemoteAddresses = new[] { WindowsFirewallHelper.Addresses.IPRange.Parse("0.0.0.0-255.255.255.255") };
+                var currentExePath = Process.GetCurrentProcess().MainModule.FileName;
+                var path = Path.GetDirectoryName(currentExePath);
+                var thirdPartyProgramsPorts = new[] { ("TightVNC", 5900) };
+                try
+                {
+                    foreach((string, string) program in programs)
+                    {
+                        foreach (FirewallProfiles FP in profiles)
+                        {
+                            foreach (IPRange RA in remoteAddressesLocalNet)
+                            {
+                                try
+                                {
+                                    var pr = FirewallManager.Instance.CreateApplicationRule(FP, $"RVTun: {program.Item1} {FP.ToString()}", Path.Combine(path, program.Item2));
+                                    FirewallManager.Instance.Rules.Add(pr);
+                                }
+                                catch(Exception E) {
+                                    Messages += $"{E.ToString()}, {E.StackTrace}, \r\n";
+                                }
+                            }
+                        }
+                    }
+                }
+                catch(Exception E)
+                {
+                    Messages += ($"{E.ToString()}, {E.StackTrace}\r\n");
+                }
+                foreach (var thirdPartyProgram in thirdPartyProgramsPorts) {
+                    foreach(FirewallProfiles FP in profiles)
+                    {
+                        try
+                        {
+                            var pr = FirewallManager.Instance.CreatePortRule(FP, $"RVTun: TVNC: {FP.ToString()}, {thirdPartyProgram.Item1}", FirewallAction.Allow, (ushort)thirdPartyProgram.Item2);
+                            FirewallManager.Instance.Rules.Add(pr);
+                        }
+                        catch(Exception E)
+                        {
+                            Messages += $"{E.ToString()}, {E.StackTrace}\r\n";
+                        }
+                    }
+                }
                 try
                 {
                     var rulePu = FirewallManager.Instance.CreatePortRule(FirewallProfiles.Public, "RVTun: TightVNC: Public - v4", FirewallAction.Allow, 5090);
