@@ -80,6 +80,7 @@ public static class ConfigInstaller
 
                 try
                 {
+                    string DateFileName = DateTime.Now.ToString("o").Replace(":", "_");
                     string MessagesLog = "";
                     string FileList = "";
                     foreach (ZipEntry item in ZF)
@@ -366,7 +367,7 @@ public static class ConfigInstaller
                     {
                         MessagesLog += "Wireguard tunnel installation exception: " + $"{E.ToString()}\r\n{E.StackTrace}{Environment.NewLine}";
                     }
-                    File.AppendAllText($"configinstaller-{DateTime.Now.ToString("O")}.log", MessagesLog);
+                    File.AppendAllText($"configinstaller-{DateFileName}.log", MessagesLog);
                     break;
 
                 }
