@@ -5,9 +5,10 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <PublishAot>true</PublishAot>
+    <PublishAot>False</PublishAot>
     <InvariantGlobalization>true</InvariantGlobalization>
     <ApplicationIcon>icons\aff_tilt.ico</ApplicationIcon>
+    <PublishTrimmed>True</PublishTrimmed>
   </PropertyGroup>
 
   <ItemGroup>
