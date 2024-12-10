@@ -16,31 +16,32 @@ codegen-units=1
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.89"
+anyhow = "1.0.94"
 base64 = "0.21.7"
-bytes = "1.7.2"
-chrono = "0.4.38"
+bytes = "1.9.0"
+chrono = "0.4.39"
 compile-time-run = "0.2.12"
 core_affinity = "0.8.1"
 crossbeam-channel = "0.5.13"
 crossbeam-queue = "0.3.11"
 env_logger = "0.10.2"
-futures = "0.3.30"
+futures = "0.3.31"
 hex = "0.4.3"
 hmac = "0.12.1"
-hyper = "1.4.1"
+hyper = "1.5.1"
 lazy_static = "1.5.0"
 log = {version="0.4", features=["release_max_level_info"]}
 mimalloc = {version="0.1.43", default-features=false}
 parking_lot = "0.12.3"
-serde = "1.0.210"
-serde_json = "1.0.128"
+serde = "1.0.215"
+serde_json = "1.0.133"
 sha2 = "0.10.8"
-tokio = "1.40.0"
+tokio = "1.42.0"
 toml = "0.8.19"
 uds_windows = "1.1.0"
 webrtc =  "0.11.0"
-webrtc_cc = {package = "webrtc", version="0.10.0"}
+#webrtc_cc = {package = "webrtc", path="webrtc/webrtc/"}
+webrtc_cc = {package = "webrtc", version="0.12.0"}
 websocket = "0.27.1"
 [target.'cfg(target_env="musl")'.dependencies]
 openssl = {version = "0.10", features = ["vendored"]}
