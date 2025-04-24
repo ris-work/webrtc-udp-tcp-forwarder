@@ -16,27 +16,27 @@ codegen-units=1
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.94"
+anyhow = "1.0.95"
 base64 = "0.21.7"
 bytes = "1.9.0"
 chrono = "0.4.39"
 compile-time-run = "0.2.12"
 core_affinity = "0.8.1"
-crossbeam-channel = "0.5.13"
-crossbeam-queue = "0.3.11"
+crossbeam-channel = "0.5.14"
+crossbeam-queue = "0.3.12"
 env_logger = "0.10.2"
 futures = "0.3.31"
 hex = "0.4.3"
 hmac = "0.12.1"
-hyper = "1.5.1"
+hyper = "1.5.2"
 lazy_static = "1.5.0"
 log = {version="0.4", features=["release_max_level_info"]}
 mimalloc = {version="0.1.43", default-features=false}
 parking_lot = "0.12.3"
-serde = "1.0.215"
-serde_json = "1.0.133"
+serde = "1.0.217"
+serde_json = "1.0.137"
 sha2 = "0.10.8"
-tokio = "1.42.0"
+tokio = "1.43.0"
 toml = "0.8.19"
 uds_windows = "1.1.0"
 webrtc =  "0.12.0"
@@ -58,3 +58,6 @@ tcp=[]
 uds=[]
 default = ["queuemon"]
 queuemon = []
+
+[unstable]
+build-std = ["core", "alloc"]

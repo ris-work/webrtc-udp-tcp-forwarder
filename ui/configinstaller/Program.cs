@@ -14,6 +14,7 @@ using System.Text;
 using Humanizer;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 using Isopoh.Cryptography.Argon2;
+using System.Runtime.InteropServices;
 
 
 public static class Config {
@@ -105,7 +106,19 @@ public static class ConfigInstaller
 
                     try
                     {
-                        FZ.ExtractZip((Stream)MSI, Path.Combine(TunnelsRoot, ci.PortNumber.ToString()), FastZip.Overwrite.Always, (_) => true, ".*", ".*", true, true);
+                        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                        {
+                            MessagesLog += $"Detected OS: {RuntimeInformation.OSDescription}, non-\"Microsoft Windows (R)\", extracting to {ci.PortNumber.ToString()}/ instead";
+                            FileSystem.CreateDirectory(ci.PortNumber.ToString());
+                            FZ.ExtractZip((Stream)MSI, Path.Combine(ci.PortNumber.ToString(), ci.PortNumber.ToString()), FastZip.Overwrite.Always, (_) => true, ".*", ".*", true, true);
+                        }
+                        try
+                        {
+                            FZ.ExtractZip((Stream)MSI, Path.Combine(TunnelsRoot, ci.PortNumber.ToString()), FastZip.Overwrite.Always, (_) => true, ".*", ".*", true, true);
+                        } catch (Exception E)
+                        {
+                            MessagesLog += $"Exception when extracting (Ignore of not Microsoft Windows (R)): {E.ToString()}\r\n{E.StackTrace}{Environment.NewLine}";
+                        }
                     }
                     catch (Exception E)
                     {
