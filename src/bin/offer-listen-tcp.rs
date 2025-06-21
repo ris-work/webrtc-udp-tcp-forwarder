@@ -25,6 +25,7 @@ use tokio::net::TcpSocket;
 use crossbeam_channel::{bounded, unbounded, Receiver, Sender};
 use std::error::Error;
 use std::fs::read_to_string;
+use std::fs::remove_file;
 use std::io;
 use std::io::ErrorKind;
 use std::io::Read;
@@ -816,6 +817,15 @@ fn main() {
             #[cfg(feature = "uds")]
             {
                 info! {"Unix Domain Socket requested."};
+                let UnlinkAddress = BindAddress.clone();
+                match std::fs::remove_file(UnlinkAddress) {
+                    Ok(()) => println!("Socket file removed."),
+                    Err(ref e) => {
+                        // File didn't exist  that's fine.
+                        println!("Socket file not found, continuing...");
+                    }
+                    //Err(e) => return Err(e), // Propagate any other errors.
+                }
                 let Listener = UnixListener::bind(BindAddress);
                 let mut OtherSocket = Listener
                     .expect("UDS listen error")
@@ -839,7 +849,7 @@ fn main() {
                 let mut OSCastedReliableOrderedStream: OrderedReliableStream =
                     OrderedReliableStream::Uds(OtherSocket);
                 //(data_channel, OtherSocket) = rt.block_on(
-                    //configure_send_receive_tcp(data_channel, OtherSocket),
+                //configure_send_receive_tcp(data_channel, OtherSocket),
                 (data_channel, OSCastedReliableOrderedStream) =
                     rt.block_on(configure_send_receive_tcp(
                         data_channel,
