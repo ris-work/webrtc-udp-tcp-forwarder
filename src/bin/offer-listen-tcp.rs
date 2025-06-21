@@ -811,8 +811,8 @@ fn main() {
         let mut buf = [0; PKT_SIZE];
         if (config.Type == "UDP") {
             panic! {"Wrong tool"};
-        } else if (config.Type == "UDD") {
-            #[cfg(feature = "udd")]
+        } else if (config.Type == "UDS") {
+            #[cfg(feature = "uds")]
             {
                 info! {"Unix Domain Socket requested."};
                 let Listener = UnixListener::bind(BindAddress);
@@ -826,9 +826,9 @@ fn main() {
                     configure_send_receive_uds(data_channel, OtherSocket),
                 );
             }
-            #[cfg(not(feature = "udd"))]
+            #[cfg(not(feature = "uds"))]
             {
-                println! {"Feature available but nor enabled: UDD."};
+                println! {"Feature available but nor enabled: UDS."};
             }
         } else if (config.Type == "TCP") {
             //#[cfg(feature = "tcp")]
