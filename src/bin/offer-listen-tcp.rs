@@ -64,9 +64,8 @@ use webrtc_cc::peer_connection::configuration::RTCConfiguration;
 use webrtc_cc::peer_connection::peer_connection_state::RTCPeerConnectionState;
 use webrtc_cc::peer_connection::sdp::session_description::RTCSessionDescription;
 use webrtc_cc::peer_connection::RTCPeerConnection;
+//use webrtc_udp_forwarder::ClonableSendableReceivable;
 
-use webrtc_udp_forwarder::OrderedReliableStream;
-use webrtc_udp_forwarder::ClonableSendableReceivable;
 use webrtc_udp_forwarder::hmac::{
     ConstructAuthenticatedMessage, HashAuthenticatedMessage, VerifyAndReturn,
 };
@@ -74,7 +73,9 @@ use webrtc_udp_forwarder::message::{
     CheckAndReturn, ConstructMessage, TimedMessage,
 };
 use webrtc_udp_forwarder::AlignedMessage::AlignedMessage;
+use webrtc_udp_forwarder::ClonableSendableReceivable;
 use webrtc_udp_forwarder::Config;
+use webrtc_udp_forwarder::OrderedReliableStream;
 use webrtc_udp_forwarder::Pinning;
 
 use websocket::header::{Authorization, Basic, Bearer, Headers};
@@ -822,9 +823,34 @@ fn main() {
                     .next()
                     .expect("Error getting the UDS stream")
                     .expect("UDS stream error");
-                (data_channel, OtherSocket) = rt.block_on(
-                    configure_send_receive_uds(data_channel, OtherSocket),
+                /*match (OtherSocket.set_nodelay(true)) {
+                    Ok(_) => debug! {"NODELAY set"},
+                    Err(_) => warn!("SO_NODELAY failed."),
+                }*/
+                STREAM_LAST_ACTIVE_TIME.store(
+                    chrono::Utc::now()
+                        .timestamp()
+                        .try_into()
+                        .expect("This software is not supposed to be used before UNIX was invented."),
+                    Ordering::Relaxed,
                 );
+                debug! {"Attempting to write the send buffer: {:?}", &OtherSocketSendBuf.lock()};
+                OtherSocket.write(&OtherSocketSendBuf.lock());
+                let mut OSCastedReliableOrderedStream: OrderedReliableStream =
+                    OrderedReliableStream::Uds(OtherSocket);
+                //(data_channel, OtherSocket) = rt.block_on(
+                    //configure_send_receive_tcp(data_channel, OtherSocket),
+                (data_channel, OSCastedReliableOrderedStream) =
+                    rt.block_on(configure_send_receive_tcp(
+                        data_channel,
+                        OSCastedReliableOrderedStream,
+                        done_rx,
+                        done_tx,
+                        cb_done_rx,
+                        cb_done_tx,
+                        config.clone(),
+                    ));
+                //);
             }
             #[cfg(not(feature = "uds"))]
             {

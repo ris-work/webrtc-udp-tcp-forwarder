@@ -66,6 +66,8 @@ use webrtc_cc::peer_connection::configuration::RTCConfiguration;
 use webrtc_cc::peer_connection::peer_connection_state::RTCPeerConnectionState;
 use webrtc_cc::peer_connection::sdp::session_description::RTCSessionDescription;
 use webrtc_cc::peer_connection::RTCPeerConnection;
+use webrtc_udp_forwarder::OrderedReliableStream;
+use webrtc_udp_forwarder::ClonableSendableReceivable;
 
 use webrtc_udp_forwarder::hmac::{
     ConstructAuthenticatedMessage, HashAuthenticatedMessage, VerifyAndReturn,
@@ -322,13 +324,13 @@ pub trait Socket: Send + Sync + Unpin + Read + Write {
 async fn configure_send_receive_tcp(
     RTCDC: Arc<RTCDataChannel>,
     RTCPC: Arc<RTCPeerConnection>,
-    OtherSocket: TcpStream,
+    OtherSocket: OrderedReliableStream,
     mut done_rx: tokio::sync::mpsc::Receiver<()>,
     mut done_tx: tokio::sync::mpsc::Sender<()>,
     Done_rx: crossbeam_channel::Receiver<bool>,
     cb_done_tx: crossbeam_channel::Sender<bool>,
     config: Config,
-) -> (Arc<RTCDataChannel>, TcpStream) /*, Box<dyn error::Error>>*/ {
+) -> (Arc<RTCDataChannel>, OrderedReliableStream) /*, Box<dyn error::Error>>*/ {
     // Register channel opening handling
     let d1 = Arc::clone(&RTCDC);
     let mut ClonedSocketRecv = OtherSocket
@@ -954,11 +956,12 @@ fn main() {
                     chrono::Utc::now().timestamp().try_into().expect("This software is not supposed to be used before UNIX was invented."),
                     Ordering::Relaxed,
                 );
-                (data_channel, OtherSocket) =
+                let OtherSocketR: OrderedReliableStream;
+                (data_channel, OtherSocketR) =
                     rt.block_on(configure_send_receive_tcp(
                         data_channel,
                         peer_connection,
-                        OtherSocket,
+                        OrderedReliableStream::Tcp(OtherSocket),
                         done_rx,
                         done_tx,
                         cb_done_rx,
@@ -976,11 +979,17 @@ fn main() {
                 info! {"Unix Domain Socket requested."};
                 let mut OtherSocket = UnixStream::connect(ConnectAddress)
                     .expect("UDS connect error");
-                (data_channel, OtherSocket) =
-                    rt.block_on(configure_send_receive_uds(
+                let OtherSocketR: OrderedReliableStream;
+                (data_channel, OtherSocketR) =
+                    rt.block_on(configure_send_receive_tcp(
                         data_channel,
                         peer_connection,
-                        OtherSocket,
+                        OrderedReliableStream::Uds(OtherSocket),
+                        done_rx,
+                        done_tx,
+                        cb_done_rx,
+                        cb_done_tx,
+                        config.clone(),
                     ));
             }
             #[cfg(not(feature = "uds"))]
