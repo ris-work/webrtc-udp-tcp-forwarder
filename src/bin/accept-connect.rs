@@ -1002,14 +1002,7 @@ fn main() {
             #[cfg(feature = "uds")]
             {
                 info! {"Unix Domain Socket requested."};
-                let mut OtherSocket = UnixStream::connect(ConnectAddress)
-                    .expect("UDS connect error");
-                (data_channel, OtherSocket) =
-                    rt.block_on(configure_send_receive_uds(
-                        data_channel,
-                        peer_connection,
-                        OtherSocket,
-                    ));
+                panic! {"UDS requested, WRONG TOOL!"};
             }
             #[cfg(not(feature = "uds"))]
             {
