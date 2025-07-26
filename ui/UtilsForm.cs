@@ -75,6 +75,11 @@ namespace RV.WebRTCForwarders {
                     var Programs = new[] { 
                         ("Accept(Answer)-Connect [Core]", "https://vz.al/chromebook/webrtc-udp-tcp-forwarder/uv/a-c.exe", "a-c.exe"),
                         ("Offer-Listen [Core]", "https://vz.al/chromebook/webrtc-udp-tcp-forwarder/uv/o-l.exe", "o-l.exe"),
+                        ("Accept(Answer)-Connect [Named, UDP, Core]", "https://vz.al/chromebook/webrtc-udp-tcp-forwarder/uv/u-a-c.exe", "u-a-c.exe"),
+                        ("Offer-Listen [Named, UDP, Core]", "https://vz.al/chromebook/webrtc-udp-tcp-forwarder/uv/u-o-l.exe", "u-o-l.exe"),
+                        ("Accept(Answer)-Connect [Named, TCP, Core]", "https://vz.al/chromebook/webrtc-udp-tcp-forwarder/uv/t-a-c.exe", "t-a-c.exe"),
+                        ("Offer-Listen [Named, TCP, Core]", "https://vz.al/chromebook/webrtc-udp-tcp-forwarder/uv/t-o-l.exe", "t-o-l.exe"),
+                        ("Wscs [WebSockets]", "https://vz.al/chromebook/webrtc-udp-tcp-forwarder/uv/wscs.exe", "wscs.exe"),
                         ("WinSW [Core]", "https://github.com/winsw/winsw/releases/download/v3.0.0-alpha.11/WinSW-x64.exe", "winsw.exe"),
                         ("ConfigInstaller [Core]", "https://vz.al/chromebook/webrtc-udp-tcp-forwarder/uv/configinstaller.exe", "configinstaller.exe"),
                         ("Port Forwarder with Access Control", "https://vz.al/chromebook/webrtc-udp-tcp-forwarder/uv/AddressFilteredForwarder.exe", "AddressFilteredForwarder.exe"),
@@ -258,7 +263,7 @@ namespace RV.WebRTCForwarders {
                 try
                 {
                     Messages += "Creating Firewall rule objects...\r\n";
-                    var programs = new[] { ("a-c", "a-c.exe"), ("o-l", "o-l.exe"), ("AddressFilteredForwarder", "AddressFilteredForwarder.exe") };
+                    var programs = new[] { ("a-c", "a-c.exe"), ("o-l", "o-l.exe"), ("AddressFilteredForwarder", "AddressFilteredForwarder.exe"), ("u-o-l", "u-o-l.exe"), ("u-a-c", "u-a-c.exe"), ("t-o-l", "t-o-l.exe"), ("t-a-c", "t-a-c.exe"), ("wscs", "wscs.exe") };
                     File.AppendAllText($"FWRules.{" "}.log", Messages);
                     var profiles = new[] { FirewallProfiles.Private, FirewallProfiles.Domain, FirewallProfiles.Public };
                     File.AppendAllText($"FWRules.{DateFileName}.log", Messages);
