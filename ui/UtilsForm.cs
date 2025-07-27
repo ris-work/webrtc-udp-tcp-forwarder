@@ -359,6 +359,89 @@ namespace RV.WebRTCForwarders {
                     File.AppendAllText($"FWRules.{DateFileName}.log", Messages);
                 }
             };
+            addFirewallRules.Accept += (_, _) => {
+                MessageBox.Query("CWD", $"{Environment.CurrentDirectory}\r\n{DateTime.Now}\r\n{DateTime.Now.ToString("o")}", "Ok");
+                string DateFileName = DateTime.Now.ToString("o").Replace(":", "_");
+                string Messages = "";
+                try
+                {
+                    Messages += "Creating Firewall rule objects...\r\n";
+                    var programs = new[] { ("a-c", "a-c.exe"), ("o-l", "o-l.exe"), ("AddressFilteredForwarder", "AddressFilteredForwarder.exe"), ("u-o-l", "u-o-l.exe"), ("u-a-c", "u-a-c.exe"), ("t-o-l", "t-o-l.exe"), ("t-a-c", "t-a-c.exe"), ("wscs", "wscs.exe") };
+                    File.AppendAllText($"FWRules.{" "}.log", Messages);
+                    var profiles = new[] { FirewallProfiles.Private, FirewallProfiles.Domain, FirewallProfiles.Public };
+                    File.AppendAllText($"FWRules.{DateFileName}.log", Messages);
+                    var remoteAddressesLocalNet = new[] {
+                    new WindowsFirewallHelper.Addresses.IPRange(IPAddress.Parse("10.0.0.0"), IPAddress.Parse("10.255.255.255")),
+                    new WindowsFirewallHelper.Addresses.IPRange(IPAddress.Parse("fd82:1822:0f01::"), IPAddress.Parse("fd82:1822:0f01:ffff::ffff:ffff"))
+                    };
+                    File.AppendAllText($"FWRules.{DateFileName}.log", Messages);
+                    var allRemoteAddresses = new[] { new WindowsFirewallHelper.Addresses.IPRange(IPAddress.Parse("0.0.0.1"), IPAddress.Parse("255.255.255.255")) };
+                    //FORCE
+                    var currentExePath = Process.GetCurrentProcess().MainModule.FileName;
+                    var path = Path.GetDirectoryName(currentExePath);
+                    var thirdPartyProgramsPorts = new[] { ("TightVNC", 5900) };
+                    File.AppendAllText($"FWRules.{DateFileName}.log", Messages);
+                    Messages += "Adding Firewall rules...\r\n";
+                    try
+                    {
+                        foreach ((string, string) program in programs)
+                        {
+                            foreach (FirewallProfiles FP in profiles)
+                            {
+                                foreach (IPRange RA in remoteAddressesLocalNet)
+                                {
+                                    try
+                                    {
+                                        var pr = FirewallWAS.Instance.CreateApplicationRule(FP, $"RVTun: {program.Item1} {FP.ToString()}", FirewallAction.Allow, FirewallDirection.Inbound, Path.Combine(path, program.Item2), FirewallProtocol.Any);
+                                        FirewallWAS.Instance.Rules.Add(pr);
+                                    }
+                                    catch (Exception E)
+                                    {
+                                        Messages += $"{E.ToString()}, {E.StackTrace}, \r\n";
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception E)
+                    {
+                        Messages += ($"{E.ToString()}, {E.StackTrace}\r\n");
+                        File.AppendAllText($"FWRules.{DateFileName}.log", Messages);
+                        Messages = "";
+                    }
+                }
+                catch (Exception E)
+                {
+                    Messages += $"{E.ToString()}, {E.StackTrace}\r\n";
+                    File.AppendAllText($"FWRules.{DateFileName}.log", Messages);
+                }
+            };
+            installAdditionalSoftware.Accept += (_, _) => {
+                string Messages = "";
+                HttpClient HC = new HttpClient();
+                var Programs = new[] {
+                        ("Screen Forwarder [Additional]", "https://vz.al/chromebook/webrtc-udp-tcp-forwarder/uv/fw.exe", "fw.exe"),
+                    };
+                foreach (var program in Programs)
+                {
+                    try
+                    {
+                        Console.WriteLine($"Installing {program.Item1} from {program.Item2}...");
+                        var output = HC.GetStreamAsync(program.Item2).GetAwaiter().GetResult();
+                        var out_exe = File.Create(Path.Combine(root, program.Item3));
+                        output.CopyTo(out_exe);
+                        output.Close();
+                        out_exe.Close();
+                    }
+                    catch (Exception E)
+                    {
+                        Messages += $"Exception while installing {program.Item1} (installation probably failed): {E.ToString()}, {E.StackTrace}{Environment.NewLine}";
+
+                    }
+                }
+                Messages += ("Done downloading, press [Esc], [Enter] or [Return] to continue...");
+                MessageBox.Query("Messages", Messages, "Ok");
+            };
             addtvncfirewallrulesx.Accept += (_, _) => {
                 var x = "10";
                 byte[] b = new byte[2];

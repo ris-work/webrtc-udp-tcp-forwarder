@@ -31,6 +31,10 @@ namespace RV.WebRTCForwarders {
         
         private Terminal.Gui.Button instsoftware;
         
+        private Terminal.Gui.Button addFirewallRules;
+        
+        private Terminal.Gui.Button installAdditionalSoftware;
+        
         private Terminal.Gui.Bar bar;
         
         private Terminal.Gui.Button instwg;
@@ -50,6 +54,8 @@ namespace RV.WebRTCForwarders {
             this.insttvnc = new Terminal.Gui.Button();
             this.instwg = new Terminal.Gui.Button();
             this.bar = new Terminal.Gui.Bar();
+            this.installAdditionalSoftware = new Terminal.Gui.Button();
+            this.addFirewallRules = new Terminal.Gui.Button();
             this.instsoftware = new Terminal.Gui.Button();
             this.associate = new Terminal.Gui.Button();
             this.portbasedcalculator = new Terminal.Gui.Button();
@@ -99,10 +105,32 @@ namespace RV.WebRTCForwarders {
             this.instsoftware.TextAlignment = Terminal.Gui.Alignment.Center;
             this.instsoftware.IsDefault = false;
             this.Add(this.instsoftware);
+            this.addFirewallRules.Width = Dim.Auto();
+            this.addFirewallRules.Height = 1;
+            this.addFirewallRules.X = 2;
+            this.addFirewallRules.Y = 9;
+            this.addFirewallRules.Visible = true;
+            this.addFirewallRules.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
+            this.addFirewallRules.Data = "addFirewallRules";
+            this.addFirewallRules.Text = "Add Firewall Rules";
+            this.addFirewallRules.TextAlignment = Terminal.Gui.Alignment.Center;
+            this.addFirewallRules.IsDefault = false;
+            this.Add(this.addFirewallRules);
+            this.installAdditionalSoftware.Width = Dim.Auto();
+            this.installAdditionalSoftware.Height = 1;
+            this.installAdditionalSoftware.X = 2;
+            this.installAdditionalSoftware.Y = 11;
+            this.installAdditionalSoftware.Visible = true;
+            this.installAdditionalSoftware.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
+            this.installAdditionalSoftware.Data = "installAdditionalSoftware";
+            this.installAdditionalSoftware.Text = "Install Additional Software";
+            this.installAdditionalSoftware.TextAlignment = Terminal.Gui.Alignment.Center;
+            this.installAdditionalSoftware.IsDefault = false;
+            this.Add(this.installAdditionalSoftware);
             this.bar.Width = Dim.Fill(4);
             this.bar.Height = 1;
             this.bar.X = 2;
-            this.bar.Y = 11;
+            this.bar.Y = 15;
             this.bar.Visible = true;
             this.bar.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
             this.bar.Data = "bar";
@@ -112,7 +140,7 @@ namespace RV.WebRTCForwarders {
             this.instwg.Width = Dim.Auto();
             this.instwg.Height = 1;
             this.instwg.X = 2;
-            this.instwg.Y = 13;
+            this.instwg.Y = 17;
             this.instwg.Visible = true;
             this.instwg.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
             this.instwg.Data = "instwg";
@@ -123,7 +151,7 @@ namespace RV.WebRTCForwarders {
             this.insttvnc.Width = Dim.Auto();
             this.insttvnc.Height = 1;
             this.insttvnc.X = 2;
-            this.insttvnc.Y = 15;
+            this.insttvnc.Y = 19;
             this.insttvnc.Visible = true;
             this.insttvnc.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
             this.insttvnc.Data = "insttvnc";
@@ -134,7 +162,7 @@ namespace RV.WebRTCForwarders {
             this.inst7z.Width = Dim.Auto();
             this.inst7z.Height = 1;
             this.inst7z.X = 2;
-            this.inst7z.Y = 17;
+            this.inst7z.Y = 21;
             this.inst7z.Visible = true;
             this.inst7z.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
             this.inst7z.Data = "inst7z";
@@ -145,7 +173,7 @@ namespace RV.WebRTCForwarders {
             this.addtvncfirewallrules.Width = Dim.Auto();
             this.addtvncfirewallrules.Height = 1;
             this.addtvncfirewallrules.X = 2;
-            this.addtvncfirewallrules.Y = 19;
+            this.addtvncfirewallrules.Y = 23;
             this.addtvncfirewallrules.Visible = true;
             this.addtvncfirewallrules.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
             this.addtvncfirewallrules.Data = "addtvncfirewallrules";
@@ -156,7 +184,7 @@ namespace RV.WebRTCForwarders {
             this.addtvncfirewallrulesx.Width = Dim.Auto();
             this.addtvncfirewallrulesx.Height = 1;
             this.addtvncfirewallrulesx.X = 2;
-            this.addtvncfirewallrulesx.Y = 21;
+            this.addtvncfirewallrulesx.Y = 25;
             this.addtvncfirewallrulesx.Visible = true;
             this.addtvncfirewallrulesx.Arrangement = Terminal.Gui.ViewArrangement.Fixed;
             this.addtvncfirewallrulesx.Data = "addtvncfirewallrulesx";
