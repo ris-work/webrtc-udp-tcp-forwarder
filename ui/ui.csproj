@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
 	  	  <Description>RV Tunnel Configuration Installer</Description>
@@ -55,14 +55,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="ESCPOS_NET" Version="3.0.0" />
     <PackageReference Include="Isopoh.Cryptography.Argon2" Version="2.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Cryptography.KeyDerivation" Version="9.0.0-rc.1.24452.1" />
     <PackageReference Include="Microsoft.PowerShell.SDK" Version="7.5.0-preview.4" />
     <PackageReference Include="SharpZipLib" Version="1.4.2" />
     <PackageReference Include="System.Memory" Version="4.5.5" />
     <PackageReference Include="Terminal.Gui" Version="2.0.0-v2-develop.2329" />
-    <PackageReference Include="Tomlyn" Version="0.17.0" />
+    <PackageReference Include="Tomlyn" Version="0.19.0" />
     <PackageReference Include="WindowsFirewallHelper" Version="2.2.0.86" />
     <PackageReference Include="Wiry.Base32.Patched" Version="1.0.6.1" />
   </ItemGroup>
